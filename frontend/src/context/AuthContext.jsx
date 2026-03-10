@@ -38,9 +38,32 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
           : 'Correo o contraseña incorrectos'
       throw new Error(message)
     }
+    // Login con MFA: el backend pide código en segundo paso
+    if (data.mfa_required && data.temp_token) {
+      return { mfaRequired: true, tempToken: data.temp_token, email: data.email || '' }
+    }
     if (!data.access_token || !data.user) {
       throw new Error('Respuesta del servidor incorrecta')
     }
+    const u = { ...data.user, token: data.access_token }
+    localStorage.setItem('token', data.access_token)
+    localStorage.setItem('user', JSON.stringify(data.user))
+    setUser(u)
+    return u
+  }, [])
+
+  const completeMfaLogin = useCallback(async (tempToken, code) => {
+    const res = await fetch(`${API_BASE}/api/auth/mfa/verify-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ temp_token: tempToken, code: (code || '').trim().replace(/\s/g, '') }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      const msg = typeof data.detail === 'string' ? data.detail : 'Código incorrecto o expirado'
+      throw new Error(msg)
+    }
+    if (!data.access_token || !data.user) throw new Error('Respuesta del servidor incorrecta')
     const u = { ...data.user, token: data.access_token }
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('user', JSON.stringify(data.user))
@@ -77,7 +100,7 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
   }, [user?.token])
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, api }}>
+    <AuthContext.Provider value={{ user, login, completeMfaLogin, logout, api }}>
       {children}
     </AuthContext.Provider>
   )

@@ -75,15 +75,19 @@ ALTER TABLE videos_promocionales ADD COLUMN solicitante VARCHAR(255);
 
 ### 1. Subir el código (Git → GitHub)
 
-En la carpeta del proyecto:
+En la raíz del proyecto ejecuta el **ejecutable de actualización del proceso**:
+
+- **Doble clic en `SUBIR-CAMBIOS-ONLINE.bat`**
+
+Eso hace: `git add .` → `git commit -m "Actualizacion: ..."` → `git push -u origin main`.
+
+Si prefieres hacerlo a mano:
 
 ```cmd
 git add .
 git commit -m "Inventario, videos solicitud/aprobación, editor página pública"
 git push origin main
 ```
-
-O ejecuta **SUBIR-CAMBIOS-ONLINE.bat** (ya lleva un mensaje de commit adecuado).
 
 ### 2. Vercel (frontend)
 

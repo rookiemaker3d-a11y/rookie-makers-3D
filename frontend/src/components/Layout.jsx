@@ -15,6 +15,7 @@ import {
   Moon,
   Boxes,
   Palette,
+  Shield,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -27,6 +28,7 @@ const NAV = [
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/vendedores', label: 'Vendedores', icon: UserCog, adminOnly: true },
+  { to: '/seguridad', label: 'Seguridad', icon: Shield },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },
   { to: '/editor-pagina', label: 'Editor página pública', icon: Palette, adminOnly: true },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },

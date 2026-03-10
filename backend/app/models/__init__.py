@@ -10,6 +10,7 @@ from app.models.models import (
     VideoPromocional,
     InventarioItem,
     PaginaPublicaConfig,
+    AuditLog,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "VideoPromocional",
     "InventarioItem",
     "PaginaPublicaConfig",
+    "AuditLog",
 ]

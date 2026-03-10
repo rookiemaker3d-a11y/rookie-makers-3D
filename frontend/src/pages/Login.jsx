@@ -10,7 +10,11 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const [mfaStep, setMfaStep] = useState(false)
+  const [mfaTempToken, setMfaTempToken] = useState('')
+  const [mfaEmail, setMfaEmail] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const { login, completeMfaLogin } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
@@ -19,10 +23,31 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await login(email, password)
-      navigate('/')
+      const result = await login(email, password)
+      if (result?.mfaRequired && result.tempToken) {
+        setMfaTempToken(result.tempToken)
+        setMfaEmail(result.email || email)
+        setMfaStep(true)
+        setMfaCode('')
+      } else {
+        navigate('/')
+      }
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleMfaSubmit(e) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await completeMfaLogin(mfaTempToken, mfaCode)
+      navigate('/')
+    } catch (err) {
+      setError(err.message || 'Código incorrecto o expirado')
     } finally {
       setLoading(false)
     }
@@ -57,7 +82,47 @@ export default function Login() {
           </button>
         </div>
         <h1 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--theme-text)' }}>Rookie Makers 3D</h1>
-        <p className="text-center mb-6" style={{ color: 'var(--theme-text-muted)' }}>Iniciar sesión</p>
+        <p className="text-center mb-6" style={{ color: 'var(--theme-text-muted)' }}>{mfaStep ? 'Código de autenticación' : 'Iniciar sesión'}</p>
+        {mfaStep ? (
+          <form onSubmit={handleMfaSubmit} className="space-y-4">
+            {error && (
+              <div className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-sm p-3">{error}</div>
+            )}
+            <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>Introduce el código de 6 dígitos de tu app (Google Authenticator, Authy) para {mfaEmail}.</p>
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text-muted)' }}>Código</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                className="w-full px-4 py-2.5 rounded-xl border transition focus:ring-2 focus:border-transparent text-center text-lg tracking-widest"
+                style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+                placeholder="000000"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setMfaStep(false); setError(''); setMfaCode(''); }}
+                className="py-2.5 rounded-xl font-medium border transition flex-1"
+                style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+              >
+                Atrás
+              </button>
+              <button
+                type="submit"
+                disabled={loading || mfaCode.length < 6}
+                className="flex-1 py-2.5 rounded-xl font-medium border transition disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ background: 'var(--theme-bg-card-hover)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+              >
+                {loading ? 'Verificando...' : 'Verificar'}
+              </button>
+            </div>
+          </form>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-sm p-3">
@@ -109,6 +174,7 @@ export default function Login() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+        )}
       </motion.div>
     </div>
   )

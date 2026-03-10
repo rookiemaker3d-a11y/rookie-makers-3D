@@ -12,6 +12,8 @@ class User(Base):
     role = Column(String(20), nullable=False)  # "vendedor" | "administrador"
     vendedor_id = Column(Integer, ForeignKey("vendedores.id"), nullable=True)  # solo para vendedores
     is_active = Column(Boolean, default=True)
+    mfa_secret = Column(String(64), nullable=True)  # TOTP secret (base32)
+    mfa_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     vendedor = relationship("Vendedor", back_populates="user", uselist=False)
 
@@ -117,3 +119,14 @@ class PaginaPublicaConfig(Base):
     clave = Column(String(100), unique=True, nullable=False)
     valor = Column(JSON, default=dict)  # { "fontSizeTitle": 24, "categories": ["oficina","escuela"], ... }
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class AuditLog(Base):
+    """Registro de auditoría para eventos de seguridad (login, cambio de contraseña, acceso denegado)."""
+    __tablename__ = "audit_log"
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    event_type = Column(String(64), nullable=False)  # login_success, login_failed, password_changed, access_denied
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    ip = Column(String(64), nullable=True)
+    details = Column(JSON, default=dict)  # email, reason, target_user_id, etc.

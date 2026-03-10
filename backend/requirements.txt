@@ -12,5 +12,6 @@ bcrypt==4.0.1
 python-multipart==0.0.17
 reportlab==4.2.5
 Pillow==11.0.0
+pyotp==2.9.0
 opencv-python-headless==4.10.0.84
 numpy>=1.24.0

@@ -50,7 +50,7 @@ export default function Vendedores() {
     setSaving(true)
     setMsg('')
     try {
-      await api(`/vendedores/${editing.id}`, {
+      let res = await api(`/vendedores/${editing.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           nombre: form.nombre,
@@ -60,18 +60,27 @@ export default function Vendedores() {
           cuenta: form.cuenta || null,
         }),
       })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setMsg(data?.detail || 'Error al guardar')
+        return
+      }
       if (form.new_password.trim() && editing.user_id) {
-        await api(`/auth/users/${editing.user_id}/password`, {
+        res = await api(`/auth/users/${editing.user_id}/password`, {
           method: 'PATCH',
           body: JSON.stringify({ new_password: form.new_password.trim() }),
         })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          setMsg(data?.detail || 'Error al guardar')
+          return
+        }
       }
       setMsg('Guardado correctamente.')
       load()
       closeEdit()
     } catch (err) {
-      const data = await err.response?.json().catch(() => ({}))
-      setMsg(data?.detail || 'Error al guardar')
+      setMsg(err?.message || 'Error al guardar')
     } finally {
       setSaving(false)
     }
@@ -161,7 +170,7 @@ export default function Vendedores() {
               />
               <input
                 type="password"
-                placeholder="Nueva contraseña (dejar vacío para no cambiar)"
+                placeholder="Nueva contraseña (mín. 12 caracteres, mayúscula, minúscula, número y carácter especial)"
                 value={form.new_password}
                 onChange={(e) => setForm((f) => ({ ...f, new_password: e.target.value }))}
                 className="theme-input w-full px-4 py-2.5 rounded-xl border"

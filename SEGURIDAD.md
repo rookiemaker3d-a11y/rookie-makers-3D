@@ -1,53 +1,77 @@
-# Seguridad del sistema ERP
+# Seguridad ERP – Controles implementados (informe ciberseguridad)
 
-Referencia: **Informe técnico de ciberseguridad para ERP en línea** (12 dominios, OWASP Top 10, ISO 27001 / NIST). Las acciones siguientes siguen la hoja de ruta del informe.
+Resumen de lo implementado en el backend y frontend del ERP Rookie Makers 3D.
 
----
+## Fase 1 (implementado)
 
-## Fase 1 – Controles críticos (implementados)
+### 1. Headers de seguridad
+- **Middleware** (`app/middleware/security.py`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Content-Security-Policy`, `Strict-Transport-Security` (HSTS) cuando `use_https=True`, y `Cache-Control: no-store` para todas las rutas `/api/*` para evitar caché de tokens y datos sensibles.
 
-| # | Tarea | Estado |
-|---|--------|--------|
-| 1 | HTTPS/TLS y HSTS | **HSTS** se añade cuando `USE_HTTPS=true` en backend. TLS debe configurarse en el servidor/reverso (nginx, cloud). |
-| 2 | MFA (TOTP) | Pendiente (Fase 2). |
-| 3 | Hashing Argon2id | Pendiente; actualmente **bcrypt** (aceptable). |
-| 4 | **Rate limiting** en login y API | **Hecho.** Límite por IP en `/api/auth/login` (10 req/min). Middleware: `app/middleware/security.py`. |
-| 5 | **Headers de seguridad HTTP** | **Hecho.** X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, Content-Security-Policy. HSTS opcional con `USE_HTTPS=true`. |
-| 6 | **Consultas SQL parametrizadas** | **Cumplido.** Todo el backend usa SQLAlchemy ORM (select/where con modelos); no hay concatenación de SQL. |
-| 7 | **Timeout de sesión** | **Hecho.** Token JWT expira en **30 minutos** (`ACCESS_TOKEN_EXPIRE_MINUTES=30`). Para 8h absoluto haría falta refresh token. |
-| 8 | **Bloqueo de cuenta** tras 5 intentos fallidos | **Hecho.** Por email: 5 fallos → bloqueo 15 min. Por IP: 10 intentos/min en login. |
+### 2. Autenticación y contraseñas
+- **Política de contraseñas** (`app/auth.py`): Mínimo 12 caracteres, al menos una mayúscula, una minúscula, un número y un carácter especial. Se aplica al cambiar contraseña (admin) en `PATCH /api/auth/users/{id}/password`.
+- **Bloqueo por intentos fallidos**: Tras 5 intentos fallidos de login por email, la cuenta queda bloqueada 15 minutos (por email + rate limit por IP en middleware).
+- **Hash**: bcrypt (passlib). Opción futura: Argon2id.
 
----
+### 3. Auditoría y logging
+- **Tabla `audit_log`**: Eventos `login_success`, `login_failed`, `password_changed` con `user_id`, `ip`, `details` (JSON).
+- **Registro**: En login (éxito/fallo), cambio de contraseña y verificación MFA.
+- **Endpoint** `GET /api/auth/audit-log` (solo administrador): listado de eventos recientes.
 
-## Medidas ya aplicadas (anteriores)
+### 4. JWT
+- **Claims**: `exp`, `iat`, `sub` (user_id). Token temporal para MFA: `type: mfa_pending`, válido 5 minutos.
+- **Expiración**: Configurable con `access_token_expire_minutes` (por defecto 30 min).
 
-- **CORS:** Orígenes desde variable de entorno.
-- **JWT:** Bearer token; validación de exp y usuario activo.
-- **Contraseñas:** bcrypt (hash con salt).
-- **SECRET_KEY:** Por variable de entorno.
-- **RBAC:** Roles `administrador` y `vendedor`; endpoints sensibles protegidos.
+### 5. Rate limiting
+- **Login**: Límite por IP en ventana de 1 minuto (middleware) y bloqueo por cuenta (5 intentos / 15 min).
 
 ---
 
-## Pendiente (Fase 2 y posteriores)
+## Fase 2 (implementado)
 
-- MFA (TOTP) para todos los usuarios.
-- Migrar contraseñas a Argon2id (opcional; bcrypt es aceptable).
-- WAF delante de la aplicación (Cloudflare, AWS WAF, etc.).
-- Logging centralizado (ELK o equivalente) y alertas en tiempo real.
-- JWT con RS256, refresh tokens y lista de revocación.
-- Cifrado de columnas sensibles en BD (datos financieros/personales).
-- Escaneo de dependencias en CI/CD (Snyk, Dependabot).
-- Backup automatizado con verificación de integridad.
-- Pruebas de penetración y cumplimiento LFPDPPP documentado.
+### 6. MFA (TOTP)
+- **Modelo**: Campos `User.mfa_secret` y `User.mfa_enabled`.
+- **Flujo**:  
+  - `POST /api/auth/mfa/setup` (autenticado): genera secreto y `provisioning_uri` para escanear con Google Authenticator / Authy.  
+  - `POST /api/auth/mfa/confirm` (autenticado): envía `code` y activa MFA.  
+  - `POST /api/auth/mfa/disable` (autenticado): desactiva MFA enviando el código actual.  
+  - Login: si el usuario tiene MFA activo, el backend responde con `mfa_required: true` y `temp_token`; el frontend pide el código y llama a `POST /api/auth/mfa/verify-login` con `temp_token` y `code` para obtener el `access_token`.
+- **Frontend**: Pantalla de login en dos pasos (correo/contraseña → código TOTP) cuando el backend indica MFA.
 
 ---
 
-## Variables de entorno (seguridad)
+## Migración de base de datos existente (MFA)
 
-- `SECRET_KEY`: Clave para JWT (obligatoria en producción).
-- `CORS_ORIGINS`: Orígenes permitidos (ej. `https://tu-dominio.com`).
-- `ACCESS_TOKEN_EXPIRE_MINUTES`: Caducidad del token (por defecto 30).
-- `USE_HTTPS`: `true` en producción con HTTPS para activar HSTS.
+Si la tabla `users` ya existía antes de añadir MFA, hay que agregar las columnas. En **PostgreSQL** (por ejemplo en Render):
 
-En producción: servir la API y el frontend solo por **HTTPS** y configurar TLS 1.2+ en el servidor o proxy.
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret VARCHAR(64) NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN NOT NULL DEFAULT FALSE;
+```
+
+En **SQLite** (desarrollo), si tu versión no soporta `ADD COLUMN ... IF NOT EXISTS`, puedes recrear la base o ejecutar:
+
+```sql
+ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(64);
+ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0;
+```
+
+(Si las columnas ya existen, el ALTER fallará; en ese caso no hace falta hacer nada.)
+
+---
+
+## Producción recomendado
+
+- **Variables de entorno**: `SECRET_KEY` fuerte y único, `DATABASE_URL`, `CORS_ORIGINS` con el origen del frontend (p. ej. `https://rookie-makers-3-d.vercel.app`), `USE_HTTPS=true` para HSTS.
+- **Secretos**: No subir `database_url.txt` ni `.env` al repositorio; usar variables de entorno del host (Render, Vercel).
+- **Backups**: Estrategia 3-2-1 documentada para la base de datos (Render ofrece backups; configurar retención).
+- **WAF / DDoS**: Delegar en la infra (Cloudflare delante de Render/Vercel, opciones de Render, etc.).
+
+---
+
+## Pendiente / opcional
+
+- Historial de contraseñas (últimas N) y expiración (p. ej. 90 días).
+- CSRF explícito (SameSite en cookies si se usan; APIs con Bearer no requieren CSRF clásico).
+- Comprobación HIBP al establecer contraseña (API o lista offline).
+- Argon2id en lugar de bcrypt.
+- Documentación de respuesta a incidentes y cumplimiento (ISO 27001, GDPR/LFPDPPP) según necesidad del negocio.
