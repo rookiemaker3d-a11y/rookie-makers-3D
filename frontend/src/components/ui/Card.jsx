@@ -10,6 +10,7 @@ const Card = forwardRef(function Card(
 ) {
   const base = 'rounded-xl border backdrop-blur-[12px] transition-colors duration-300'
   const hoverClass = hover ? 'hover:bg-[var(--theme-bg-card-hover)] hover:border-[var(--theme-border-hover)]' : ''
+  const padClass = padding ? 'p-5' : ''
   const classes = `${base} ${hoverClass} ${padClass} ${className}`.trim()
 
   return (
