@@ -1,0 +1,161 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional, Any
+from datetime import date
+
+
+# ----- Auth -----
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: "UserResponse"
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+# ----- User -----
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    role: str
+    vendedor_id: Optional[int] = None
+    vendedor_nombre: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----- Vendedor -----
+class VendedorBase(BaseModel):
+    nombre: str
+    correo: str
+    telefono: Optional[str] = None
+    banco: Optional[str] = None
+    cuenta: Optional[str] = None
+
+
+class VendedorCreate(VendedorBase):
+    pass
+
+
+class VendedorResponse(VendedorBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+# ----- Cliente -----
+class ClienteBase(BaseModel):
+    nombre: str
+    correo: str
+    telefono: Optional[str] = None
+    direccion: Optional[str] = None
+
+
+class ClienteCreate(ClienteBase):
+    pass
+
+
+class ClienteResponse(ClienteBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+# ----- Costos (calculadora) -----
+class CalculateCostRequest(BaseModel):
+    horas: float = 0
+    minutos: float = 0
+    gramos: float = 0
+    limpieza: float = 0  # minutos
+    diseno: float = 0    # minutos
+    cantidad: float = 1
+    envio: float = 0
+    descripcion: Optional[str] = None
+
+
+class CalculateCostResponse(BaseModel):
+    costo_filamento: float
+    costo_energia: float
+    costo_limpieza: float
+    costo_diseno: float
+    costo_base_pieza: float
+    costo_final_total: float
+    tiempo_total_min: float
+
+
+# ----- Producto -----
+class ProductoBase(BaseModel):
+    descripcion: str
+    costo_base: float = 0
+    costo_final: float = 0
+    cantidad: float = 1
+    vendedor: Optional[str] = None
+    detalles: Optional[dict] = None
+
+
+class ProductoCreate(ProductoBase):
+    pass
+
+
+class ProductoResponse(ProductoBase):
+    id: int
+    detalles: Optional[dict] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----- Cotización en espera -----
+class CotizacionEnEsperaCreate(BaseModel):
+    descripcion: str
+    cantidad: float = 1
+    costo_base: float
+    costo_final: float
+    detalles: dict
+    fecha: Optional[str] = None
+
+
+class CotizacionEnEsperaResponse(BaseModel):
+    id: int
+    vendedor: str
+    descripcion: str
+    cantidad: float
+    costo_base: float
+    costo_final: float
+    fecha: Optional[str] = None
+    detalles: Optional[dict] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----- Dashboard -----
+class DashboardTotals(BaseModel):
+    total_costo: float
+    total_venta: float
+    ganancia_neta: float
+    cantidad_productos: int
+
+
+# ----- PDF -----
+class CotizacionItem(BaseModel):
+    descripcion: str
+    cantidad: float
+    tiempo_total: float
+    costo_final: float
+    detalles: Optional[dict] = None
+
+
+class GenerateQuotePDFRequest(BaseModel):
+    items: list[CotizacionItem]
+    vendedor_nombre: str
+    tipo: str = "cotizacion"  # "cotizacion" | "recibo"
+
+
+# Fix forward ref
+Token.model_rebuild()

@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Paleta ERP: dark por defecto — spec */
+:root {
+  --background: #0F1117;
+  --foreground: #E2E8F0;
+  --card-bg: #1A1D27;
+  --card-border: #2A2D3E;
+  --sidebar-bg: #1A1D27;
+  --sidebar-fg: #E2E8F0;
+  --sidebar-hover: #2A2D3E;
+  --sidebar-border: #2A2D3E;
+  --muted: #94a3b8;
+  --accent: #4F8EF7;
+  --accent-hover: #6ba3f8;
+  --success: #22C55E;
+}
+/* Tema claro (toggle) */
+.light {
+  --background: #f8fafc;
+  --foreground: #1e293b;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --sidebar-bg: #ffffff;
+  --sidebar-fg: #334155;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-border: #e2e8f0;
+  --muted: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --success: #16a34a;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}

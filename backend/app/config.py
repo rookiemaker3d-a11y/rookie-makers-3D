@@ -1,0 +1,28 @@
+from pydantic_settings import BaseSettings
+from functools import lru_cache
+
+
+class Settings(BaseSettings):
+    app_name: str = "Rookie Makers 3D ERP"
+    # SQLite por defecto; para PostgreSQL: postgresql+asyncpg://user:pass@host/db
+    database_url: str = "sqlite+aiosqlite:///./rookie_erp.db"
+    secret_key: str = "rookie-makers-3d-secret-change-in-production"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24  # 24 horas
+    # CORS: en producción poner ej. https://tu-app.vercel.app (varios separados por coma)
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    
+    # Constantes de negocio (igual que calculator_window.py)
+    margen_ganancia: float = 0.50
+    costo_filamento_base: float = 500.0  # MXN/kg
+    costo_energia_base: float = 4.50
+    costo_limpieza_base: float = 25.0
+    costo_diseno_base: float = 50.0
+    
+    class Config:
+        env_file = ".env"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

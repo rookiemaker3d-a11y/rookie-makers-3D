@@ -1,0 +1,11 @@
+Email Address: norbertomoro4@gmail.com
+Picture: logo_removebg_preview.png
+Lithophane Resolution: 0.8
+Lithophane Height: 200
+Angle: 360
+Frame Width: 10
+Frame Height: 10
+Overhang Angle: 45
+Maximum Thickness: 3.6
+Minimum Thickness: .8
+Picture Spacing: 16

@@ -1,0 +1,1 @@
+export { useCotizador } from './useCotizador'
