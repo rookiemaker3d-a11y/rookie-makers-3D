@@ -19,8 +19,8 @@ export default function Inventario() {
 
   function load() {
     api('/inventario')
-      .then((r) => r.json())
-      .then(setItems)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((data) => setItems(Array.isArray(data) ? data : []))
       .catch(() => setError('Error al cargar inventario'))
       .finally(() => setLoading(false))
   }
