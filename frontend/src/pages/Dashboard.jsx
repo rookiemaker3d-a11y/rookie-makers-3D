@@ -38,10 +38,12 @@ const QUICK_LINKS = [
 ]
 
 export default function Dashboard() {
-  const { api } = useAuth()
+  const { api, user } = useAuth()
   const [totals, setTotals] = useState(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+
+  const quickLinks = QUICK_LINKS.filter((link) => link.to !== '/vendedores' || user?.role === 'administrador')
 
   useEffect(() => {
     api('/dashboard/totals')
@@ -55,7 +57,7 @@ export default function Dashboard() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="theme-text-muted flex items-center gap-2">
-          <div className="w-5 h-5 border-2 border-slate-500 border-t-white rounded-full animate-spin" />
+          <div className="w-5 h-5 border-2 theme-text-muted border-t-transparent rounded-full animate-spin" />
           Cargando...
         </div>
       </div>
@@ -141,7 +143,7 @@ export default function Dashboard() {
           Acciones rápidas
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {QUICK_LINKS.map(({ to, label, icon: Icon }, i) => (
+          {quickLinks.map(({ to, label, icon: Icon }, i) => (
             <Link
               key={to}
               to={to}

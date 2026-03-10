@@ -23,7 +23,7 @@ const NAV = [
   { to: '/productos', label: 'Productos', icon: Package },
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
   { to: '/clientes', label: 'Clientes', icon: Users },
-  { to: '/vendedores', label: 'Vendedores', icon: UserCog },
+  { to: '/vendedores', label: 'Vendedores', icon: UserCog, adminOnly: true },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
   { to: '/proyectos', label: 'Proyectos / Redes', icon: Globe },
@@ -103,7 +103,7 @@ export default function Layout() {
       >
         <div className="max-w-7xl mx-auto px-4 py-2">
           <ul className="flex flex-wrap items-center gap-1">
-            {NAV.map(({ to, label, icon: Icon }) => {
+            {NAV.filter((item) => !item.adminOnly || user?.role === 'administrador').map(({ to, label, icon: Icon }) => {
               const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
               return (
                 <li key={to}>

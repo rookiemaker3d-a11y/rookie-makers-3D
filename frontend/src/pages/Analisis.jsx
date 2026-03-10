@@ -17,17 +17,19 @@ import { TrendingUp, Package, DollarSign } from 'lucide-react'
 const COLORS = ['#4f8ef7', '#22c55e', '#eab308', '#f97316', '#ec4899']
 
 export default function Analisis() {
-  const { api } = useAuth()
+  const { api, user } = useAuth()
   const [totals, setTotals] = useState(null)
   const [productos, setProductos] = useState([])
   const [cotizaciones, setCotizaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState('mes')
 
+  const isAdmin = user?.role === 'administrador'
+
   useEffect(() => {
     Promise.all([
       api('/dashboard/totals').then((r) => r.ok ? r.json() : {}),
-      api('/productos').then((r) => r.json()),
+      api(isAdmin ? '/productos' : '/productos?for_analysis=1').then((r) => r.json()),
       api('/cotizaciones-en-espera').then((r) => r.json()),
     ])
       .then(([t, p, c]) => {
@@ -41,7 +43,7 @@ export default function Analisis() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-slate-500 border-t-white rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 theme-text-muted border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -80,7 +82,7 @@ export default function Analisis() {
     >
       <SectionHeader
         title="Análisis y reportes"
-        subtitle="Resumen ejecutivo y gráficas"
+        subtitle={isAdmin ? 'Resumen ejecutivo y gráficas (todos los datos)' : 'Tus ventas y estadísticas personales'}
       />
 
       <div className="flex flex-wrap gap-2">
@@ -89,7 +91,7 @@ export default function Analisis() {
             key={p}
             type="button"
             onClick={() => setPeriodo(p)}
-            className={`px-3 py-1.5 rounded-lg text-sm ${periodo === p ? 'bg-white/[0.1] text-white' : 'bg-white/[0.04] text-slate-400'}`}
+            className={`px-3 py-1.5 rounded-lg text-sm ${periodo === p ? 'bg-white/[0.1] theme-text' : 'bg-white/[0.04] theme-text-muted'}`}
           >
             {p === 'mes' ? 'Este mes' : p === 'semana' ? 'Esta semana' : 'Últimos 3 meses'}
           </button>
@@ -99,88 +101,88 @@ export default function Analisis() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card hover>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400 text-sm">Ingresos totales</span>
-            <DollarSign className="w-4 h-4 text-slate-500" />
+            <span className="theme-text-muted text-sm">Ingresos totales</span>
+            <DollarSign className="w-4 h-4 theme-text-dim" />
           </div>
-          <p className="text-xl font-bold text-white tabular-nums">
+          <p className="text-xl font-bold theme-text tabular-nums">
             $<CountUp end={totalVenta} decimals={0} duration={1} />
           </p>
         </Card>
         <Card hover>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400 text-sm">Pedidos completados</span>
-            <Package className="w-4 h-4 text-slate-500" />
+            <span className="theme-text-muted text-sm">Pedidos completados</span>
+            <Package className="w-4 h-4 theme-text-dim" />
           </div>
-          <p className="text-xl font-bold text-white tabular-nums">
+          <p className="text-xl font-bold theme-text tabular-nums">
             <CountUp end={cantidad} duration={1} />
           </p>
         </Card>
         <Card hover>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400 text-sm">Ticket promedio</span>
+            <span className="theme-text-muted text-sm">Ticket promedio</span>
           </div>
-          <p className="text-xl font-bold text-white tabular-nums">
+          <p className="text-xl font-bold theme-text tabular-nums">
             $<CountUp end={ticketPromedio} decimals={0} duration={1} />
           </p>
         </Card>
         <Card hover>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-slate-400 text-sm">Margen bruto %</span>
+            <span className="theme-text-muted text-sm">Margen bruto %</span>
             <TrendingUp className="w-4 h-4 text-emerald-500" />
           </div>
-          <p className="text-xl font-bold text-emerald-400 tabular-nums">
+          <p className="text-xl font-bold text-emerald-500 tabular-nums">
             <CountUp end={margenPromedio} decimals={1} duration={1} />%
           </p>
         </Card>
       </div>
 
       <Card>
-        <h3 className="text-sm font-semibold text-white mb-4">Ingresos por periodo</h3>
+        <h3 className="text-sm font-semibold theme-text mb-4">Ingresos por periodo</h3>
         <div className="h-64">
           {ingresosPorMes.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={ingresosPorMes}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="mes" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} tickFormatter={(v) => `$${v}`} />
-                <Tooltip contentStyle={{ background: '#1e293b', border: '1px solid rgba(255,255,255,0.08)' }} formatter={(v) => [`$${Number(v).toFixed(0)}`, 'Ingresos']} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-border)" />
+                <XAxis dataKey="mes" stroke="var(--theme-text-dim)" fontSize={11} />
+                <YAxis stroke="var(--theme-text-dim)" fontSize={11} tickFormatter={(v) => `$${v}`} />
+                <Tooltip contentStyle={{ background: 'var(--theme-bg-card)', border: '1px solid var(--theme-border)', color: 'var(--theme-text)' }} formatter={(v) => [`$${Number(v).toFixed(0)}`, 'Ingresos']} />
                 <Line type="monotone" dataKey="ingresos" stroke="#4f8ef7" strokeWidth={2} dot={{ fill: '#4f8ef7' }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-slate-500 text-sm flex items-center justify-center h-full">Sin datos de ingresos aún</p>
+            <p className="theme-text-dim text-sm flex items-center justify-center h-full">Sin datos de ingresos aún</p>
           )}
         </div>
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
-          <h3 className="text-sm font-semibold text-white mb-4">Cotizaciones</h3>
+          <h3 className="text-sm font-semibold theme-text mb-4">Cotizaciones</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-400">En espera</span>
-              <span className="text-white tabular-nums">{enEspera.length}</span>
+              <span className="theme-text-muted">En espera</span>
+              <span className="theme-text tabular-nums">{enEspera.length}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Monto en espera</span>
-              <span className="text-white tabular-nums">${montoEspera.toFixed(0)}</span>
+              <span className="theme-text-muted">Monto en espera</span>
+              <span className="theme-text tabular-nums">${montoEspera.toFixed(0)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Tasa conversión (aprobadas)</span>
-              <span className="text-emerald-400 tabular-nums">{conversion.toFixed(0)}%</span>
+              <span className="theme-text-muted">Tasa conversión (aprobadas)</span>
+              <span className="text-emerald-500 tabular-nums">{conversion.toFixed(0)}%</span>
             </div>
           </div>
         </Card>
         <Card>
-          <h3 className="text-sm font-semibold text-white mb-4">Resumen de costos</h3>
+          <h3 className="text-sm font-semibold theme-text mb-4">Resumen de costos</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-400">Total costo</span>
-              <span className="text-white tabular-nums">${totalCosto.toFixed(2)}</span>
+              <span className="theme-text-muted">Total costo</span>
+              <span className="theme-text tabular-nums">${totalCosto.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Ganancia neta</span>
-              <span className={`${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'} tabular-nums`}>${ganancia.toFixed(2)}</span>
+              <span className="theme-text-muted">Ganancia neta</span>
+              <span className={`${ganancia >= 0 ? 'text-emerald-500' : 'text-red-500'} tabular-nums`}>${ganancia.toFixed(2)}</span>
             </div>
           </div>
         </Card>

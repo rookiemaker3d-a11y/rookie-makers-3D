@@ -92,7 +92,7 @@ export default function CotizacionesEspera() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-slate-500 border-t-white rounded-full animate-spin" />
+        <div className="w-6 h-6 border-2 theme-text-muted border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -115,18 +115,18 @@ export default function CotizacionesEspera() {
               className={`min-w-[200px] rounded-xl border ${colorClasses[est.color]} p-3 flex flex-col max-h-[70vh] overflow-hidden`}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="font-semibold text-white text-sm">{est.label}</span>
+                <Icon className="w-4 h-4 shrink-0 theme-text" />
+                <span className="font-semibold theme-text text-sm">{est.label}</span>
               </div>
-              <span className="text-slate-400 text-xs mb-2">{list.length} pedido(s)</span>
+              <span className="theme-text-muted text-xs mb-2">{list.length} pedido(s)</span>
               <div className="flex-1 overflow-y-auto space-y-2">
                 {list.map((c) => (
                   <Card key={c.id} padding className="p-3 text-left">
-                    <p className="text-white font-medium text-sm truncate" title={c.descripcion}>
+                    <p className="theme-text font-medium text-sm truncate" title={c.descripcion}>
                       {c.descripcion}
                     </p>
-                    <p className="text-slate-400 text-xs mt-0.5">${(c.costo_final || 0).toFixed(2)} · {c.vendedor}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">{formatDate(c.created_at)}</p>
+                    <p className="theme-text-muted text-xs mt-0.5">${(c.costo_final || 0).toFixed(2)} · {c.vendedor}</p>
+                    <p className="theme-text-dim text-xs mt-0.5">{formatDate(c.created_at)}</p>
                     {est.id === 'anexo_foto' && (
                       <AnexoFotosCard cotizacion={c} onSave={() => load()} api={api} setUpdating={setUpdating} />
                     )}
@@ -136,7 +136,7 @@ export default function CotizacionesEspera() {
                           type="button"
                           onClick={() => setEstado(c.id, ESTADOS[ESTADOS.findIndex((e) => e.id === est.id) + 1].id)}
                           disabled={updating === c.id}
-                          className="text-xs flex items-center gap-0.5 text-slate-300 hover:text-white"
+                          className="text-xs flex items-center gap-0.5 theme-text-muted hover:text-[var(--theme-text)]"
                         >
                           Siguiente <ChevronRight className="w-3 h-3" />
                         </button>

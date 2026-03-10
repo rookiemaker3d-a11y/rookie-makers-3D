@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminOnlyRoute from './components/AdminOnlyRoute'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Calculadora from './pages/Calculadora'
@@ -32,7 +33,7 @@ function AppRoutes() {
         <Route path="productos" element={<Productos />} />
         <Route path="cotizaciones-espera" element={<CotizacionesEspera />} />
         <Route path="clientes" element={<Clientes />} />
-        <Route path="vendedores" element={<Vendedores />} />
+        <Route path="vendedores" element={<AdminOnlyRoute><Vendedores /></AdminOnlyRoute>} />
         <Route path="videos-promocionales" element={<VideosPromocionales />} />
         <Route path="analisis" element={<Analisis />} />
       </Route>

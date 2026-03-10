@@ -72,37 +72,37 @@ export default function VideosPromocionales() {
     setEditingId(v.id)
   }
 
-  if (loading) return <div className="p-8 text-slate-400">Cargando...</div>
+  if (loading) return <div className="p-8 theme-text-muted">Cargando...</div>
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-2">Videos promocionales</h1>
-      <p className="text-slate-400 text-sm mb-6">
+      <h1 className="text-2xl font-bold theme-text mb-2">Videos promocionales</h1>
+      <p className="theme-text-muted text-sm mb-6">
         Estos videos se muestran en la página pública de Proyectos.
         {isAdmin ? ' Puedes agregar, editar o eliminar videos con el formulario de abajo.' : ' Solo el administrador puede agregar o editar.'}
       </p>
-      {msg && <p className="text-cyan-400 text-sm mb-2">{msg}</p>}
-      {error && <p className="text-red-400 text-sm mb-2">{error}</p>}
+      {msg && <p className="text-cyan-500 text-sm mb-2">{msg}</p>}
+      {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
 
       {isAdmin && (
-        <form onSubmit={submit} className="bg-slate-800 rounded-xl p-4 border border-slate-700 mb-6 space-y-3">
-          <h2 className="text-lg font-medium text-white">{editingId ? 'Editar video' : 'Agregar video'}</h2>
+        <form onSubmit={submit} className="theme-table rounded-xl p-4 border mb-6 space-y-3">
+          <h2 className="text-lg font-medium theme-text">{editingId ? 'Editar video' : 'Agregar video'}</h2>
           <input
             placeholder="Título"
             value={form.titulo}
             onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
+            className="theme-input w-full px-3 py-2 rounded-lg border"
           />
           <input
             placeholder="URL (enlace al video en TikTok, Instagram, Facebook o YouTube)"
             value={form.url}
             onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
+            className="theme-input w-full px-3 py-2 rounded-lg border"
           />
           <select
             value={form.red}
             onChange={(e) => setForm((f) => ({ ...f, red: e.target.value }))}
-            className="w-full px-3 py-2 rounded-lg bg-slate-700 border border-slate-600 text-white"
+            className="theme-input w-full px-3 py-2 rounded-lg border"
           >
             <option value="TikTok">TikTok</option>
             <option value="Instagram">Instagram</option>
@@ -110,7 +110,7 @@ export default function VideosPromocionales() {
             <option value="YouTube">YouTube</option>
           </select>
           <div className="flex gap-2">
-            <button type="submit" className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium">
+            <button type="submit" className="px-4 py-2 rounded-lg btn-primary font-medium">
               {editingId ? 'Guardar cambios' : 'Agregar'}
             </button>
             {editingId && (
@@ -124,23 +124,23 @@ export default function VideosPromocionales() {
 
       <div className="space-y-2">
         {list.map((v) => (
-          <div key={v.id} className="flex items-center justify-between bg-slate-800 rounded-xl p-4 border border-slate-700">
+          <div key={v.id} className="flex items-center justify-between theme-bg-card theme-border rounded-xl p-4 border">
             <div>
-              <span className="text-cyan-400 text-xs font-medium">{v.red}</span>
-              <p className="font-medium text-white">{v.titulo}</p>
-              <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-slate-400 text-sm hover:text-cyan-400 truncate block max-w-md">{v.url}</a>
+              <span className="text-cyan-500 text-xs font-medium">{v.red}</span>
+              <p className="font-medium theme-text">{v.titulo}</p>
+              <a href={v.url} target="_blank" rel="noopener noreferrer" className="theme-text-muted text-sm hover:text-cyan-500 truncate block max-w-md">{v.url}</a>
             </div>
             {isAdmin && (
               <div className="flex gap-2">
-                <button type="button" onClick={() => startEdit(v)} className="text-cyan-400 hover:text-cyan-300 text-sm">Editar</button>
-                <button type="button" onClick={() => deleteOne(v.id)} className="text-red-400 hover:text-red-300 text-sm">Eliminar</button>
+                <button type="button" onClick={() => startEdit(v)} className="text-cyan-500 hover:text-cyan-400 text-sm">Editar</button>
+                <button type="button" onClick={() => deleteOne(v.id)} className="text-red-500 hover:text-red-400 text-sm">Eliminar</button>
               </div>
             )}
           </div>
         ))}
       </div>
       {list.length === 0 && (
-        <p className="text-slate-500">
+        <p className="theme-text-dim">
           {isAdmin ? 'No hay videos todavía. Usa el formulario de arriba para agregar el primero.' : 'No hay videos. Solo el administrador puede agregarlos.'}
         </p>
       )}
