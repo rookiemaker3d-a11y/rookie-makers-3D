@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
+from app.middleware.security import SecurityHeadersMiddleware, LoginRateLimitMiddleware
 from app.api.auth_routes import router as auth_router
 from app.api.calculator_routes import router as calculator_router
 from app.api.dashboard_routes import router as dashboard_router
@@ -38,6 +39,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(LoginRateLimitMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.include_router(auth_router, prefix="/api")
 app.include_router(calculator_router, prefix="/api")

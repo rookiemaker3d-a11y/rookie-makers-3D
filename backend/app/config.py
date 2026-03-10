@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./rookie_erp.db"
     secret_key: str = "rookie-makers-3d-secret-change-in-production"
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24  # 24 horas
+    access_token_expire_minutes: int = 30  # 30 min inactividad (informe 4.1); en producción considerar 8h absoluto
+    use_https: bool = False  # Si True, se añade header Strict-Transport-Security (HSTS)
     # CORS: en producción poner ej. https://tu-app.vercel.app (varios separados por coma)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
     

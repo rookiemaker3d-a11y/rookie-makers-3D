@@ -23,8 +23,16 @@ router = APIRouter(prefix="/cotizaciones-en-espera", tags=["cotizaciones"])
 
 
 @router.get("", response_model=list[CotizacionEnEsperaResponse])
-async def list_cotizaciones(db: AsyncSession = Depends(get_db), _user=Depends(require_user)):
-    result = await db.execute(select(CotizacionEnEspera).order_by(CotizacionEnEspera.id.desc()))
+async def list_cotizaciones(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_user),
+    vendedor=Depends(get_vendedor_from_user),
+):
+    """Admin ve todas; vendedor solo las suyas."""
+    q = select(CotizacionEnEspera).order_by(CotizacionEnEspera.id.desc())
+    if user.role == "vendedor" and vendedor:
+        q = q.where(CotizacionEnEspera.vendedor == vendedor.nombre)
+    result = await db.execute(q)
     return result.scalars().all()
 
 

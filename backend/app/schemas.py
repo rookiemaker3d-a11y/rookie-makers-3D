@@ -42,9 +42,22 @@ class VendedorCreate(VendedorBase):
 
 class VendedorResponse(VendedorBase):
     id: int
+    user_id: Optional[int] = None  # para que el admin pueda cambiar contraseña
 
     class Config:
         from_attributes = True
+
+
+class VendedorUpdate(BaseModel):
+    nombre: Optional[str] = None
+    correo: Optional[str] = None
+    telefono: Optional[str] = None
+    banco: Optional[str] = None
+    cuenta: Optional[str] = None
+
+
+class UserPasswordUpdate(BaseModel):
+    new_password: str
 
 
 # ----- Cliente -----

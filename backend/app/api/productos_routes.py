@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
-from app.auth import require_user, get_vendedor_from_user
+from app.auth import require_user, get_vendedor_from_user, require_admin
 from app.models import Producto, Vendedor
 from app.schemas import ProductoCreate, ProductoResponse
 
@@ -11,8 +11,17 @@ router = APIRouter(prefix="/productos", tags=["productos"])
 
 
 @router.get("", response_model=list[ProductoResponse])
-async def list_productos(db: AsyncSession = Depends(get_db), _user=Depends(require_user)):
-    result = await db.execute(select(Producto).order_by(Producto.id.desc()))
+async def list_productos(
+    for_analysis: bool = False,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_user),
+    vendedor=Depends(get_vendedor_from_user),
+):
+    """Lista productos. Si for_analysis=true y es vendedor, solo los suyos (para Análisis). Si no, todos (para listado y cotizaciones)."""
+    q = select(Producto).order_by(Producto.id.desc())
+    if for_analysis and user.role == "vendedor" and vendedor:
+        q = q.where(Producto.vendedor == vendedor.nombre)
+    result = await db.execute(q)
     return result.scalars().all()
 
 
@@ -20,9 +29,10 @@ async def list_productos(db: AsyncSession = Depends(get_db), _user=Depends(requi
 async def create_producto(
     body: ProductoCreate,
     db: AsyncSession = Depends(get_db),
-    user=Depends(require_user),
+    _admin=Depends(require_admin),
     vendedor=Depends(get_vendedor_from_user),
 ):
+    """Solo administrador puede importar/crear productos."""
     nombre_vendedor = body.vendedor or (vendedor.nombre if vendedor else "Importado")
     p = Producto(
         descripcion=body.descripcion,
@@ -42,8 +52,9 @@ async def create_producto(
 async def delete_producto(
     producto_id: int,
     db: AsyncSession = Depends(get_db),
-    _user=Depends(require_user),
+    _admin=Depends(require_admin),
 ):
+    """Solo administrador puede eliminar productos."""
     result = await db.execute(select(Producto).where(Producto.id == producto_id))
     p = result.scalar_one_or_none()
     if not p:
