@@ -172,3 +172,39 @@ class GenerateQuotePDFRequest(BaseModel):
 
 # Fix forward ref
 Token.model_rebuild()
+
+
+# ----- Inventario (materiales / materias primas) -----
+class InventarioItemBase(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+    cantidad: float = 0
+    unidad: str = "pza"
+
+
+class InventarioItemCreate(InventarioItemBase):
+    pass
+
+
+class InventarioItemUpdate(BaseModel):
+    nombre: Optional[str] = None
+    descripcion: Optional[str] = None
+    cantidad: Optional[float] = None
+    unidad: Optional[str] = None
+
+
+class InventarioItemResponse(InventarioItemBase):
+    id: int
+    vendedor_id: Optional[int] = None
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ----- Página pública (config editable por admin) -----
+class PaginaPublicaConfigUpdate(BaseModel):
+    fontSizeTitle: Optional[int] = None
+    fontSizeSubtitle: Optional[int] = None
+    backgroundColor: Optional[str] = None
+    categories: Optional[list[str]] = None  # oficina, escuela, industrial, etc.

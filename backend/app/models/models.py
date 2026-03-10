@@ -93,4 +93,27 @@ class VideoPromocional(Base):
     url = Column(String(500), nullable=False)
     red = Column(String(50))
     orden = Column(Integer, default=0)
+    estado = Column(String(20), default="aprobado")  # "solicitud" | "aprobado"
+    solicitante = Column(String(255))  # nombre del vendedor que pidió subir (si aplica)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class InventarioItem(Base):
+    """Materiales y materias primas (distinto de productos autorizados)."""
+    __tablename__ = "inventario"
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(255), nullable=False)
+    descripcion = Column(Text)
+    cantidad = Column(Float, default=0)
+    unidad = Column(String(50), default="pza")
+    vendedor_id = Column(Integer, ForeignKey("vendedores.id"), nullable=True)  # quien lo subió; null = admin
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PaginaPublicaConfig(Base):
+    """Configuración editable por admin: tamaños, fondos, categorías de la página pública."""
+    __tablename__ = "pagina_publica_config"
+    id = Column(Integer, primary_key=True, index=True)
+    clave = Column(String(100), unique=True, nullable=False)
+    valor = Column(JSON, default=dict)  # { "fontSizeTitle": 24, "categories": ["oficina","escuela"], ... }
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

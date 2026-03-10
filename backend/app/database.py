@@ -8,7 +8,12 @@ _db_url = settings.database_url
 if _db_url.startswith("sqlite://"):
     _db_url = _db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
 
-engine = create_async_engine(_db_url, echo=False)
+# Render (y otros Postgres en la nube) exigen SSL desde fuera
+_connect_args = {}
+if "postgresql" in _db_url:
+    _connect_args["ssl"] = True
+
+engine = create_async_engine(_db_url, echo=False, connect_args=_connect_args)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 

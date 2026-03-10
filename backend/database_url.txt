@@ -1,0 +1,1 @@
+postgresql+asyncpg://rookiemaker3d_user:Z6uUvfo807h7vgPBag8O6BQDMB2QqTiW@dpg-d6o6p2vafjfc73fmdf20-a.oregon-postgres.render.com/rookiemaker3d

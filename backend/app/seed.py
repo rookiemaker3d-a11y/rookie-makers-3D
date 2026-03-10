@@ -2,6 +2,7 @@
 Script para crear la BD, tablas y datos iniciales.
 Norberto (norbertomoro4@gmail.com) es el único administrador de la empresa.
 Ejecutar desde la raíz del backend: python -m app.seed
+Si EJECUTAR-SEED.bat pone DATABASE_URL, se usa esa URL (para producción).
 """
 import asyncio
 import os
@@ -10,9 +11,20 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from sqlalchemy import select
-from app.database import AsyncSessionLocal, init_db
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from app.database import Base, init_db, AsyncSessionLocal
 from app.models import User, Vendedor, Servicio
 from app.auth import get_password_hash
+
+def _get_engine_and_session():
+    url = os.environ.get("DATABASE_URL", "").strip()
+    if url and "postgresql" in url:
+        if not url.startswith("postgresql+asyncpg"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        engine = create_async_engine(url, echo=False, connect_args={"ssl": True})
+        session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        return engine, session_factory
+    return None, None
 
 VENDEDORES_INICIALES = [
     {"nombre": "Daniel Moreno Rodriguez", "correo": "rookiemaker3d@gmail.com", "telefono": "479-100-09-52", "banco": "BBVA BANCOMER", "cuenta": "1575249892"},
@@ -26,8 +38,18 @@ SERVICIOS_INICIALES = [
 
 
 async def run():
-    await init_db()
-    async with AsyncSessionLocal() as db:
+    engine, session_factory = _get_engine_and_session()
+    if engine is not None:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        async with session_factory() as db:
+            await _run_seed(db)
+    else:
+        await init_db()
+        async with AsyncSessionLocal() as db:
+            await _run_seed(db)
+
+async def _run_seed(db):
         r = await db.execute(select(Vendedor))
         if r.scalars().first() is None:
             for v in VENDEDORES_INICIALES:
@@ -79,8 +101,8 @@ async def run():
                 existing.is_active = True
         await db.commit()
 
-    print("Seed completado. Único admin: norbertomoro4@gmail.com / admin123")
-    print("Vendedores: correo del vendedor / vendedor123")
+        print("Seed completado. Único admin: norbertomoro4@gmail.com / admin123")
+        print("Vendedores: correo del vendedor / vendedor123")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,8 @@ from app.models.models import (
     CotizacionServicio,
     ReciboVenta,
     VideoPromocional,
+    InventarioItem,
+    PaginaPublicaConfig,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "CotizacionServicio",
     "ReciboVenta",
     "VideoPromocional",
+    "InventarioItem",
+    "PaginaPublicaConfig",
 ]

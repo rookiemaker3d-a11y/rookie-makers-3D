@@ -16,6 +16,8 @@ from app.api.vendedores_routes import router as vendedores_router
 from app.api.servicios_routes import router as servicios_router
 from app.api.stl_routes import router as stl_router
 from app.api.videos_routes import router as videos_router
+from app.api.inventario_routes import router as inventario_router
+from app.api.pagina_publica_routes import router as pagina_publica_router
 
 settings = get_settings()
 
@@ -53,6 +55,8 @@ app.include_router(vendedores_router, prefix="/api")
 app.include_router(servicios_router, prefix="/api")
 app.include_router(stl_router, prefix="/api")
 app.include_router(videos_router, prefix="/api")
+app.include_router(inventario_router, prefix="/api")
+app.include_router(pagina_publica_router, prefix="/api")
 
 
 @app.get("/")
