@@ -109,12 +109,6 @@ export default function Login() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-        <p className="text-xs text-center mt-4" style={{ color: 'var(--theme-text-dim)' }}>
-          Admin: norbertomoro4@gmail.com / admin123
-        </p>
-        <p className="text-xs text-center mt-1" style={{ color: 'var(--theme-text-dim)' }}>
-          Si no entras, ejecuta en la carpeta del proyecto: <strong>npm run seed</strong>
-        </p>
       </motion.div>
     </div>
   )

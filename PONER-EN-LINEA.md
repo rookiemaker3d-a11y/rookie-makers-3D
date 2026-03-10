@@ -84,11 +84,11 @@
 
 En Render, con SQLite, la base se borra cada vez que el servicio se reinicia. Para tener el usuario admin al menos una vez:
 
-- En Render → tu Web Service (backend) → pestaña **Shell** (si tu plan lo tiene).
+- En Render → tu Web Service (backend) → pestaña **Shell** (de pago en muchos planes).
 - Ejecuta: `python -m app.seed`
 - Así se crea el usuario **norbertomoro4@gmail.com** / **admin123** en el servidor.
 
-Si no tienes Shell en Render, crea en Render una base **PostgreSQL** (Postgres) gratis, copia su `DATABASE_URL` y ponla en las variables de entorno del backend (sustituyendo la de SQLite). Luego en **Shell** (o en un “Background Worker” que ejecute una vez el seed) ejecuta `python -m app.seed`. Con PostgreSQL los datos ya no se pierden al reiniciar.
+Si no tienes Shell en Render, crea en Render una base **PostgreSQL** (Postgres) gratis, copia su `DATABASE_URL` y ponla en las variables de entorno del backend (sustituyendo la de SQLite). Luego en **Shell** (o en un “Background Worker” que ejecute una vez el seed) ejecuta `python -m app.seed`. Con PostgreSQL los datos ya no se pierden al reiniciar. Si no quieres pagar Shell, ejecuta el seed desde tu PC una sola vez con esa misma DATABASE_URL en el entorno.
 
 ---
 
