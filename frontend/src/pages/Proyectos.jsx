@@ -8,6 +8,7 @@ const WHATSAPP_CHAT = `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent('
 
 export default function Proyectos() {
   const [videos, setVideos] = useState(VIDEOS_FALLBACK)
+  const [pageConfig, setPageConfig] = useState(null)
   const [magnifierPos, setMagnifierPos] = useState({ x: 0, y: 0, show: false })
   const magnifierRef = useRef(null)
   const baseRef = useRef(null)
@@ -17,6 +18,13 @@ export default function Proyectos() {
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then(setVideos)
       .catch(() => setVideos(VIDEOS_FALLBACK))
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/pagina-publica/config`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(setPageConfig)
+      .catch(() => setPageConfig(null))
   }, [])
 
   useEffect(() => {
@@ -50,8 +58,14 @@ export default function Proyectos() {
   }
   const onMagnifierLeave = () => setMagnifierPos((p) => ({ ...p, show: false }))
 
+  const cfg = pageConfig || {}
+  const bgColor = (cfg.backgroundColor && cfg.backgroundColor.trim()) ? cfg.backgroundColor : '#050508'
+  const fontSizeTitle = typeof cfg.fontSizeTitle === 'number' ? cfg.fontSizeTitle : 32
+  const fontSizeSubtitle = typeof cfg.fontSizeSubtitle === 'number' ? cfg.fontSizeSubtitle : 18
+  const categories = Array.isArray(cfg.categories) && cfg.categories.length ? cfg.categories : ['oficina', 'escuela', 'industrial', 'hogar', 'otros']
+
   return (
-    <div className="landing-page min-h-screen bg-[#050508] text-[#e8e8f0] overflow-x-hidden">
+    <div className="landing-page min-h-screen text-[#e8e8f0] overflow-x-hidden" style={{ backgroundColor: bgColor }}>
       {/* NAV */}
       <nav
         id="mainNav"
@@ -108,15 +122,15 @@ export default function Proyectos() {
             <span className="w-10 h-px bg-[#00e5ff] block" />
             Manufactura Aditiva de Precisión
           </div>
-          <h1 className="font-display text-[clamp(4rem,9vw,8rem)] leading-[0.92] tracking-wide mb-6">
+          <h1 className="font-display leading-[0.92] tracking-wide mb-6" style={{ fontSize: `${fontSizeTitle}px` }}>
             Del Bit
             <br />
             <span className="text-[#00e5ff]">al Átomo</span>
-            <span className="font-serif italic text-[#c9a96e] block text-[clamp(2rem,4vw,3.5rem)] font-normal mt-1">
+            <span className="font-serif italic text-[#c9a96e] block font-normal mt-1" style={{ fontSize: `${Math.round(fontSizeTitle * 0.45)}px` }}>
               Tu visión, materializada
             </span>
           </h1>
-          <p className="text-base text-[var(--lp-muted)] leading-relaxed max-w-[420px] mb-10 font-light">
+          <p className="leading-relaxed max-w-[420px] mb-10 font-light text-[var(--lp-muted)]" style={{ fontSize: `${fontSizeSubtitle}px` }}>
             Modelado 3D de precisión y acabado artesanal para piezas únicas. Desde figuras coleccionables de alta definición hasta refacciones industriales.
           </p>
           <div className="flex flex-wrap gap-5 items-center">
@@ -259,6 +273,15 @@ export default function Proyectos() {
               <br />
               <em className="font-serif italic text-[var(--lp-muted)] text-[0.6em] font-normal">de Obras</em>
             </div>
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {categories.map((cat) => (
+                  <span key={cat} className="text-[0.65rem] font-mono tracking-wider px-2 py-1 rounded border border-white/20 text-[var(--lp-muted)]">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <Link to="#cta" className="font-mono text-sm text-[var(--lp-muted)] hover:text-[#00e5ff] transition no-underline flex items-center gap-2">
             Ver todos los proyectos

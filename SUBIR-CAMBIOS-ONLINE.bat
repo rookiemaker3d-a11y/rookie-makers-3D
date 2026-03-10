@@ -38,7 +38,7 @@ echo Añadiendo todos los archivos...
 git add .
 echo.
 echo Creando commit con los últimos cambios...
-git commit -m "Estilos modo claro, vendedores solo admin, editar y contraseñas, permisos productos y análisis"
+git commit -m "Inventario, videos solicitud/aprobacion, editor pagina publica"
 if errorlevel 1 (
     echo No hay cambios que subir, o ya están guardados.
     pause

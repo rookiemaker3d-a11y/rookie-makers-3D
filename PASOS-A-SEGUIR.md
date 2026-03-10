@@ -163,3 +163,13 @@ Si algo falla, revisa: Vercel tiene `VITE_API_URL` = `https://rookie-makers-3d.o
 Para **arrancar**, **reiniciar** el backend o saber **cuándo se aplican los cambios** en tu PC, usa la guía:
 
 - **[DESARROLLO.md](DESARROLLO.md)** — cómo ejecutar `npm run start`, reiniciar backend (Ctrl+C y volver a iniciar) y cómo el frontend se actualiza solo (hot reload).
+
+---
+
+## Subir una actualización al servidor en línea
+
+Cuando tengas nuevos cambios (código, inventario, videos, editor de página, etc.) y quieras llevarlos a producción (Vercel + Render):
+
+- **[ACTUALIZACION-SERVIDOR.md](ACTUALIZACION-SERVIDOR.md)** — resumen de la última actualización, archivos tocados, base de datos (tablas nuevas / ALTER si aplica) y pasos: git push, redeploy, y comprobaciones en producción.
+
+También puedes usar **SUBIR-CAMBIOS-ONLINE.bat** para hacer `git add`, `commit` y `push` con un mensaje preparado; Vercel y Render redesplegarán solos si el repo está conectado.

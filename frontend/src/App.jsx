@@ -16,6 +16,8 @@ import Vendedores from './pages/Vendedores'
 import Proyectos from './pages/Proyectos'
 import Cotizador from './pages/Cotizador'
 import VideosPromocionales from './pages/VideosPromocionales'
+import Inventario from './pages/Inventario'
+import EditorPaginaPublica from './pages/EditorPaginaPublica'
 import Chatbot from './components/Chatbot'
 import './index.css'
 
@@ -35,6 +37,8 @@ function AppRoutes() {
         <Route path="clientes" element={<Clientes />} />
         <Route path="vendedores" element={<AdminOnlyRoute><Vendedores /></AdminOnlyRoute>} />
         <Route path="videos-promocionales" element={<VideosPromocionales />} />
+        <Route path="inventario" element={<Inventario />} />
+        <Route path="editor-pagina" element={<AdminOnlyRoute><EditorPaginaPublica /></AdminOnlyRoute>} />
         <Route path="analisis" element={<Analisis />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
