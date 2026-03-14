@@ -23,11 +23,22 @@ function getExtrasInitial() {
  * Hook con toda la lógica de la calculadora de cotización.
  * Cálculos con useMemo para no recalcular innecesariamente.
  */
+/** Convierte lista de API a formato cotizador: { id, nombre, costoPorKg } */
+export function materialesFromAPI(apiList) {
+  if (!Array.isArray(apiList) || apiList.length === 0) return null
+  return apiList.map((m) => ({
+    id: m.id_externo || String(m.id),
+    nombre: m.nombre,
+    costoPorKg: m.costo_por_kg ?? 500,
+  }))
+}
+
 export function useCotizador(initialConfig = {}) {
   const config = { ...COTIZADOR_DEFAULTS, ...initialConfig }
+  const materialesList = initialConfig.materiales ?? MATERIALES
 
   // ─── Material (Sección A) ─────────────────────────────────────────
-  const [materialId, setMaterialId] = useState('pla')
+  const [materialId, setMaterialId] = useState(materialesList[0]?.id ?? 'pla')
   const [gramos, setGramos] = useState(0)
   const [materialEspecial, setMaterialEspecial] = useState(false)
   const [materialEspecialCosto, setMaterialEspecialCosto] = useState(0)
@@ -50,8 +61,8 @@ export function useCotizador(initialConfig = {}) {
 
   // ─── Helpers ──────────────────────────────────────────────────────
   const material = useMemo(
-    () => MATERIALES.find((m) => m.id === materialId) || MATERIALES[0],
-    [materialId]
+    () => materialesList.find((m) => m.id === materialId) || materialesList[0],
+    [materialId, materialesList]
   )
 
   const updateExtra = useCallback((id, patch) => {
@@ -155,7 +166,7 @@ export function useCotizador(initialConfig = {}) {
 
   return {
     config,
-    MATERIALES,
+    MATERIALES: materialesList,
     EXTRAS_CONFIG,
 
     // Material

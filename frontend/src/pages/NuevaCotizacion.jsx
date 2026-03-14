@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
-import { useCotizador } from '../hooks/useCotizador'
+import { useCotizador, materialesFromAPI } from '../hooks/useCotizador'
 import StepperCotizacion from '../components/cotizacion/StepperCotizacion'
 import PasoCliente from '../components/cotizacion/PasoCliente'
 import PasoProyecto from '../components/cotizacion/PasoProyecto'
@@ -18,6 +18,7 @@ const TOTAL_PASOS = 6
 
 export default function NuevaCotizacion() {
   const { api, user } = useAuth()
+  const [materiales, setMateriales] = useState([])
   const [paso, setPaso] = useState(1)
   const [wizardData, setWizardData] = useState({
     cliente: null,
@@ -27,7 +28,15 @@ export default function NuevaCotizacion() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  const cotizador = useCotizador()
+  useEffect(() => {
+    api('/materiales-filamento')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setMateriales(Array.isArray(data) ? data : []))
+      .catch(() => setMateriales([]))
+  }, [api])
+
+  const materialesParaCotizador = useMemo(() => materialesFromAPI(materiales), [materiales])
+  const cotizador = useCotizador({ materiales: materialesParaCotizador ?? undefined })
   const folio = useMemo(() => genFolio(), [])
 
   const canGoNext = () => {

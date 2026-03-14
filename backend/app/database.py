@@ -1,12 +1,20 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from app.config import get_settings
 
 settings = get_settings()
-# Ajuste para SQLite síncrono si usas "sqlite://"
-_db_url = settings.database_url
+_db_url = settings.database_url or ""
+
+# SQLite: usar driver async
 if _db_url.startswith("sqlite://"):
     _db_url = _db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
+
+# PostgreSQL: usar asyncpg (Render/Supabase dan postgresql:// o postgres://; SQLAlchemy por defecto usa psycopg2)
+if _db_url.startswith("postgresql://") and "+" not in _db_url.split("?")[0]:
+    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif _db_url.startswith("postgres://") and "+" not in _db_url.split("?")[0]:
+    _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 
 # Render (y otros Postgres en la nube) exigen SSL desde fuera
 _connect_args = {}
@@ -30,6 +38,19 @@ async def get_db():
             await session.close()
 
 
+def _migrate_sqlite(sync_conn):
+    """Añade columnas que falten en tablas existentes (SQLite). create_all no añade columnas nuevas."""
+    for stmt in [
+        "ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(64)",
+        "ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0",
+    ]:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass  # columna ya existe o no es SQLite
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_migrate_sqlite)

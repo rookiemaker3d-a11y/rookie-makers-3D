@@ -100,6 +100,17 @@ class VideoPromocional(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class MaterialFilamento(Base):
+    """Filamentos/materiales de impresión con costo por kg para cotizador."""
+    __tablename__ = "materiales_filamento"
+    id = Column(Integer, primary_key=True, index=True)
+    id_externo = Column(String(50), unique=True, nullable=False)  # ej. 'pla', 'petg'
+    nombre = Column(String(255), nullable=False)
+    costo_por_kg = Column(Float, nullable=False, default=500)
+    activo = Column(Boolean, default=True)
+    orden = Column(Integer, default=0)
+
+
 class InventarioItem(Base):
     """Materiales y materias primas (distinto de productos autorizados)."""
     __tablename__ = "inventario"

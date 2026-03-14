@@ -12,9 +12,58 @@ import {
 } from 'recharts'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { TrendingUp, Package, DollarSign } from 'lucide-react'
+import { TrendingUp, Package, DollarSign, Calculator, ChevronDown, ChevronUp } from 'lucide-react'
+import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
 
 const COLORS = ['#4f8ef7', '#22c55e', '#eab308', '#f97316', '#ec4899']
+
+const FORMULAS_COSTOS = [
+  {
+    concepto: 'Costo material',
+    formula: '(gramos ÷ 1000) × costo_por_kg del material',
+    ejemplo: 'Ej: (200 g ÷ 1000) × $500/kg = $100',
+  },
+  {
+    concepto: 'Costo tiempo máquina',
+    formula: 'horas × costo_hora_máquina (MXN/hr)',
+    ejemplo: `Ej: 2.5 hr × $${COTIZADOR_DEFAULTS.costoHoraMaquina}/hr = $${(2.5 * COTIZADOR_DEFAULTS.costoHoraMaquina).toFixed(0)}`,
+  },
+  {
+    concepto: 'Diseño desde cero',
+    formula: 'horas_diseño × tarifa_diseño (MXN/hr)',
+    ejemplo: `Ej: 3 hr × $${COTIZADOR_DEFAULTS.tarifaDisenoHora}/hr = $${(3 * COTIZADOR_DEFAULTS.tarifaDisenoHora).toFixed(0)}`,
+  },
+  {
+    concepto: 'Corrección STL',
+    formula: 'Costo fijo (una vez por pedido)',
+    ejemplo: `Ej: $${COTIZADOR_DEFAULTS.costoCorreccionSTL} MXN`,
+  },
+  {
+    concepto: 'Ingeniería reversa',
+    formula: 'horas_ingeniería × tarifa_ingeniería (MXN/hr)',
+    ejemplo: `Ej: 1.5 hr × $${COTIZADOR_DEFAULTS.tarifaIngenieriaReversaHora}/hr = $${(1.5 * COTIZADOR_DEFAULTS.tarifaIngenieriaReversaHora).toFixed(0)}`,
+  },
+  {
+    concepto: 'Extras (por concepto)',
+    formula: 'Cada extra: valor fijo MXN o (cantidad × valor) si es por unidad',
+    ejemplo: EXTRAS_CONFIG.slice(0, 3).map((e) => `${e.label}: ${e.porUnidad ? 'cantidad × $' + e.defaultCosto : '$' + e.defaultCosto}`).join(' · '),
+  },
+  {
+    concepto: 'Costo total (orden)',
+    formula: 'Material + Tiempo máquina + Diseño/archivo + Extras',
+    ejemplo: 'Suma de todos los conceptos anteriores.',
+  },
+  {
+    concepto: 'Precio al cliente',
+    formula: 'Costo total × (1 + margen%)',
+    ejemplo: `Ej: $500 costo × (1 + 50%) = $750`,
+  },
+  {
+    concepto: 'Anticipo',
+    formula: 'Precio cliente × (anticipo% ÷ 100)',
+    ejemplo: `Ej: $750 × ${COTIZADOR_DEFAULTS.anticipoPorcentaje}% = $${(750 * COTIZADOR_DEFAULTS.anticipoPorcentaje / 100).toFixed(0)}`,
+  },
+]
 
 export default function Analisis() {
   const { api, user } = useAuth()
@@ -23,6 +72,7 @@ export default function Analisis() {
   const [cotizaciones, setCotizaciones] = useState([])
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState('mes')
+  const [showFormulas, setShowFormulas] = useState(false)
 
   const isAdmin = user?.role === 'administrador'
 
@@ -187,6 +237,36 @@ export default function Analisis() {
           </div>
         </Card>
       </div>
+
+      <Card>
+        <button
+          type="button"
+          onClick={() => setShowFormulas((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 text-left p-2 rounded-lg hover:bg-white/[0.05] transition"
+        >
+          <span className="flex items-center gap-2 theme-text font-medium">
+            <Calculator className="w-4 h-4 text-cyan-500" />
+            Ver fórmulas de costos (orden de cotización)
+          </span>
+          {showFormulas ? <ChevronUp className="w-4 h-4 theme-text-muted" /> : <ChevronDown className="w-4 h-4 theme-text-muted" />}
+        </button>
+        {showFormulas && (
+          <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'var(--theme-border)' }}>
+            <p className="text-sm theme-text-muted">
+              Cada línea de la cotización se calcula así. Los valores por defecto (costo/hora, tarifas, margen) están en la configuración del cotizador; los costos por kg de cada material se editan en Inventario → Costos de filamentos.
+            </p>
+            {FORMULAS_COSTOS.map((f, i) => (
+              <div key={i} className="text-sm">
+                <div className="font-medium theme-text mb-0.5">{f.concepto}</div>
+                <div className="theme-text-muted font-mono text-xs bg-white/[0.04] rounded px-2 py-1.5 mb-1">
+                  {f.formula}
+                </div>
+                {f.ejemplo && <div className="theme-text-dim text-xs">{f.ejemplo}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </motion.div>
   )
 }

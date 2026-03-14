@@ -3,31 +3,53 @@ import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
-const API_BASE = import.meta.env.VITE_API_URL || ''
-
 export default function Inventario() {
   const { api, user } = useAuth()
   const [items, setItems] = useState([])
+  const [filamentos, setFilamentos] = useState([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [form, setForm] = useState({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza' })
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
+  const [editingCostoId, setEditingCostoId] = useState(null)
+  const [costoTemp, setCostoTemp] = useState('')
 
   const isAdmin = user?.role === 'administrador'
 
+  function loadFilamentos() {
+    api('/materiales-filamento')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setFilamentos(Array.isArray(data) ? data : []))
+      .catch(() => setFilamentos([]))
+  }
+
   function load() {
-    api('/inventario')
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .catch(() => setError('Error al cargar inventario'))
-      .finally(() => setLoading(false))
+    setLoading(true)
+    Promise.all([
+      api('/inventario').then((r) => (r.ok ? r.json() : [])).then((data) => setItems(Array.isArray(data) ? data : [])),
+      api('/materiales-filamento').then((r) => (r.ok ? r.json() : [])).then((data) => setFilamentos(Array.isArray(data) ? data : [])),
+    ]).catch(() => setError('Error al cargar inventario')).finally(() => setLoading(false))
   }
 
   useEffect(() => {
     load()
   }, [api])
+
+  const saveCostoFilamento = async (id) => {
+    const val = Number(costoTemp)
+    if (Number.isNaN(val) || val < 0) return
+    try {
+      await api(`/materiales-filamento/${id}`, { method: 'PATCH', body: JSON.stringify({ costo_por_kg: val }) })
+      setEditingCostoId(null)
+      setCostoTemp('')
+      loadFilamentos()
+      setMsg('Costo actualizado.')
+    } catch {
+      setError('Error al actualizar costo.')
+    }
+  }
 
   const submit = async (e) => {
     e.preventDefault()
@@ -108,6 +130,66 @@ export default function Inventario() {
 
   return (
     <div className="space-y-6">
+      {/* Costos de filamentos para cotizador */}
+      <SectionHeader
+        title="Costos de filamentos"
+        subtitle="Tipos de material que manejamos y su costo por kg. Estos costos se usan en la cotización (paso calculadora). Edita el valor y guarda para actualizar."
+      />
+      <Card padding={false} className="overflow-hidden theme-table">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <th className="p-3 theme-text-muted font-medium">Material</th>
+              <th className="p-3 theme-text-muted font-medium">Costo por kg (MXN)</th>
+              <th className="p-3 theme-text-muted font-medium w-28"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {filamentos.map((f) => (
+              <tr key={f.id} className="border-b hover:bg-[var(--theme-table-row-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+                <td className="p-3 theme-text font-medium">{f.nombre}</td>
+                <td className="p-3">
+                  {editingCostoId === f.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={costoTemp}
+                        onChange={(e) => setCostoTemp(e.target.value)}
+                        className="theme-input w-28 px-2 py-1.5 rounded-lg border text-sm"
+                        autoFocus
+                      />
+                      <button type="button" onClick={() => saveCostoFilamento(f.id)} className="px-2 py-1 rounded-lg bg-emerald-600 text-white text-xs">Guardar</button>
+                      <button type="button" onClick={() => { setEditingCostoId(null); setCostoTemp(''); }} className="px-2 py-1 rounded-lg bg-slate-600 text-white text-xs">Cancelar</button>
+                    </div>
+                  ) : (
+                    <span className="theme-text tabular-nums">${(f.costo_por_kg ?? 0).toFixed(0)}</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  {editingCostoId !== f.id && (
+                    <button
+                      type="button"
+                      onClick={() => { setEditingCostoId(f.id); setCostoTemp(String(f.costo_por_kg ?? 0)); }}
+                      className="p-1.5 rounded text-cyan-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition"
+                      aria-label="Editar costo"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {filamentos.length === 0 && !loading && (
+          <div className="p-6 text-center theme-text-muted text-sm">
+            No hay materiales cargados. Ejecuta el seed del backend para cargar los filamentos por defecto.
+          </div>
+        )}
+      </Card>
+
       <SectionHeader
         title="Inventario (materiales / materias primas)"
         subtitle={

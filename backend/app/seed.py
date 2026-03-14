@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.database import Base, init_db, AsyncSessionLocal
-from app.models import User, Vendedor, Servicio
+from app.models import User, Vendedor, Servicio, MaterialFilamento
 from app.auth import get_password_hash
 
 def _get_engine_and_session():
@@ -34,6 +34,19 @@ VENDEDORES_INICIALES = [
 SERVICIOS_INICIALES = [
     {"nombre": "Mantenimiento e Implementación", "tarifa_fija": 250, "tarifa_por_hora": 50},
     {"nombre": "Desarrollo de proyectos", "tarifa_fija": 250, "tarifa_por_hora": 50},
+]
+
+MATERIALES_FILAMENTO = [
+    {"id_externo": "pla", "nombre": "PLA", "costo_por_kg": 500, "orden": 1},
+    {"id_externo": "pla_plus", "nombre": "PLA+", "costo_por_kg": 550, "orden": 2},
+    {"id_externo": "petg", "nombre": "PETG", "costo_por_kg": 600, "orden": 3},
+    {"id_externo": "asa", "nombre": "ASA", "costo_por_kg": 700, "orden": 4},
+    {"id_externo": "tpu", "nombre": "TPU", "costo_por_kg": 800, "orden": 5},
+    {"id_externo": "nylon", "nombre": "Nylon", "costo_por_kg": 900, "orden": 6},
+    {"id_externo": "resina", "nombre": "Resina", "costo_por_kg": 1200, "orden": 7},
+    {"id_externo": "pla_madera", "nombre": "PLA Madera", "costo_por_kg": 550, "orden": 8},
+    {"id_externo": "abs_cf", "nombre": "ABS-CF", "costo_por_kg": 1100, "orden": 9},
+    {"id_externo": "otro", "nombre": "Otro", "costo_por_kg": 500, "orden": 10},
 ]
 
 
@@ -61,6 +74,12 @@ async def _run_seed(db):
         if r.scalars().first() is None:
             for s in SERVICIOS_INICIALES:
                 db.add(Servicio(**s))
+            await db.commit()
+
+        r = await db.execute(select(MaterialFilamento))
+        if r.scalars().first() is None:
+            for mat in MATERIALES_FILAMENTO:
+                db.add(MaterialFilamento(**mat))
             await db.commit()
 
         r = await db.execute(select(User).where(User.email == "norbertomoro4@gmail.com"))

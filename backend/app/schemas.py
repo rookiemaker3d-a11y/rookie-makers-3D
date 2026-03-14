@@ -174,6 +174,25 @@ class GenerateQuotePDFRequest(BaseModel):
 Token.model_rebuild()
 
 
+# ----- Materiales filamento (costos por kg para cotizador) -----
+class MaterialFilamentoResponse(BaseModel):
+    id: int
+    id_externo: str
+    nombre: str
+    costo_por_kg: float
+    activo: bool = True
+    orden: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class MaterialFilamentoUpdate(BaseModel):
+    costo_por_kg: Optional[float] = None
+    nombre: Optional[str] = None
+    activo: Optional[bool] = None
+
+
 # ----- Inventario (materiales / materias primas) -----
 class InventarioItemBase(BaseModel):
     nombre: str
