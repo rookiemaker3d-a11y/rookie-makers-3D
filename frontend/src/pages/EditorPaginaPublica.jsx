@@ -1,98 +1,162 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Type, Palette, Tags, Save, ExternalLink } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { ChevronDown, Save, ExternalLink, RotateCcw, Layout, Type, Palette } from 'lucide-react'
+import LandingPreview from '../components/LandingPreview'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
-const DEFAULT_CATEGORIES = ['oficina', 'escuela', 'industrial', 'hogar', 'otros']
-const FONDOS_PRESET = [
-  '#050508',
-  '#0f0f1c',
-  '#13131a',
-  '#071428',
-  '#0d0d12',
-  '#ffffff',
-  '#1a1a2e',
-  '#111827',
-]
+
+const DEFAULT_LANDING = {
+  theme: 'cyan',
+  hero: {
+    tag: 'Impresión 3D profesional',
+    titleLine1: 'Del Bit',
+    titleLine2: 'al Átomo',
+    titleAccent: 'al Átomo',
+    tagline: 'Precisión que transforma ideas en realidad',
+    description: 'Diseño, prototipado y fabricación aditiva para empresas y creadores.',
+    ctaPrimary: 'Solicitar cotización',
+    ctaSecondary: 'Ver galería',
+  },
+  stats: [
+    { value: '500+', label: 'Piezas entregadas' },
+    { value: '0.05', label: 'mm precisión' },
+    { value: '24/7', label: 'Producción' },
+  ],
+  process: [
+    { number: '01', title: 'Diseño', text: 'Recibimos tu archivo o idea y lo preparamos para impresión.' },
+    { number: '02', title: 'Fabricación', text: 'Impresión con materiales de calidad y control de parámetros.' },
+    { number: '03', title: 'Entrega', text: 'Acabado y entrega en tiempo y forma.' },
+  ],
+  gallery: [
+    { label: 'Prototipos', name: 'Prototipos industriales' },
+    { label: 'Piezas', name: 'Piezas funcionales' },
+    { label: 'Arte', name: 'Arte y decoración' },
+  ],
+  cta: {
+    tag: '¿Listo para empezar?',
+    title: 'Cuéntanos tu proyecto',
+    subtitle: 'Cotización sin compromiso.',
+    buttonText: 'Contactar',
+    buttonMailto: 'mailto:contacto@ejemplo.com',
+    whatsappText: 'https://wa.me/521234567890',
+  },
+  footer: {
+    logoText: 'Rookie Makers',
+    copyright: '© 2025 Rookie Makers. Todos los derechos reservados.',
+    links: [{ label: 'Inicio', href: '#' }, { label: 'Servicios', href: '#servicios' }, { label: 'Contacto', href: '#contacto' }],
+  },
+  nav: {
+    links: [
+      { label: 'Inicio', href: '#' },
+      { label: 'Proceso', href: '#proceso' },
+      { label: 'Galería', href: '#galeria' },
+      { label: 'Contacto', href: '#contacto' },
+    ],
+    ctaText: 'Cotizar',
+  },
+}
+
+function Accordion({ id, open, onToggle, title, icon: Icon, children }) {
+  return (
+    <div className="border-b" style={{ borderColor: 'var(--theme-border)' }}>
+      <button
+        type="button"
+        onClick={() => onToggle(open ? null : id)}
+        className="w-full flex items-center justify-between gap-2 py-3 px-2 text-left font-medium text-sm theme-text hover:opacity-90"
+      >
+        {Icon && <Icon className="w-4 h-4 shrink-0" style={{ color: 'var(--theme-accent)' }} />}
+        <span>{title}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-2 pb-4 space-y-3">{children}</div>}
+    </div>
+  )
+}
 
 export default function EditorPaginaPublica() {
   const { api } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [config, setConfig] = useState({
-    fontSizeTitle: 32,
-    fontSizeSubtitle: 18,
-    backgroundColor: '#050508',
-    categories: [...DEFAULT_CATEGORIES],
-  })
-  const [categoriesText, setCategoriesText] = useState('oficina, escuela, industrial, hogar, otros')
+  const [landing, setLanding] = useState(DEFAULT_LANDING)
+  const [config, setConfig] = useState({ fontSizeTitle: 36, fontSizeSubtitle: 18 })
+  const [openSection, setOpenSection] = useState('variant')
+  const [viewport, setViewport] = useState('desktop') // desktop | tablet | mobile
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
   function load() {
     setLoading(true)
-    fetch(`${API_BASE}/api/pagina-publica/config`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) => {
-        const title = data.fontSizeTitle ?? 32
-        const subtitle = data.fontSizeSubtitle ?? 18
-        const bg = data.backgroundColor || '#050508'
-        const cats = Array.isArray(data.categories) ? data.categories : [...DEFAULT_CATEGORIES]
-        setConfig({
-          fontSizeTitle: title,
-          fontSizeSubtitle: subtitle,
-          backgroundColor: bg,
-          categories: cats,
-        })
-        setCategoriesText(cats.join(', '))
+    Promise.all([
+      fetch(`${API_BASE}/api/pagina-publica/landing`).then((r) => (r.ok ? r.json() : null)),
+      fetch(`${API_BASE}/api/pagina-publica/config`).then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([landingData, configData]) => {
+        if (landingData && typeof landingData === 'object') setLanding((prev) => ({ ...DEFAULT_LANDING, ...prev, ...landingData }))
+        if (configData && (configData.fontSizeTitle != null || configData.fontSizeSubtitle != null)) {
+          setConfig((c) => ({
+            fontSizeTitle: configData.fontSizeTitle ?? c.fontSizeTitle,
+            fontSizeSubtitle: configData.fontSizeSubtitle ?? c.fontSizeSubtitle,
+          }))
+        }
       })
-      .catch(() => {
-        setConfig({ fontSizeTitle: 32, fontSizeSubtitle: 18, backgroundColor: '#050508', categories: [...DEFAULT_CATEGORIES] })
-        setCategoriesText(DEFAULT_CATEGORIES.join(', '))
-      })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
 
-  const submit = async (e) => {
-    e.preventDefault()
+  const updateLanding = (key, value) => setLanding((prev) => ({ ...prev, [key]: value }))
+  const updateHero = (key, value) => setLanding((prev) => ({ ...prev, hero: { ...(prev.hero || {}), [key]: value } }))
+  const updateCta = (key, value) => setLanding((prev) => ({ ...prev, cta: { ...(prev.cta || {}), [key]: value } }))
+  const updateFooter = (key, value) => setLanding((prev) => ({ ...prev, footer: { ...(prev.footer || {}), [key]: value } }))
+  const updateNav = (key, value) => setLanding((prev) => ({ ...prev, nav: { ...(prev.nav || {}), [key]: value } }))
+
+  const save = async () => {
     setError('')
     setMsg('')
     setSaving(true)
-    const categories = categoriesText.split(',').map((s) => s.trim()).filter(Boolean)
     try {
-      const res = await api('/pagina-publica/config', {
-        method: 'PUT',
-        body: JSON.stringify({
-          fontSizeTitle: Number(config.fontSizeTitle) || 32,
-          fontSizeSubtitle: Number(config.fontSizeSubtitle) || 18,
-          backgroundColor: config.backgroundColor || undefined,
-          categories: categories.length ? categories : undefined,
-        }),
-      })
+      const res = await api('/pagina-publica/landing', { method: 'PUT', body: JSON.stringify(landing) })
       if (!res.ok) throw new Error('Error al guardar')
-      setConfig((c) => ({
-        ...c,
-        fontSizeTitle: Number(config.fontSizeTitle) || 32,
-        fontSizeSubtitle: Number(config.fontSizeSubtitle) || 18,
-        backgroundColor: (config.backgroundColor && config.backgroundColor.trim()) || '#050508',
-        categories: categories.length ? categories : c.categories,
-      }))
-      setCategoriesText(categories.length ? categories.join(', ') : categoriesText)
-      setMsg('Guardado. La página pública ya usa estos estilos.')
+      await api('/pagina-publica/config', {
+        method: 'PUT',
+        body: JSON.stringify({ fontSizeTitle: config.fontSizeTitle, fontSizeSubtitle: config.fontSizeSubtitle }),
+      })
+      setMsg('Landing guardada correctamente.')
     } catch (err) {
-      setError(err?.message || 'Error al guardar. Comprueba la conexión con el backend.')
+      setError(err?.message || 'Error al guardar.')
     } finally {
       setSaving(false)
     }
   }
 
-  const titlePx = Math.max(16, Math.min(80, Number(config.fontSizeTitle) || 32))
-  const subtitlePx = Math.max(10, Math.min(28, Number(config.fontSizeSubtitle) || 18))
-  const bg = (config.backgroundColor && config.backgroundColor.trim()) ? config.backgroundColor : '#050508'
-  const previewCats = categoriesText.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 6)
+  const reset = async () => {
+    if (!window.confirm('¿Restaurar la landing a los valores por defecto?')) return
+    setLanding(JSON.parse(JSON.stringify(DEFAULT_LANDING)))
+    setError('')
+    setMsg('')
+    setSaving(true)
+    try {
+      await api('/pagina-publica/landing', { method: 'PUT', body: JSON.stringify(DEFAULT_LANDING) })
+      setMsg('Landing restaurada a valores por defecto.')
+    } catch (err) {
+      setError(err?.message || 'Error al resetear.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const viewWeb = () => window.open('/proyectos', '_blank')
+
+  const hero = landing.hero || DEFAULT_LANDING.hero
+  const stats = landing.stats || DEFAULT_LANDING.stats
+  const process = landing.process || DEFAULT_LANDING.process
+  const gallery = landing.gallery || DEFAULT_LANDING.gallery
+  const cta = landing.cta || DEFAULT_LANDING.cta
+  const footer = landing.footer || DEFAULT_LANDING.footer
+  const nav = landing.nav || DEFAULT_LANDING.nav
+
+  const previewWidth = viewport === 'desktop' ? '100%' : viewport === 'tablet' ? '768px' : '375px'
 
   if (loading) {
     return (
@@ -103,180 +167,200 @@ export default function EditorPaginaPublica() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold theme-text">Editor de página pública</h1>
-        <Link
-          to="/proyectos"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border-2 font-medium text-sm transition hover:opacity-90"
-          style={{ borderColor: 'var(--theme-accent)', color: 'var(--theme-accent)' }}
-        >
-          <ExternalLink className="w-4 h-4" />
-          Ver página pública
-        </Link>
+    <div className="h-[calc(100vh-2rem)] flex flex-col min-h-0">
+      <div className="flex items-center justify-between gap-4 py-2 px-1">
+        <h1 className="text-xl font-bold theme-text">Editor de página pública</h1>
+        {msg && <p className="text-emerald-500 text-sm">{msg}</p>}
+        {error && <p className="text-red-500 text-sm">{error}</p>}
       </div>
 
-      {msg && <p className="text-emerald-500 text-sm font-medium">{msg}</p>}
-      {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+      <div className="flex-1 flex min-h-0 gap-4">
+        {/* Sidebar */}
+        <div
+          className="w-80 shrink-0 flex flex-col overflow-hidden rounded-xl border-2"
+          style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}
+        >
+          <div className="p-2 overflow-y-auto flex-1">
+            <Accordion id="variant" open={openSection === 'variant'} onToggle={setOpenSection} title="Variante de página" icon={Layout}>
+              <label className="block text-xs theme-text-muted mb-1">Tema</label>
+              <select
+                value={landing.theme || 'cyan'}
+                onChange={(e) => updateLanding('theme', e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border text-sm"
+                style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+              >
+                <option value="cyan">Cyan (Del Bit al Átomo)</option>
+                <option value="green">Verde minimalista</option>
+              </select>
+            </Accordion>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <form onSubmit={submit} className="space-y-6">
-          <section className="rounded-2xl border-2 p-6" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider theme-text-muted mb-4">
-              <Type className="w-4 h-4" />
-              Hero — Tamaños de texto
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium theme-text-muted mb-1">Tamaño del título (px)</label>
-                <div className="flex items-center gap-3">
+            <Accordion id="hero" open={openSection === 'hero'} onToggle={setOpenSection} title="Hero" icon={Type}>
+              {['tag', 'titleLine1', 'titleLine2', 'titleAccent', 'tagline', 'description', 'ctaPrimary', 'ctaSecondary'].map((key) => (
+                <div key={key}>
+                  <label className="block text-xs theme-text-muted mb-0.5">{key}</label>
                   <input
-                    type="range"
-                    min="16"
-                    max="72"
-                    value={titlePx}
-                    onChange={(e) => setConfig((c) => ({ ...c, fontSizeTitle: e.target.value }))}
-                    className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
-                    style={{ background: 'var(--theme-border)' }}
+                    type="text"
+                    value={hero[key] || ''}
+                    onChange={(e) => updateHero(key, e.target.value)}
+                    className="w-full px-2 py-1.5 rounded border text-sm"
+                    style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   />
-                  <span className="text-sm font-mono tabular-nums theme-text w-10">{titlePx}</span>
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium theme-text-muted mb-1">Tamaño del subtítulo (px)</label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min="12"
-                    max="28"
-                    value={subtitlePx}
-                    onChange={(e) => setConfig((c) => ({ ...c, fontSizeSubtitle: e.target.value }))}
-                    className="flex-1 h-2 rounded-full appearance-none cursor-pointer"
-                    style={{ background: 'var(--theme-border)' }}
-                  />
-                  <span className="text-sm font-mono tabular-nums theme-text w-10">{subtitlePx}</span>
-                </div>
-              </div>
-            </div>
-          </section>
+              ))}
+            </Accordion>
 
-          <section className="rounded-2xl border-2 p-6" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider theme-text-muted mb-4">
-              <Palette className="w-4 h-4" />
-              Color de fondo
-            </h2>
-            <div className="space-y-4">
-              <p className="text-xs theme-text-muted">Presets</p>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-                {FONDOS_PRESET.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setConfig((c) => ({ ...c, backgroundColor: color }))}
-                    className="aspect-square rounded-xl border-2 transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--theme-accent)]"
-                    style={{
-                      backgroundColor: color,
-                      borderColor: bg === color ? 'var(--theme-accent)' : 'var(--theme-border)',
+            <Accordion id="stats" open={openSection === 'stats'} onToggle={setOpenSection} title="Stats">
+              {stats.map((s, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <input
+                    placeholder="Valor"
+                    value={s.value}
+                    onChange={(e) => {
+                      const next = [...stats]
+                      next[i] = { ...next[i], value: e.target.value }
+                      updateLanding('stats', next)
                     }}
-                    title={color}
+                    className="flex-1 px-2 py-1 rounded border text-sm"
+                    style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
                   />
+                  <input
+                    placeholder="Label"
+                    value={s.label}
+                    onChange={(e) => {
+                      const next = [...stats]
+                      next[i] = { ...next[i], label: e.target.value }
+                      updateLanding('stats', next)
+                    }}
+                    className="flex-1 px-2 py-1 rounded border text-sm"
+                    style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+                  />
+                  <button type="button" onClick={() => updateLanding('stats', stats.filter((_, j) => j !== i))} className="text-red-500 text-xs px-1">Quitar</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => updateLanding('stats', [...stats, { value: '', label: '' }])} className="text-xs theme-text-muted hover:underline">+ Añadir</button>
+            </Accordion>
+
+            <Accordion id="process" open={openSection === 'process'} onToggle={setOpenSection} title="Proceso (3 pasos)">
+              {process.map((step, i) => (
+                <div key={i} className="space-y-1 border-b pb-2" style={{ borderColor: 'var(--theme-border)' }}>
+                  <input placeholder="Número" value={step.number} onChange={(e) => { const n = [...process]; n[i] = { ...n[i], number: e.target.value }; updateLanding('process', n) }} className="w-full px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                  <input placeholder="Título" value={step.title} onChange={(e) => { const n = [...process]; n[i] = { ...n[i], title: e.target.value }; updateLanding('process', n) }} className="w-full px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                  <textarea placeholder="Texto" value={step.text} onChange={(e) => { const n = [...process]; n[i] = { ...n[i], text: e.target.value }; updateLanding('process', n) }} rows={2} className="w-full px-2 py-1 rounded border text-sm resize-none" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                </div>
+              ))}
+            </Accordion>
+
+            <Accordion id="gallery" open={openSection === 'gallery'} onToggle={setOpenSection} title="Galería">
+              {gallery.map((g, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <input placeholder="Label" value={g.label} onChange={(e) => { const n = [...gallery]; n[i] = { ...n[i], label: e.target.value }; updateLanding('gallery', n) }} className="flex-1 px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                  <input placeholder="Nombre" value={g.name} onChange={(e) => { const n = [...gallery]; n[i] = { ...n[i], name: e.target.value }; updateLanding('gallery', n) }} className="flex-1 px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                  <button type="button" onClick={() => updateLanding('gallery', gallery.filter((_, j) => j !== i))} className="text-red-500 text-xs">Quitar</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => updateLanding('gallery', [...gallery, { label: '', name: '' }])} className="text-xs theme-text-muted hover:underline">+ Añadir</button>
+            </Accordion>
+
+            <Accordion id="cta" open={openSection === 'cta'} onToggle={setOpenSection} title="CTA">
+              {['tag', 'title', 'subtitle', 'buttonText', 'buttonMailto', 'whatsappText'].map((key) => (
+                <div key={key}>
+                  <label className="block text-xs theme-text-muted mb-0.5">{key}</label>
+                  <input type="text" value={cta[key] || ''} onChange={(e) => updateCta(key, e.target.value)} className="w-full px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                </div>
+              ))}
+            </Accordion>
+
+            <Accordion id="footer" open={openSection === 'footer'} onToggle={setOpenSection} title="Footer">
+              <div>
+                <label className="block text-xs theme-text-muted mb-0.5">logoText</label>
+                <input type="text" value={footer.logoText || ''} onChange={(e) => updateFooter('logoText', e.target.value)} className="w-full px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+              </div>
+              <div>
+                <label className="block text-xs theme-text-muted mb-0.5">copyright</label>
+                <input type="text" value={footer.copyright || ''} onChange={(e) => updateFooter('copyright', e.target.value)} className="w-full px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+              </div>
+              <div>
+                <label className="block text-xs theme-text-muted mb-0.5">Enlaces (label, href)</label>
+                {(footer.links || []).map((link, i) => (
+                  <div key={i} className="flex gap-2 mb-1">
+                    <input placeholder="label" value={link.label} onChange={(e) => { const l = [...(footer.links || [])]; l[i] = { ...l[i], label: e.target.value }; updateFooter('links', l) }} className="flex-1 px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                    <input placeholder="href" value={link.href} onChange={(e) => { const l = [...(footer.links || [])]; l[i] = { ...l[i], href: e.target.value }; updateFooter('links', l) }} className="flex-1 px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                    <button type="button" onClick={() => updateFooter('links', (footer.links || []).filter((_, j) => j !== i))} className="text-red-500 text-xs">Quitar</button>
+                  </div>
                 ))}
+                <button type="button" onClick={() => updateFooter('links', [...(footer.links || []), { label: '', href: '#' }])} className="text-xs theme-text-muted hover:underline">+ Enlace</button>
               </div>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  placeholder="#050508"
-                  value={config.backgroundColor}
-                  onChange={(e) => setConfig((c) => ({ ...c, backgroundColor: e.target.value }))}
-                  className="flex-1 px-3 py-2 rounded-xl border text-sm font-mono"
-                  style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
-                />
-                <input
-                  type="color"
-                  value={bg.startsWith('#') && bg.length >= 7 ? bg : '#050508'}
-                  onChange={(e) => setConfig((c) => ({ ...c, backgroundColor: e.target.value }))}
-                  className="w-10 h-10 rounded-xl border cursor-pointer"
-                  style={{ borderColor: 'var(--theme-border)' }}
-                />
+            </Accordion>
+
+            <Accordion id="nav" open={openSection === 'nav'} onToggle={setOpenSection} title="Navegación">
+              <div>
+                <label className="block text-xs theme-text-muted mb-0.5">CTA header</label>
+                <input type="text" value={nav.ctaText || ''} onChange={(e) => updateNav('ctaText', e.target.value)} className="w-full px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
               </div>
+              <div>
+                <label className="block text-xs theme-text-muted mb-0.5">Enlaces</label>
+                {(nav.links || []).map((link, i) => (
+                  <div key={i} className="flex gap-2 mb-1">
+                    <input placeholder="label" value={link.label} onChange={(e) => { const l = [...(nav.links || [])]; l[i] = { ...l[i], label: e.target.value }; updateNav('links', l) }} className="flex-1 px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                    <input placeholder="href" value={link.href} onChange={(e) => { const l = [...(nav.links || [])]; l[i] = { ...l[i], href: e.target.value }; updateNav('links', l) }} className="flex-1 px-2 py-1 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+                  </div>
+                ))}
+                <button type="button" onClick={() => updateNav('links', [...(nav.links || []), { label: '', href: '#' }])} className="text-xs theme-text-muted hover:underline">+ Enlace</button>
+              </div>
+            </Accordion>
+
+            <Accordion id="typography" open={openSection === 'typography'} onToggle={setOpenSection} title="Tipografía" icon={Type}>
+              <div>
+                <label className="block text-xs theme-text-muted mb-0.5">Tamaño título (px)</label>
+                <input type="number" min={20} max={72} value={config.fontSizeTitle} onChange={(e) => setConfig((c) => ({ ...c, fontSizeTitle: Number(e.target.value) || 36 }))} className="w-full px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+              </div>
+              <div>
+                <label className="block text-xs theme-text-muted mb-0.5">Tamaño subtítulo (px)</label>
+                <input type="number" min={12} max={28} value={config.fontSizeSubtitle} onChange={(e) => setConfig((c) => ({ ...c, fontSizeSubtitle: Number(e.target.value) || 18 }))} className="w-full px-2 py-1.5 rounded border text-sm" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />
+              </div>
+            </Accordion>
+
+            <Accordion id="actions" open={openSection === 'actions'} onToggle={setOpenSection} title="Acciones" icon={Palette}>
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={save} disabled={saving} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium btn-primary disabled:opacity-60">
+                  <Save className="w-4 h-4" />
+                  {saving ? 'Guardando…' : 'Guardar'}
+                </button>
+                <button type="button" onClick={viewWeb} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border font-medium text-sm" style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}>
+                  <ExternalLink className="w-4 h-4" />
+                  Ver web
+                </button>
+                <button type="button" onClick={reset} disabled={saving} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border font-medium text-sm text-amber-600 dark:text-amber-400" style={{ borderColor: 'var(--theme-border)' }}>
+                  <RotateCcw className="w-4 h-4" />
+                  Resetear a por defecto
+                </button>
+              </div>
+            </Accordion>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div className="flex-1 min-w-0 flex flex-col rounded-xl border-2 overflow-hidden" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+            <span className="text-xs theme-text-muted">Vista previa en vivo</span>
+            <div className="flex gap-1">
+              {['desktop', 'tablet', 'mobile'].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setViewport(v)}
+                  className={`px-2 py-1 text-xs rounded font-medium ${viewport === v ? 'btn-primary' : ''}`}
+                  style={viewport !== v ? { background: 'var(--theme-bg)', color: 'var(--theme-text-muted)' } : {}}
+                >
+                  {v === 'desktop' ? 'Desktop' : v === 'tablet' ? 'Tablet' : 'Móvil'}
+                </button>
+              ))}
             </div>
-          </section>
-
-          <section className="rounded-2xl border-2 p-6" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider theme-text-muted mb-4">
-              <Tags className="w-4 h-4" />
-              Categorías (Galería)
-            </h2>
-            <p className="text-xs theme-text-muted mb-2">Etiquetas separadas por coma. Se muestran en la sección Galería de la página pública.</p>
-            <input
-              type="text"
-              placeholder="oficina, escuela, industrial, hogar, otros"
-              value={categoriesText}
-              onChange={(e) => setCategoriesText(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border text-sm"
-              style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
-            />
-          </section>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium btn-primary disabled:opacity-60"
-            >
-              <Save className="w-4 h-4" />
-              {saving ? 'Guardando…' : 'Guardar cambios'}
-            </button>
-            <Link
-              to="/proyectos"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border font-medium text-sm transition hover:opacity-90"
-              style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
-            >
-              <ExternalLink className="w-4 h-4" />
-              Abrir página en nueva pestaña
-            </Link>
           </div>
-        </form>
-
-        <div className="rounded-2xl border-2 overflow-hidden" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-          <div className="px-4 py-2 border-b flex items-center justify-between" style={{ borderColor: 'var(--theme-border)' }}>
-            <span className="text-xs font-mono theme-text-muted">Vista previa — Hero</span>
-            <span className="text-[10px] uppercase tracking-wider theme-text-muted">Actualización en vivo</span>
-          </div>
-          <div
-            className="p-6 min-h-[380px] flex flex-col justify-center transition-colors duration-200"
-            style={{ backgroundColor: bg }}
-          >
-            <p className="text-[10px] uppercase tracking-widest mb-2" style={{ color: '#00e5ff' }}>Manufactura Aditiva de Precisión</p>
-            <h1
-              className="leading-tight font-bold text-white mb-2"
-              style={{ fontSize: `${Math.min(titlePx, 48)}px` }}
-            >
-              Del Bit <span style={{ color: '#00e5ff' }}>al Átomo</span>
-            </h1>
-            <p className="font-serif italic mb-4" style={{ fontSize: `${Math.min(subtitlePx, 20)}px`, color: '#c9a96e' }}>
-              Tu visión, materializada
-            </p>
-            <p className="text-sm max-w-xs mb-5" style={{ color: 'rgba(232,232,240,0.6)' }}>
-              Modelado 3D de precisión y acabado artesanal para piezas únicas.
-            </p>
-            {previewCats.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {previewCats.map((cat) => (
-                  <span
-                    key={cat}
-                    className="text-[10px] font-mono px-2 py-1 rounded border border-white/20"
-                    style={{ color: 'rgba(232,232,240,0.8)' }}
-                  >
-                    {cat}
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="flex-1 overflow-auto p-4 flex justify-center" style={{ background: 'var(--theme-bg)' }}>
+            <div className="shadow-2xl overflow-hidden rounded-lg transition-all duration-200" style={{ width: previewWidth, maxWidth: '100%', minHeight: '500px' }}>
+              <LandingPreview theme={landing.theme || 'cyan'} content={landing} fontSizeTitle={config.fontSizeTitle} fontSizeSubtitle={config.fontSizeSubtitle} />
+            </div>
           </div>
         </div>
       </div>

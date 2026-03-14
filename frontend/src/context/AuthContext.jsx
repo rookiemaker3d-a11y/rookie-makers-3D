@@ -26,7 +26,13 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
         body: JSON.stringify({ email: (email || '').trim().toLowerCase(), password: password || '' }),
       })
     } catch (err) {
-      throw new Error('No se pudo conectar al servidor. ¿Está el backend en marcha? (npm start)')
+      const base = import.meta.env.VITE_API_URL || '(no definida)'
+      throw new Error(
+        'No se pudo conectar al backend. ' +
+        (base === '(no definida)' || base === ''
+          ? 'En Vercel configura la variable VITE_API_URL con la URL de tu backend (ej. https://rookie-makers-3d.onrender.com).'
+          : 'Comprueba que el backend en Render esté en marcha y que en Render tengas CORS_ORIGINS con tu dominio Vercel (o CORS_ORIGINS=*).')
+      )
     }
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {

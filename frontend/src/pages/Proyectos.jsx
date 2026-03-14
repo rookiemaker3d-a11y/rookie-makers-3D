@@ -6,9 +6,61 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
 const WHATSAPP_NUM = '524721488913'
 const WHATSAPP_CHAT = `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent('Hola, me interesa información sobre impresión 3D y cotización.')}`
 
+const DEFAULT_LANDING = {
+  theme: 'cyan',
+  hero: {
+    tag: 'Impresión 3D profesional',
+    titleLine1: 'Del Bit',
+    titleLine2: 'al Átomo',
+    titleAccent: 'al Átomo',
+    tagline: 'Precisión que transforma ideas en realidad',
+    description: 'Diseño, prototipado y fabricación aditiva para empresas y creadores.',
+    ctaPrimary: 'Solicitar cotización',
+    ctaSecondary: 'Ver galería',
+  },
+  stats: [
+    { value: '500+', label: 'Piezas entregadas' },
+    { value: '0.05', label: 'mm precisión' },
+    { value: '24/7', label: 'Producción' },
+  ],
+  process: [
+    { number: '01', title: 'Diseño', text: 'Recibimos tu archivo o idea y lo preparamos para impresión.' },
+    { number: '02', title: 'Fabricación', text: 'Impresión con materiales de calidad y control de parámetros.' },
+    { number: '03', title: 'Entrega', text: 'Acabado y entrega en tiempo y forma.' },
+  ],
+  gallery: [
+    { label: 'Prototipos', name: 'Prototipos industriales' },
+    { label: 'Piezas', name: 'Piezas funcionales' },
+    { label: 'Arte', name: 'Arte y decoración' },
+  ],
+  cta: {
+    tag: '¿Listo para empezar?',
+    title: 'Cuéntanos tu proyecto',
+    subtitle: 'Cotización sin compromiso.',
+    buttonText: 'Contactar',
+    buttonMailto: 'mailto:contacto@ejemplo.com',
+    whatsappText: 'https://wa.me/521234567890',
+  },
+  footer: {
+    logoText: 'Rookie Makers',
+    copyright: '© 2025 Rookie Makers. Todos los derechos reservados.',
+    links: [{ label: 'Inicio', href: '#' }, { label: 'Servicios', href: '#servicios' }, { label: 'Contacto', href: '#contacto' }],
+  },
+  nav: {
+    links: [
+      { label: 'Inicio', href: '#' },
+      { label: 'Proceso', href: '#proceso' },
+      { label: 'Galería', href: '#galeria' },
+      { label: 'Contacto', href: '#contacto' },
+    ],
+    ctaText: 'Cotizar',
+  },
+}
+
 export default function Proyectos() {
   const [videos, setVideos] = useState(VIDEOS_FALLBACK)
   const [config, setConfig] = useState(null)
+  const [landing, setLanding] = useState(DEFAULT_LANDING)
   const [navScrolled, setNavScrolled] = useState(false)
 
   useEffect(() => {
@@ -26,32 +78,49 @@ export default function Proyectos() {
   }, [])
 
   useEffect(() => {
+    fetch(`${API_BASE}/api/pagina-publica/landing`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setLanding(data))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     const onScroll = () => setNavScrolled(window.scrollY > 50)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   const cfg = config || {}
-  const bg = (cfg.backgroundColor && String(cfg.backgroundColor).trim()) ? cfg.backgroundColor : '#050508'
+  const bg = (cfg.backgroundColor && String(cfg.backgroundColor).trim()) ? cfg.backgroundColor : (landing.theme === 'green' ? '#f8faf8' : '#050508')
   const titlePx = typeof cfg.fontSizeTitle === 'number' ? Math.max(20, Math.min(72, cfg.fontSizeTitle)) : 36
   const subtitlePx = typeof cfg.fontSizeSubtitle === 'number' ? Math.max(12, Math.min(28, cfg.fontSizeSubtitle)) : 18
   const categories = Array.isArray(cfg.categories) && cfg.categories.length > 0 ? cfg.categories : ['oficina', 'escuela', 'industrial', 'hogar', 'otros']
 
+  const hero = landing.hero || DEFAULT_LANDING.hero
+  const stats = Array.isArray(landing.stats) && landing.stats.length > 0 ? landing.stats : DEFAULT_LANDING.stats
+  const process = Array.isArray(landing.process) && landing.process.length > 0 ? landing.process : DEFAULT_LANDING.process
+  const galleryItems = Array.isArray(landing.gallery) && landing.gallery.length > 0 ? landing.gallery : DEFAULT_LANDING.gallery
+  const cta = landing.cta || DEFAULT_LANDING.cta
+  const footer = landing.footer || DEFAULT_LANDING.footer
+  const navContent = landing.nav || DEFAULT_LANDING.nav
+  const isGreen = landing.theme === 'green'
+
+  const whatsappUrl = (cta.whatsappText && cta.whatsappText.trim()) ? cta.whatsappText : WHATSAPP_CHAT
+
   return (
-    <div className="lp" style={{ backgroundColor: bg }}>
+    <div className={`lp ${isGreen ? 'lp--green' : ''}`} style={{ backgroundColor: bg }}>
       <header className={`lp-header ${navScrolled ? 'lp-header--scrolled' : ''}`}>
         <div className="lp-header-inner">
           <Link to="/proyectos" className="lp-logo">
-            Rookie<span className="lp-accent">.</span>Makers<span>3D</span>
+            {footer.logoText || 'Rookie Makers'}<span className="lp-accent">.</span>
           </Link>
           <nav className="lp-nav">
-            <a href="#proceso" className="lp-nav-link">Proceso</a>
-            <a href="#detalle" className="lp-nav-link">Detalle</a>
-            <a href="#galeria" className="lp-nav-link">Galería</a>
-            <a href="#contacto" className="lp-nav-link">Contacto</a>
+            {(navContent.links || []).map((link) => (
+              <a key={link.label} href={link.href || '#'} className="lp-nav-link">{link.label}</a>
+            ))}
           </nav>
           <div className="lp-header-actions">
-            <Link to="/cotizador" className="lp-btn lp-btn-primary">Cotizar Pieza</Link>
+            <Link to="/cotizador" className="lp-btn lp-btn-primary">{navContent.ctaText || 'Cotizar'}</Link>
             <Link to="/login" className="lp-nav-link">Entrar</Link>
           </div>
         </div>
@@ -61,32 +130,31 @@ export default function Proyectos() {
         <section className="lp-hero" aria-label="Presentación">
           <div className="lp-hero-bg" />
           <div className="lp-hero-content">
-            <p className="lp-hero-label">Manufactura Aditiva de Precisión</p>
+            <p className="lp-hero-label">{hero.tag || ''}</p>
             <h1 className="lp-hero-title" style={{ fontSize: `${titlePx}px` }}>
-              Del Bit
+              {hero.titleLine1 || 'Del Bit'}
               <br />
-              <span className="lp-accent">al Átomo</span>
-              <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>Tu visión, materializada</span>
+              <span className="lp-accent">{hero.titleAccent || hero.titleLine2 || 'al Átomo'}</span>
+              <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>{hero.tagline || ''}</span>
             </h1>
             <p className="lp-hero-desc" style={{ fontSize: `${subtitlePx}px` }}>
-              Modelado 3D de precisión y acabado artesanal para piezas únicas. Desde figuras coleccionables hasta refacciones industriales.
+              {hero.description || ''}
             </p>
             <div className="lp-hero-buttons">
-              <Link to="/cotizador" className="lp-btn lp-btn-primary lp-btn-hero">Iniciar Proyecto</Link>
-              <a href="#galeria" className="lp-btn lp-btn-ghost">Ver Galería</a>
+              <Link to="/cotizador" className="lp-btn lp-btn-primary lp-btn-hero">{hero.ctaPrimary || 'Solicitar cotización'}</Link>
+              <a href="#galeria" className="lp-btn lp-btn-ghost">{hero.ctaSecondary || 'Ver galería'}</a>
             </div>
           </div>
         </section>
 
         <section className="lp-stats" aria-label="Estadísticas">
           <div className="lp-stats-inner">
-            <div className="lp-stat"><span className="lp-stat-num">500+</span><span className="lp-stat-label">Piezas entregadas</span></div>
-            <div className="lp-stat-divider" />
-            <div className="lp-stat"><span className="lp-stat-num">0.05</span><span className="lp-stat-label">mm precisión mínima</span></div>
-            <div className="lp-stat-divider" />
-            <div className="lp-stat"><span className="lp-stat-num">12+</span><span className="lp-stat-label">Materiales disponibles</span></div>
-            <div className="lp-stat-divider" />
-            <div className="lp-stat"><span className="lp-stat-num">48H</span><span className="lp-stat-label">Entrega express</span></div>
+            {stats.map((s, i) => (
+              <span key={i}>
+                <div className="lp-stat"><span className="lp-stat-num">{s.value}</span><span className="lp-stat-label">{s.label}</span></div>
+                {i < stats.length - 1 && <div className="lp-stat-divider" />}
+              </span>
+            ))}
           </div>
         </section>
 
@@ -94,18 +162,14 @@ export default function Proyectos() {
           <div className="lp-section-head">
             <div>
               <p className="lp-label">Metodología</p>
-              <h2 className="lp-section-title">La Maestría</h2>
+              <h2 className="lp-section-title">Proceso</h2>
             </div>
-            <p className="lp-section-desc">Cada pieza nace donde la ingeniería y el arte coexisten. No imprimimos objetos — materializamos conceptos.</p>
+            <p className="lp-section-desc">Cada pieza nace donde la ingeniería y el arte coexisten.</p>
           </div>
           <div className="lp-cards">
-            {[
-              { num: '01', title: 'Diseño Digital', text: 'Modelado poligonal de alta complejidad en Blender y Fusion 360. Optimizamos cada malla para impresión.' },
-              { num: '02', title: 'Fabricación Aditiva', text: 'Resina fotopolimérica de alta definición o FDM con materiales industriales: ASA, Nylon, PETG. Capas de 0.05mm.' },
-              { num: '03', title: 'Toque Maestro', text: 'Lijado progresivo, primario de alto impacto y pintura aerográfica. Cada acabado respeta la intención del diseño.' },
-            ].map((c) => (
-              <article key={c.num} className="lp-card">
-                <span className="lp-card-num">{c.num}</span>
+            {process.map((c) => (
+              <article key={c.number} className="lp-card">
+                <span className="lp-card-num">{c.number}</span>
                 <h3 className="lp-card-title">{c.title}</h3>
                 <p className="lp-card-text">{c.text}</p>
               </article>
@@ -135,7 +199,7 @@ export default function Proyectos() {
               <p className="lp-label">Proyectos</p>
               <h2 className="lp-section-title">Galería de Obras</h2>
               <div className="lp-tags">
-                {categories.map((cat) => (
+                {(galleryItems.length ? galleryItems.map((g) => g.label) : categories).map((cat) => (
                   <span key={cat} className="lp-tag">{cat}</span>
                 ))}
               </div>
@@ -177,12 +241,12 @@ export default function Proyectos() {
 
         <section id="contacto" className="lp-cta">
           <div className="lp-cta-inner">
-            <p className="lp-label">Inicia Tu Proyecto</p>
-            <h2 className="lp-cta-title">¿Tienes un reto imposible?</h2>
-            <p className="lp-cta-desc">No importa si es una figura de 2cm con relieves microscópicos o una refacción industrial. Iniciemos.</p>
+            <p className="lp-label">{cta.tag || ''}</p>
+            <h2 className="lp-cta-title">{cta.title || '¿Listo para empezar?'}</h2>
+            <p className="lp-cta-desc">{cta.subtitle || 'Cotización sin compromiso.'}</p>
             <div className="lp-cta-buttons">
-              <a href="mailto:contacto@rookiemakers3d.mx" className="lp-btn lp-btn-outline">Cotizar Ahora</a>
-              <a href={WHATSAPP_CHAT} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn-whatsapp">WhatsApp</a>
+              <a href={cta.buttonMailto || 'mailto:contacto@ejemplo.com'} className="lp-btn lp-btn-outline">{cta.buttonText || 'Contactar'}</a>
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn-whatsapp">WhatsApp</a>
             </div>
             <div className="lp-cta-features">
               <span>Respuesta &lt; 24 hrs</span>
@@ -195,12 +259,20 @@ export default function Proyectos() {
 
       <footer className="lp-footer">
         <div className="lp-footer-inner">
-          <span className="lp-logo">Rookie<span className="lp-accent">.</span>Makers<span>3D</span></span>
-          <span className="lp-footer-copy">© 2025 · Del Bit al Átomo · México</span>
+          <span className="lp-logo">{footer.logoText || 'Rookie Makers'}<span className="lp-accent">.</span></span>
+          <span className="lp-footer-copy">{footer.copyright || '© 2025 Rookie Makers'}</span>
           <div className="lp-footer-links">
-            <a href={REDES.tiktok} target="_blank" rel="noopener noreferrer">TikTok</a>
-            <a href={REDES.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
-            <a href={WHATSAPP_CHAT} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            {(footer.links && footer.links.length > 0)
+              ? footer.links.map((link) => (
+                  <a key={link.label} href={link.href || '#'}>{link.label}</a>
+                ))
+              : (
+                <>
+                  <a href={REDES.tiktok} target="_blank" rel="noopener noreferrer">TikTok</a>
+                  <a href={REDES.instagram} target="_blank" rel="noopener noreferrer">Instagram</a>
+                  <a href={WHATSAPP_CHAT} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                </>
+              )}
           </div>
         </div>
       </footer>
@@ -294,6 +366,30 @@ export default function Proyectos() {
         .lp-footer-links a:hover { color: var(--lp-accent); }
         .lp-float-cta { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; }
         .lp-float-cta .lp-btn { box-shadow: 0 8px 24px rgba(0,229,255,0.25); }
+
+        /* Variante verde minimalista */
+        .lp--green { --lp-bg: #f8faf8; --lp-surface: #f0f4f0; --lp-muted: #64748b; --lp-accent: #16a34a; --lp-gold: #15803d; color: #0f172a; }
+        .lp--green .lp-hero-bg { opacity: 0.15; background-image: none; background-color: rgba(22,163,74,0.06); }
+        .lp--green .lp-header--scrolled { background: rgba(248,250,248,0.95); border-bottom-color: rgba(0,0,0,0.06); }
+        .lp--green .lp-logo { color: #0f172a; }
+        .lp--green .lp-nav-link { color: var(--lp-muted); }
+        .lp--green .lp-nav-link:hover { color: var(--lp-accent); }
+        .lp--green .lp-btn-primary { background: var(--lp-accent); color: #fff; border-radius: 8px; }
+        .lp--green .lp-btn-primary:hover { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,0.3); }
+        .lp--green .lp-btn-ghost { color: var(--lp-muted); }
+        .lp--green .lp-btn-ghost:hover { color: #0f172a; }
+        .lp--green .lp-btn-outline { color: var(--lp-accent); border: 2px solid var(--lp-accent); border-radius: 8px; }
+        .lp--green .lp-btn-outline:hover { background: var(--lp-accent); color: #fff; }
+        .lp--green .lp-hero-tagline { color: var(--lp-gold); }
+        .lp--green .lp-stat-num { color: var(--lp-accent); }
+        .lp--green .lp-stats { border-color: rgba(0,0,0,0.06); background: var(--lp-surface); }
+        .lp--green .lp-section--dark { background: var(--lp-surface); }
+        .lp--green .lp-card { background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; }
+        .lp--green .lp-card:hover { background: #f8faf8; }
+        .lp--green .lp-card-num { color: rgba(22,163,74,0.15); }
+        .lp--green .lp-tag { border-color: rgba(0,0,0,0.1); color: var(--lp-muted); }
+        .lp--green .lp-footer { border-color: rgba(0,0,0,0.06); background: var(--lp-surface); }
+        .lp--green .lp-float-cta .lp-btn { box-shadow: 0 8px 24px rgba(22,163,74,0.25); }
       `}</style>
     </div>
   )

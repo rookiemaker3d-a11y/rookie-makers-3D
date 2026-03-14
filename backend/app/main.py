@@ -35,11 +35,16 @@ app = FastAPI(
     description="Mini ERP - Rookie Makers 3D",
     lifespan=lifespan,
 )
-origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+# CORS: en Render poner CORS_ORIGINS=https://tu-app.vercel.app o CORS_ORIGINS=* para permitir todos
+_raw = (settings.cors_origins or "").strip()
+if _raw == "*":
+    origins = ["*"]
+else:
+    origins = [o.strip() for o in _raw.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=True if origins != ["*"] else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -65,3 +70,9 @@ app.include_router(pagina_publica_router, prefix="/api")
 @app.get("/")
 def root():
     return {"app": settings.app_name, "docs": "/docs"}
+
+
+@app.get("/api/health")
+def health():
+    """Público: para comprobar que el backend responde (p. ej. desde Vercel)."""
+    return {"status": "ok"}

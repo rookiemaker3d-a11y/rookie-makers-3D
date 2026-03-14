@@ -227,3 +227,15 @@ class PaginaPublicaConfigUpdate(BaseModel):
     fontSizeSubtitle: Optional[int] = None
     backgroundColor: Optional[str] = None
     categories: Optional[list[str]] = None  # oficina, escuela, industrial, etc.
+
+
+# ----- Landing (contenido completo página pública, tema cyan | green) -----
+class LandingUpdate(BaseModel):
+    theme: Optional[str] = None  # "cyan" | "green"
+    hero: Optional[dict] = None
+    stats: Optional[list] = None
+    process: Optional[list] = None
+    gallery: Optional[list] = None
+    cta: Optional[dict] = None
+    footer: Optional[dict] = None
+    nav: Optional[dict] = None
