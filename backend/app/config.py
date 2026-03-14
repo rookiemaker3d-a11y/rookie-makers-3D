@@ -1,10 +1,23 @@
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
+
+
+def _normalize_db_url(url: str) -> str:
+    """Render y otros dan postgresql:// o postgres://; debemos usar postgresql+asyncpg:// (asyncpg, no psycopg2)."""
+    if not url:
+        return url
+    u = url.strip()
+    if u.startswith("postgresql://") and "+" not in u.split("?")[0]:
+        return u.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if u.startswith("postgres://") and "+" not in u.split("?")[0]:
+        return u.replace("postgres://", "postgresql+asyncpg://", 1)
+    return u
 
 
 class Settings(BaseSettings):
     app_name: str = "Rookie Makers 3D ERP"
-    # SQLite por defecto; para PostgreSQL: postgresql+asyncpg://user:pass@host/db
+    # SQLite por defecto; para PostgreSQL: postgresql+asyncpg://user:pass@host/db (Render inyecta postgresql://)
     database_url: str = "sqlite+aiosqlite:///./rookie_erp.db"
     secret_key: str = "rookie-makers-3d-secret-change-in-production"
     algorithm: str = "HS256"
@@ -20,6 +33,13 @@ class Settings(BaseSettings):
     costo_limpieza_base: float = 25.0
     costo_diseno_base: float = 50.0
     
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalize_database_url(cls, v):
+        if isinstance(v, str):
+            return _normalize_db_url(v)
+        return v
+
     class Config:
         env_file = ".env"
 

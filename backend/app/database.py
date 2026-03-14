@@ -4,16 +4,16 @@ from sqlalchemy.orm import declarative_base
 from app.config import get_settings
 
 settings = get_settings()
-_db_url = settings.database_url or ""
+_db_url = (settings.database_url or "").strip()
 
 # SQLite: usar driver async
 if _db_url.startswith("sqlite://"):
     _db_url = _db_url.replace("sqlite://", "sqlite+aiosqlite://", 1)
 
-# PostgreSQL: usar asyncpg (Render/Supabase dan postgresql:// o postgres://; SQLAlchemy por defecto usa psycopg2)
-if _db_url.startswith("postgresql://") and "+" not in _db_url.split("?")[0]:
+# PostgreSQL: obligatorio usar asyncpg en producción (Render da postgresql:// y SQLAlchemy cargaría psycopg2)
+if _db_url.startswith("postgresql://") and "+asyncpg" not in _db_url:
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-elif _db_url.startswith("postgres://") and "+" not in _db_url.split("?")[0]:
+if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 
 # Render (y otros Postgres en la nube) exigen SSL desde fuera
