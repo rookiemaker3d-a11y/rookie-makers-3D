@@ -57,7 +57,7 @@ export default function Layout() {
         className="sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-300"
         style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-header)' }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <Link
             to="/"
             className="text-lg font-bold tracking-tight transition-colors hover:opacity-90"
@@ -107,7 +107,7 @@ export default function Layout() {
         className="border-b backdrop-blur-sm transition-colors duration-300"
         style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-nav)' }}
       >
-        <div className="max-w-7xl mx-auto px-4 py-2">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-2">
           <ul className="flex flex-wrap items-center gap-1">
             {NAV.filter((item) => !item.adminOnly || user?.role === 'administrador').map(({ to, label, icon: Icon }) => {
               const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
@@ -146,7 +146,7 @@ export default function Layout() {
         </div>
       </nav>
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
         <Outlet />
       </main>
     </div>

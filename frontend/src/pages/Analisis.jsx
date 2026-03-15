@@ -17,53 +17,23 @@ import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
 
 const COLORS = ['#4f8ef7', '#22c55e', '#eab308', '#f97316', '#ec4899']
 
-const FORMULAS_COSTOS = [
-  {
-    concepto: 'Costo material',
-    formula: '(gramos ÷ 1000) × costo_por_kg del material',
-    ejemplo: 'Ej: (200 g ÷ 1000) × $500/kg = $100',
-  },
-  {
-    concepto: 'Costo tiempo máquina',
-    formula: 'horas × costo_hora_máquina (MXN/hr)',
-    ejemplo: `Ej: 2.5 hr × $${COTIZADOR_DEFAULTS.costoHoraMaquina}/hr = $${(2.5 * COTIZADOR_DEFAULTS.costoHoraMaquina).toFixed(0)}`,
-  },
-  {
-    concepto: 'Diseño desde cero',
-    formula: 'horas_diseño × tarifa_diseño (MXN/hr)',
-    ejemplo: `Ej: 3 hr × $${COTIZADOR_DEFAULTS.tarifaDisenoHora}/hr = $${(3 * COTIZADOR_DEFAULTS.tarifaDisenoHora).toFixed(0)}`,
-  },
-  {
-    concepto: 'Corrección STL',
-    formula: 'Costo fijo (una vez por pedido)',
-    ejemplo: `Ej: $${COTIZADOR_DEFAULTS.costoCorreccionSTL} MXN`,
-  },
-  {
-    concepto: 'Ingeniería reversa',
-    formula: 'horas_ingeniería × tarifa_ingeniería (MXN/hr)',
-    ejemplo: `Ej: 1.5 hr × $${COTIZADOR_DEFAULTS.tarifaIngenieriaReversaHora}/hr = $${(1.5 * COTIZADOR_DEFAULTS.tarifaIngenieriaReversaHora).toFixed(0)}`,
-  },
-  {
-    concepto: 'Extras (por concepto)',
-    formula: 'Cada extra: valor fijo MXN o (cantidad × valor) si es por unidad',
-    ejemplo: EXTRAS_CONFIG.slice(0, 3).map((e) => `${e.label}: ${e.porUnidad ? 'cantidad × $' + e.defaultCosto : '$' + e.defaultCosto}`).join(' · '),
-  },
-  {
-    concepto: 'Costo total (orden)',
-    formula: 'Material + Tiempo máquina + Diseño/archivo + Extras',
-    ejemplo: 'Suma de todos los conceptos anteriores.',
-  },
-  {
-    concepto: 'Precio al cliente',
-    formula: 'Costo total × (1 + margen%)',
-    ejemplo: `Ej: $500 costo × (1 + 50%) = $750`,
-  },
-  {
-    concepto: 'Anticipo',
-    formula: 'Precio cliente × (anticipo% ÷ 100)',
-    ejemplo: `Ej: $750 × ${COTIZADOR_DEFAULTS.anticipoPorcentaje}% = $${(750 * COTIZADOR_DEFAULTS.anticipoPorcentaje / 100).toFixed(0)}`,
-  },
-]
+const DEFAULT_FORMULA_VARS = {
+  materialGramos: 200,
+  materialCostoKg: 500,
+  maquinaHoras: 2.5,
+  maquinaCostoHora: COTIZADOR_DEFAULTS.costoHoraMaquina,
+  disenoHoras: 3,
+  disenoTarifa: COTIZADOR_DEFAULTS.tarifaDisenoHora,
+  correccionSTL: COTIZADOR_DEFAULTS.costoCorreccionSTL,
+  ingReversaHoras: 1.5,
+  ingReversaTarifa: COTIZADOR_DEFAULTS.tarifaIngenieriaReversaHora,
+  extraLijado: EXTRAS_CONFIG[0]?.defaultCosto ?? 80,
+  extraPintura: EXTRAS_CONFIG[1]?.defaultCosto ?? 120,
+  extraInsertos: EXTRAS_CONFIG[2]?.defaultCosto ?? 15,
+  costoTotalEjemplo: 500,
+  margenPorcentaje: COTIZADOR_DEFAULTS.margenDefault,
+  anticipoPorcentaje: COTIZADOR_DEFAULTS.anticipoPorcentaje,
+}
 
 export default function Analisis() {
   const { api, user } = useAuth()
@@ -73,8 +43,21 @@ export default function Analisis() {
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState('mes')
   const [showFormulas, setShowFormulas] = useState(false)
+  const [formulaVars, setFormulaVars] = useState(DEFAULT_FORMULA_VARS)
 
   const isAdmin = user?.role === 'administrador'
+
+  const updateFormulaVar = (key, value) => {
+    const num = value === '' || value === undefined ? null : Number(value)
+    setFormulaVars((v) => ({ ...v, [key]: Number.isNaN(num) ? value : num }))
+  }
+
+  const materialResult = (formulaVars.materialGramos / 1000) * (Number(formulaVars.materialCostoKg) || 0)
+  const maquinaResult = (Number(formulaVars.maquinaHoras) || 0) * (Number(formulaVars.maquinaCostoHora) || 0)
+  const disenoResult = (Number(formulaVars.disenoHoras) || 0) * (Number(formulaVars.disenoTarifa) || 0)
+  const ingReversaResult = (Number(formulaVars.ingReversaHoras) || 0) * (Number(formulaVars.ingReversaTarifa) || 0)
+  const precioClienteResult = (Number(formulaVars.costoTotalEjemplo) || 0) * (1 + (Number(formulaVars.margenPorcentaje) || 0) / 100)
+  const anticipoResult = precioClienteResult * ((Number(formulaVars.anticipoPorcentaje) || 0) / 100)
 
   useEffect(() => {
     Promise.all([
@@ -251,19 +234,111 @@ export default function Analisis() {
           {showFormulas ? <ChevronUp className="w-4 h-4 theme-text-muted" /> : <ChevronDown className="w-4 h-4 theme-text-muted" />}
         </button>
         {showFormulas && (
-          <div className="mt-4 pt-4 border-t space-y-4" style={{ borderColor: 'var(--theme-border)' }}>
+          <div className="mt-4 pt-4 border-t space-y-5" style={{ borderColor: 'var(--theme-border)' }}>
             <p className="text-sm theme-text-muted">
-              Cada línea de la cotización se calcula así. Los valores por defecto (costo/hora, tarifas, margen) están en la configuración del cotizador; los costos por kg de cada material se editan en Inventario → Costos de filamentos.
+              Cada línea de la cotización se calcula así. Modifica los valores para ver el resultado. Los costos por kg se editan en Inventario → Costos de filamentos.
             </p>
-            {FORMULAS_COSTOS.map((f, i) => (
-              <div key={i} className="text-sm">
-                <div className="font-medium theme-text mb-0.5">{f.concepto}</div>
-                <div className="theme-text-muted font-mono text-xs bg-white/[0.04] rounded px-2 py-1.5 mb-1">
-                  {f.formula}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Costo material */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Costo material</div>
+                <div className="theme-text-muted font-mono text-xs">(gramos ÷ 1000) × costo_por_kg</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="number" min={0} step={1} value={formulaVars.materialGramos} onChange={(e) => updateFormulaVar('materialGramos', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">g ×</span>
+                  <input type="number" min={0} step={10} value={formulaVars.materialCostoKg} onChange={(e) => updateFormulaVar('materialCostoKg', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">$/kg =</span>
+                  <span className="font-mono font-medium theme-text">${materialResult.toFixed(0)}</span>
                 </div>
-                {f.ejemplo && <div className="theme-text-dim text-xs">{f.ejemplo}</div>}
               </div>
-            ))}
+              {/* Costo tiempo máquina */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Costo tiempo máquina</div>
+                <div className="theme-text-muted font-mono text-xs">horas × costo_hora_máquina</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="number" min={0} step={0.5} value={formulaVars.maquinaHoras} onChange={(e) => updateFormulaVar('maquinaHoras', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">hr ×</span>
+                  <input type="number" min={0} step={1} value={formulaVars.maquinaCostoHora} onChange={(e) => updateFormulaVar('maquinaCostoHora', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">$/hr =</span>
+                  <span className="font-mono font-medium theme-text">${maquinaResult.toFixed(0)}</span>
+                </div>
+              </div>
+              {/* Diseño desde cero */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Diseño desde cero</div>
+                <div className="theme-text-muted font-mono text-xs">horas_diseño × tarifa_diseño</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="number" min={0} step={0.5} value={formulaVars.disenoHoras} onChange={(e) => updateFormulaVar('disenoHoras', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">hr ×</span>
+                  <input type="number" min={0} step={10} value={formulaVars.disenoTarifa} onChange={(e) => updateFormulaVar('disenoTarifa', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">=</span>
+                  <span className="font-mono font-medium theme-text">${disenoResult.toFixed(0)}</span>
+                </div>
+              </div>
+              {/* Corrección STL */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Corrección STL</div>
+                <div className="theme-text-muted font-mono text-xs">Costo fijo (una vez por pedido)</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="number" min={0} step={10} value={formulaVars.correccionSTL} onChange={(e) => updateFormulaVar('correccionSTL', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">MXN</span>
+                </div>
+              </div>
+              {/* Ingeniería reversa */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Ingeniería reversa</div>
+                <div className="theme-text-muted font-mono text-xs">horas × tarifa_ingeniería</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="number" min={0} step={0.5} value={formulaVars.ingReversaHoras} onChange={(e) => updateFormulaVar('ingReversaHoras', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">hr ×</span>
+                  <input type="number" min={0} step={10} value={formulaVars.ingReversaTarifa} onChange={(e) => updateFormulaVar('ingReversaTarifa', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">=</span>
+                  <span className="font-mono font-medium theme-text">${ingReversaResult.toFixed(0)}</span>
+                </div>
+              </div>
+              {/* Extras */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Extras (ejemplo)</div>
+                <div className="theme-text-muted font-mono text-xs">valor fijo o cantidad × valor</div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="theme-text-muted">Lijado $</span>
+                  <input type="number" min={0} value={formulaVars.extraLijado} onChange={(e) => updateFormulaVar('extraLijado', e.target.value)} className="w-16 px-1 py-0.5 rounded border bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted">Pintura $</span>
+                  <input type="number" min={0} value={formulaVars.extraPintura} onChange={(e) => updateFormulaVar('extraPintura', e.target.value)} className="w-16 px-1 py-0.5 rounded border bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted">Insertos $</span>
+                  <input type="number" min={0} value={formulaVars.extraInsertos} onChange={(e) => updateFormulaVar('extraInsertos', e.target.value)} className="w-16 px-1 py-0.5 rounded border bg-white/5 border-white/20 theme-text" />
+                </div>
+              </div>
+              {/* Costo total (orden) */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Costo total (orden)</div>
+                <div className="theme-text-muted font-mono text-xs">Material + Tiempo + Diseño + Extras</div>
+                <p className="text-xs theme-text-muted">Suma de todos los conceptos anteriores.</p>
+              </div>
+              {/* Precio al cliente */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Precio al cliente</div>
+                <div className="theme-text-muted font-mono text-xs">Costo total × (1 + margen%)</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input type="number" min={0} step={50} value={formulaVars.costoTotalEjemplo} onChange={(e) => updateFormulaVar('costoTotalEjemplo', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">× (1 +</span>
+                  <input type="number" min={0} max={200} step={5} value={formulaVars.margenPorcentaje} onChange={(e) => updateFormulaVar('margenPorcentaje', e.target.value)} className="w-16 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">%) =</span>
+                  <span className="font-mono font-medium theme-text">${precioClienteResult.toFixed(0)}</span>
+                </div>
+              </div>
+              {/* Anticipo */}
+              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-medium theme-text">Anticipo</div>
+                <div className="theme-text-muted font-mono text-xs">Precio cliente × (anticipo% ÷ 100)</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="theme-text-muted text-xs">${precioClienteResult.toFixed(0)} ×</span>
+                  <input type="number" min={0} max={100} step={5} value={formulaVars.anticipoPorcentaje} onChange={(e) => updateFormulaVar('anticipoPorcentaje', e.target.value)} className="w-16 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-xs">% =</span>
+                  <span className="font-mono font-medium theme-text">${anticipoResult.toFixed(0)}</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </Card>
