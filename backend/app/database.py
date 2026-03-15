@@ -1,4 +1,5 @@
 import ssl
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
@@ -16,6 +17,18 @@ if _db_url.startswith("postgresql://") and "+asyncpg" not in _db_url:
     _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
 if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
+
+# Render PostgreSQL: quitar parámetros SSL de la URL para que asyncpg no use sslmode=require (verificación)
+# y use solo nuestro connect_args["ssl"] con CERT_NONE (sin verificar certificado self-signed).
+if "postgresql" in _db_url and "?" in _db_url:
+    _parsed = urlparse(_db_url)
+    _q = parse_qs(_parsed.query, keep_blank_values=True)
+    for _key in ("sslmode", "sslrootcert", "sslcert", "sslkey", "sslcrl", "ssl"):
+        _q.pop(_key, None)
+    _new_query = urlencode(_q, doseq=True)
+    _db_url = urlunparse((_parsed.scheme, _parsed.netloc, _parsed.path, _parsed.params, _new_query or "", _parsed.fragment))
+    if _db_url.endswith("?"):
+        _db_url = _db_url.rstrip("?")
 
 # Render PostgreSQL puede usar certificado que falla verificación (CERTIFICATE_VERIFY_FAILED / self-signed)
 _connect_args = {}
