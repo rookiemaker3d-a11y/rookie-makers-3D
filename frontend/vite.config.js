@@ -6,12 +6,20 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    chunkSizeWarningLimit: 2000,
+    // Evitar warning en Vercel: chunk > 2000 kB (el bundle con recharts es grande)
+    chunkSizeWarningLimit: 3000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-charts': ['recharts'],
+        manualChunks(id) {
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router')) {
+            return 'vendor-react'
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'vendor-recharts'
+          }
+          if (id.includes('node_modules/')) {
+            return 'vendor'
+          }
         },
       },
     },
