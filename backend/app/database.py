@@ -1,3 +1,4 @@
+import ssl
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
@@ -16,10 +17,13 @@ if _db_url.startswith("postgresql://") and "+asyncpg" not in _db_url:
 if _db_url.startswith("postgres://"):
     _db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 
-# Render (y otros Postgres en la nube) exigen SSL desde fuera
+# Render PostgreSQL puede usar certificado que falla verificación (CERTIFICATE_VERIFY_FAILED / self-signed)
 _connect_args = {}
 if "postgresql" in _db_url:
-    _connect_args["ssl"] = True
+    _ssl_ctx = ssl.create_default_context()
+    _ssl_ctx.check_hostname = False
+    _ssl_ctx.verify_mode = ssl.CERT_NONE
+    _connect_args["ssl"] = _ssl_ctx
 
 engine = create_async_engine(_db_url, echo=False, connect_args=_connect_args)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
