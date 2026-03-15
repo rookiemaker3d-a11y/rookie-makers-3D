@@ -81,7 +81,8 @@
   --section-gradient-to: var(--theme-section-to);
 }
 
-/* Evitar página en blanco: fondo visible desde el primer paint */
+/* Evitar página en blanco: fondo visible desde el primer paint. Zoom general para que todo se vea más grande. */
+html { font-size: 112.5%; }
 html, body { min-height: 100%; margin: 0; background: var(--theme-bg-page); }
 #root { min-height: 100%; }
 

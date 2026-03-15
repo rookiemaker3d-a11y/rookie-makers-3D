@@ -285,14 +285,14 @@ export default function Proyectos() {
         .lp { --lp-bg: #050508; --lp-surface: #0d0d12; --lp-muted: rgba(232,232,240,0.6); --lp-accent: #00e5ff; --lp-gold: #c9a96e; color: #e8e8f0; min-height: 100vh; }
         .lp-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 1rem 1.5rem; transition: background 0.3s, box-shadow 0.3s; }
         .lp-header--scrolled { background: rgba(5,5,8,0.95); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.06); }
-        .lp-header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-        .lp-logo { font-size: 1.25rem; letter-spacing: 0.15em; color: #fff; text-decoration: none; font-weight: 700; }
+        .lp-header-inner { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 0 1rem; }
+        .lp-logo { font-size: 1.4rem; letter-spacing: 0.15em; color: #fff; text-decoration: none; font-weight: 700; }
         .lp-accent { color: var(--lp-accent); }
         .lp-nav { display: flex; gap: 2rem; }
-        .lp-nav-link { font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--lp-muted); text-decoration: none; transition: color 0.2s; }
+        .lp-nav-link { font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--lp-muted); text-decoration: none; transition: color 0.2s; }
         .lp-nav-link:hover { color: var(--lp-accent); }
         .lp-header-actions { display: flex; align-items: center; gap: 0.75rem; }
-        .lp-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.25rem; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; border: none; cursor: pointer; transition: all 0.2s; }
+        .lp-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; border: none; cursor: pointer; transition: all 0.2s; }
         .lp-btn-primary { background: var(--lp-accent); color: #050508; }
         .lp-btn-primary:hover { background: #fff; box-shadow: 0 0 24px rgba(0,229,255,0.35); }
         .lp-btn-ghost { color: var(--lp-muted); }
@@ -301,31 +301,31 @@ export default function Proyectos() {
         .lp-btn-outline:hover { background: var(--lp-accent); color: #050508; }
         .lp-btn-whatsapp { background: #25D366; color: #fff; }
         .lp-btn-whatsapp:hover { background: #20BD5A; }
-        .lp-btn-hero { padding: 0.75rem 1.5rem; }
-        .lp-hero { min-height: 100vh; display: flex; align-items: center; padding: 6rem 1.5rem 4rem; position: relative; overflow: hidden; }
+        .lp-btn-hero { padding: 0.9rem 1.75rem; font-size: 0.85rem; }
+        .lp-hero { min-height: 100vh; display: flex; align-items: center; padding: 6rem 2rem 4rem; position: relative; overflow: hidden; }
         .lp-hero-bg { position: absolute; inset: 0; opacity: 0.4; background-image: linear-gradient(rgba(0,229,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.05) 1px, transparent 1px); background-size: 48px 48px; }
-        .lp-hero-content { position: relative; z-index: 1; max-width: 640px; }
-        .lp-hero-label { font-size: 0.65rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--lp-accent); margin-bottom: 1rem; }
-        .lp-hero-title { line-height: 1; letter-spacing: 0.02em; margin-bottom: 1rem; font-weight: 700; }
-        .lp-hero-tagline { display: block; margin-top: 0.25rem; font-style: italic; color: var(--lp-gold); font-weight: 400; }
-        .lp-hero-desc { max-width: 420px; line-height: 1.6; color: var(--lp-muted); margin-bottom: 2rem; font-weight: 300; }
-        .lp-hero-buttons { display: flex; flex-wrap: wrap; gap: 1rem; }
-        .lp-stats { border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); padding: 1.25rem 1.5rem; background: var(--lp-surface); }
-        .lp-stats-inner { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem 1.5rem; text-align: center; }
-        .lp-stat { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
-        .lp-stat-num { font-size: 1.5rem; font-weight: 700; color: var(--lp-accent); }
-        .lp-stat-label { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-muted); max-width: 100px; }
+        .lp-hero-content { position: relative; z-index: 1; max-width: 920px; }
+        .lp-hero-label { font-size: 0.8rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--lp-accent); margin-bottom: 1.25rem; }
+        .lp-hero-title { line-height: 1.05; letter-spacing: 0.02em; margin-bottom: 1.25rem; font-weight: 700; }
+        .lp-hero-tagline { display: block; margin-top: 0.35rem; font-style: italic; color: var(--lp-gold); font-weight: 400; font-size: 1.05em; }
+        .lp-hero-desc { max-width: 560px; line-height: 1.65; color: var(--lp-muted); margin-bottom: 2rem; font-weight: 300; font-size: 1.05rem; }
+        .lp-hero-buttons { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+        .lp-stats { border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); padding: 1.5rem 2rem; background: var(--lp-surface); }
+        .lp-stats-inner { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1.5rem 2rem; text-align: center; }
+        .lp-stat { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+        .lp-stat-num { font-size: 1.85rem; font-weight: 700; color: var(--lp-accent); }
+        .lp-stat-label { font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-muted); max-width: 120px; }
         .lp-stat-divider { width: 1px; height: 2rem; background: rgba(255,255,255,0.1); display: none; }
         @media (min-width: 640px) { .lp-stat-divider { display: block; } }
-        .lp-section { padding: 4rem 1.5rem; max-width: 1200px; margin: 0 auto; }
+        .lp-section { padding: 4rem 2rem; max-width: 1400px; margin: 0 auto; }
         .lp-section--dark { background: var(--lp-surface); }
-        .lp-section-head { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
+        .lp-section-head { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 2.5rem; }
         @media (min-width: 768px) { .lp-section-head { flex-direction: row; align-items: flex-end; justify-content: space-between; } }
         .lp-section-head--center { text-align: center; align-items: center; }
-        .lp-label { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--lp-accent); }
-        .lp-section-title { font-size: 2rem; line-height: 1.1; margin-top: 0.25rem; }
-        @media (min-width: 768px) { .lp-section-title { font-size: 2.5rem; } }
-        .lp-section-desc { max-width: 320px; font-size: 0.875rem; color: var(--lp-muted); line-height: 1.5; }
+        .lp-label { font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--lp-accent); }
+        .lp-section-title { font-size: 2.25rem; line-height: 1.1; margin-top: 0.25rem; }
+        @media (min-width: 768px) { .lp-section-title { font-size: 2.75rem; } }
+        .lp-section-desc { max-width: 400px; font-size: 1rem; color: var(--lp-muted); line-height: 1.55; }
         .lp-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
         .lp-tag { font-size: 0.65rem; letter-spacing: 0.05em; padding: 0.25rem 0.5rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: var(--lp-muted); }
         .lp-link { font-size: 0.875rem; color: var(--lp-muted); text-decoration: none; }
@@ -352,14 +352,14 @@ export default function Proyectos() {
         .lp-card-desc { font-size: 0.875rem; color: var(--lp-muted); margin-top: 0.25rem; line-clamp: 2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .lp-card-cta { font-size: 0.875rem; color: var(--lp-muted); margin-top: 0.5rem; display: inline-block; }
         .lp-cta { padding: 4rem 1.5rem; text-align: center; position: relative; }
-        .lp-cta-inner { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; }
-        .lp-cta-title { font-size: 2rem; line-height: 1.1; margin: 0.5rem 0 1rem; }
-        @media (min-width: 768px) { .lp-cta-title { font-size: 3rem; } }
-        .lp-cta-desc { font-size: 1rem; color: var(--lp-muted); line-height: 1.5; margin-bottom: 1.5rem; }
+        .lp-cta-inner { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; }
+        .lp-cta-title { font-size: 2.25rem; line-height: 1.1; margin: 0.5rem 0 1rem; }
+        @media (min-width: 768px) { .lp-cta-title { font-size: 3.25rem; } }
+        .lp-cta-desc { font-size: 1.1rem; color: var(--lp-muted); line-height: 1.55; margin-bottom: 1.5rem; }
         .lp-cta-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
         .lp-cta-features { display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem; font-size: 0.875rem; color: var(--lp-muted); }
         .lp-footer { border-top: 1px solid rgba(255,255,255,0.08); padding: 2rem 1.5rem; background: var(--lp-surface); }
-        .lp-footer-inner { max-width: 1200px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+        .lp-footer-inner { max-width: 1400px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 1rem; }
         .lp-footer-copy { font-size: 0.75rem; letter-spacing: 0.1em; color: var(--lp-muted); }
         .lp-footer-links { display: flex; gap: 1.5rem; }
         .lp-footer-links a { font-size: 0.75rem; letter-spacing: 0.1em; color: var(--lp-muted); text-decoration: none; }

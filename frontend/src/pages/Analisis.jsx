@@ -225,117 +225,120 @@ export default function Analisis() {
         <button
           type="button"
           onClick={() => setShowFormulas((v) => !v)}
-          className="w-full flex items-center justify-between gap-2 text-left p-2 rounded-lg hover:bg-white/[0.05] transition"
+          className="w-full flex items-center justify-between gap-2 text-left p-4 rounded-lg hover:bg-white/[0.05] transition"
         >
-          <span className="flex items-center gap-2 theme-text font-medium">
-            <Calculator className="w-4 h-4 text-cyan-500" />
-            Ver fórmulas de costos (orden de cotización)
+          <span className="flex items-center gap-3 theme-text font-semibold text-base">
+            <Calculator className="w-5 h-5 text-cyan-500" />
+            Costos — Ver fórmulas (orden de cotización)
           </span>
-          {showFormulas ? <ChevronUp className="w-4 h-4 theme-text-muted" /> : <ChevronDown className="w-4 h-4 theme-text-muted" />}
+          {showFormulas ? <ChevronUp className="w-5 h-5 theme-text-muted" /> : <ChevronDown className="w-5 h-5 theme-text-muted" />}
         </button>
         {showFormulas && (
-          <div className="mt-4 pt-4 border-t space-y-5" style={{ borderColor: 'var(--theme-border)' }}>
-            <p className="text-sm theme-text-muted">
-              Cada línea de la cotización se calcula así. Modifica los valores para ver el resultado. Los costos por kg se editan en Inventario → Costos de filamentos.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 pt-5 border-t space-y-6" style={{ borderColor: 'var(--theme-border)' }}>
+            <div>
+              <h3 className="text-lg font-semibold theme-text mb-1">Apartado de costos</h3>
+              <p className="text-base theme-text-muted">
+                Cada línea de la cotización se calcula así. Modifica los valores para ver el resultado. Los costos por kg se editan en Inventario → Costos de filamentos.
+              </p>
+            </div>
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {/* Costo material */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Costo material</div>
-                <div className="theme-text-muted font-mono text-xs">(gramos ÷ 1000) × costo_por_kg</div>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Costo material</div>
+                <div className="theme-text-muted font-mono text-sm">(gramos ÷ 1000) × costo_por_kg</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input type="number" min={0} step={1} value={formulaVars.materialGramos} onChange={(e) => updateFormulaVar('materialGramos', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">g ×</span>
-                  <input type="number" min={0} step={10} value={formulaVars.materialCostoKg} onChange={(e) => updateFormulaVar('materialCostoKg', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">$/kg =</span>
-                  <span className="font-mono font-medium theme-text">${materialResult.toFixed(0)}</span>
+                  <input type="number" min={0} step={1} value={formulaVars.materialGramos} onChange={(e) => updateFormulaVar('materialGramos', e.target.value)} className="w-24 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">g ×</span>
+                  <input type="number" min={0} step={10} value={formulaVars.materialCostoKg} onChange={(e) => updateFormulaVar('materialCostoKg', e.target.value)} className="w-28 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">$/kg =</span>
+                  <span className="font-mono font-semibold theme-text text-lg">${materialResult.toFixed(0)}</span>
                 </div>
               </div>
               {/* Costo tiempo máquina */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Costo tiempo máquina</div>
-                <div className="theme-text-muted font-mono text-xs">horas × costo_hora_máquina</div>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Costo tiempo máquina</div>
+                <div className="theme-text-muted font-mono text-sm">horas × costo_hora_máquina</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input type="number" min={0} step={0.5} value={formulaVars.maquinaHoras} onChange={(e) => updateFormulaVar('maquinaHoras', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">hr ×</span>
-                  <input type="number" min={0} step={1} value={formulaVars.maquinaCostoHora} onChange={(e) => updateFormulaVar('maquinaCostoHora', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">$/hr =</span>
-                  <span className="font-mono font-medium theme-text">${maquinaResult.toFixed(0)}</span>
+                  <input type="number" min={0} step={0.5} value={formulaVars.maquinaHoras} onChange={(e) => updateFormulaVar('maquinaHoras', e.target.value)} className="w-24 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">hr ×</span>
+                  <input type="number" min={0} step={1} value={formulaVars.maquinaCostoHora} onChange={(e) => updateFormulaVar('maquinaCostoHora', e.target.value)} className="w-24 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">$/hr =</span>
+                  <span className="font-mono font-semibold theme-text text-lg">${maquinaResult.toFixed(0)}</span>
                 </div>
               </div>
               {/* Diseño desde cero */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Diseño desde cero</div>
-                <div className="theme-text-muted font-mono text-xs">horas_diseño × tarifa_diseño</div>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Diseño desde cero</div>
+                <div className="theme-text-muted font-mono text-sm">horas_diseño × tarifa_diseño</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input type="number" min={0} step={0.5} value={formulaVars.disenoHoras} onChange={(e) => updateFormulaVar('disenoHoras', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">hr ×</span>
-                  <input type="number" min={0} step={10} value={formulaVars.disenoTarifa} onChange={(e) => updateFormulaVar('disenoTarifa', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">=</span>
-                  <span className="font-mono font-medium theme-text">${disenoResult.toFixed(0)}</span>
+                  <input type="number" min={0} step={0.5} value={formulaVars.disenoHoras} onChange={(e) => updateFormulaVar('disenoHoras', e.target.value)} className="w-24 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">hr ×</span>
+                  <input type="number" min={0} step={10} value={formulaVars.disenoTarifa} onChange={(e) => updateFormulaVar('disenoTarifa', e.target.value)} className="w-28 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">=</span>
+                  <span className="font-mono font-semibold theme-text text-lg">${disenoResult.toFixed(0)}</span>
                 </div>
               </div>
               {/* Corrección STL */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Corrección STL</div>
-                <div className="theme-text-muted font-mono text-xs">Costo fijo (una vez por pedido)</div>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Corrección STL</div>
+                <div className="theme-text-muted font-mono text-sm">Costo fijo (una vez por pedido)</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input type="number" min={0} step={10} value={formulaVars.correccionSTL} onChange={(e) => updateFormulaVar('correccionSTL', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">MXN</span>
+                  <input type="number" min={0} step={10} value={formulaVars.correccionSTL} onChange={(e) => updateFormulaVar('correccionSTL', e.target.value)} className="w-28 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">MXN</span>
                 </div>
               </div>
               {/* Ingeniería reversa */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Ingeniería reversa</div>
-                <div className="theme-text-muted font-mono text-xs">horas × tarifa_ingeniería</div>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Ingeniería reversa</div>
+                <div className="theme-text-muted font-mono text-sm">horas × tarifa_ingeniería</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input type="number" min={0} step={0.5} value={formulaVars.ingReversaHoras} onChange={(e) => updateFormulaVar('ingReversaHoras', e.target.value)} className="w-20 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">hr ×</span>
-                  <input type="number" min={0} step={10} value={formulaVars.ingReversaTarifa} onChange={(e) => updateFormulaVar('ingReversaTarifa', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">=</span>
-                  <span className="font-mono font-medium theme-text">${ingReversaResult.toFixed(0)}</span>
+                  <input type="number" min={0} step={0.5} value={formulaVars.ingReversaHoras} onChange={(e) => updateFormulaVar('ingReversaHoras', e.target.value)} className="w-24 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">hr ×</span>
+                  <input type="number" min={0} step={10} value={formulaVars.ingReversaTarifa} onChange={(e) => updateFormulaVar('ingReversaTarifa', e.target.value)} className="w-28 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">=</span>
+                  <span className="font-mono font-semibold theme-text text-lg">${ingReversaResult.toFixed(0)}</span>
                 </div>
               </div>
               {/* Extras */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Extras (ejemplo)</div>
-                <div className="theme-text-muted font-mono text-xs">valor fijo o cantidad × valor</div>
-                <div className="flex flex-wrap gap-2 text-xs">
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Extras (ejemplo)</div>
+                <div className="theme-text-muted font-mono text-sm">valor fijo o cantidad × valor</div>
+                <div className="flex flex-wrap gap-3 text-sm">
                   <span className="theme-text-muted">Lijado $</span>
-                  <input type="number" min={0} value={formulaVars.extraLijado} onChange={(e) => updateFormulaVar('extraLijado', e.target.value)} className="w-16 px-1 py-0.5 rounded border bg-white/5 border-white/20 theme-text" />
+                  <input type="number" min={0} value={formulaVars.extraLijado} onChange={(e) => updateFormulaVar('extraLijado', e.target.value)} className="w-20 px-2 py-1.5 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
                   <span className="theme-text-muted">Pintura $</span>
-                  <input type="number" min={0} value={formulaVars.extraPintura} onChange={(e) => updateFormulaVar('extraPintura', e.target.value)} className="w-16 px-1 py-0.5 rounded border bg-white/5 border-white/20 theme-text" />
+                  <input type="number" min={0} value={formulaVars.extraPintura} onChange={(e) => updateFormulaVar('extraPintura', e.target.value)} className="w-20 px-2 py-1.5 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
                   <span className="theme-text-muted">Insertos $</span>
-                  <input type="number" min={0} value={formulaVars.extraInsertos} onChange={(e) => updateFormulaVar('extraInsertos', e.target.value)} className="w-16 px-1 py-0.5 rounded border bg-white/5 border-white/20 theme-text" />
+                  <input type="number" min={0} value={formulaVars.extraInsertos} onChange={(e) => updateFormulaVar('extraInsertos', e.target.value)} className="w-20 px-2 py-1.5 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
                 </div>
               </div>
               {/* Costo total (orden) */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Costo total (orden)</div>
-                <div className="theme-text-muted font-mono text-xs">Material + Tiempo + Diseño + Extras</div>
-                <p className="text-xs theme-text-muted">Suma de todos los conceptos anteriores.</p>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Costo total (orden)</div>
+                <div className="theme-text-muted font-mono text-sm">Material + Tiempo + Diseño + Extras</div>
+                <p className="text-sm theme-text-muted">Suma de todos los conceptos anteriores.</p>
               </div>
               {/* Precio al cliente */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Precio al cliente</div>
-                <div className="theme-text-muted font-mono text-xs">Costo total × (1 + margen%)</div>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Precio al cliente</div>
+                <div className="theme-text-muted font-mono text-sm">Costo total × (1 + margen%)</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <input type="number" min={0} step={50} value={formulaVars.costoTotalEjemplo} onChange={(e) => updateFormulaVar('costoTotalEjemplo', e.target.value)} className="w-24 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">× (1 +</span>
-                  <input type="number" min={0} max={200} step={5} value={formulaVars.margenPorcentaje} onChange={(e) => updateFormulaVar('margenPorcentaje', e.target.value)} className="w-16 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">%) =</span>
-                  <span className="font-mono font-medium theme-text">${precioClienteResult.toFixed(0)}</span>
+                  <input type="number" min={0} step={50} value={formulaVars.costoTotalEjemplo} onChange={(e) => updateFormulaVar('costoTotalEjemplo', e.target.value)} className="w-28 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">× (1 +</span>
+                  <input type="number" min={0} max={200} step={5} value={formulaVars.margenPorcentaje} onChange={(e) => updateFormulaVar('margenPorcentaje', e.target.value)} className="w-20 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">%) =</span>
+                  <span className="font-mono font-semibold theme-text text-xl">${precioClienteResult.toFixed(0)}</span>
                 </div>
               </div>
               {/* Anticipo */}
-              <div className="p-3 rounded-xl border space-y-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
-                <div className="font-medium theme-text">Anticipo</div>
-                <div className="theme-text-muted font-mono text-xs">Precio cliente × (anticipo% ÷ 100)</div>
+              <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+                <div className="font-semibold theme-text text-base">Anticipo</div>
+                <div className="theme-text-muted font-mono text-sm">Precio cliente × (anticipo% ÷ 100)</div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="theme-text-muted text-xs">${precioClienteResult.toFixed(0)} ×</span>
-                  <input type="number" min={0} max={100} step={5} value={formulaVars.anticipoPorcentaje} onChange={(e) => updateFormulaVar('anticipoPorcentaje', e.target.value)} className="w-16 px-2 py-1 rounded border text-sm bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-xs">% =</span>
-                  <span className="font-mono font-medium theme-text">${anticipoResult.toFixed(0)}</span>
+                  <span className="theme-text-muted text-sm">${precioClienteResult.toFixed(0)} ×</span>
+                  <input type="number" min={0} max={100} step={5} value={formulaVars.anticipoPorcentaje} onChange={(e) => updateFormulaVar('anticipoPorcentaje', e.target.value)} className="w-20 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
+                  <span className="theme-text-muted text-sm">% =</span>
+                  <span className="font-mono font-semibold theme-text text-lg">${anticipoResult.toFixed(0)}</span>
                 </div>
               </div>
             </div>
