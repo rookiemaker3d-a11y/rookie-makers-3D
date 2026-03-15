@@ -1,0 +1,4 @@
+Yet an other Dupont cable organizer by thsmi on Thingiverse: https://www.thingiverse.com/thing:6414792
+
+Summary:
+There are numerous cable organizers for dupont cables out there almost all of them open frame designs. This works great until you want to store them.This organizer is a bit different. It uses a caddy to store the cables. And when done you simply slide the caddy into the housing and everything is stored cleanly.Everything is now stored inside a rectangular box which can be easily stacked.You need to customize the cable holder positions in the caddy to match the length of your cables. But keep housing dimensions and the caddy dimensions the same. This allows you to interchange the caddies as well as the housings.
