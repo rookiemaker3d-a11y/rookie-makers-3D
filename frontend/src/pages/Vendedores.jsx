@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Pencil } from 'lucide-react'
+import { Pencil, UserPlus } from 'lucide-react'
 
 export default function Vendedores() {
   const { api } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', tarjeta: '', new_password: '' })
+  const [createForm, setCreateForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' })
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -90,12 +92,62 @@ export default function Vendedores() {
     }
   }
 
+  const saveCreate = async (e) => {
+    e.preventDefault()
+    if (!createForm.nombre?.trim() || !createForm.correo?.trim()) {
+      setMsg('Nombre y correo son obligatorios.')
+      return
+    }
+    setSaving(true)
+    setMsg('')
+    try {
+      const res = await api('/vendedores', {
+        method: 'POST',
+        body: JSON.stringify({
+          nombre: createForm.nombre.trim(),
+          correo: createForm.correo.trim().toLowerCase(),
+          telefono: createForm.telefono?.trim() || null,
+          banco: createForm.banco?.trim() || null,
+          cuenta: createForm.cuenta?.trim() || null,
+          clabe: createForm.clabe?.trim() || null,
+          password: createForm.password?.trim() || null,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setMsg(data?.detail || 'Error al crear')
+        return
+      }
+      setMsg('Diseñador agregado correctamente.')
+      setCreateForm({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' })
+      setCreateOpen(false)
+      load()
+    } catch (err) {
+      setMsg(err?.message || 'Error al crear')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) return <div className="p-8 theme-text-muted">Cargando...</div>
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold theme-text mb-2">Vendedores</h1>
-      <p className="theme-text-muted text-sm mb-4">Edita datos y contraseñas. Solo el administrador ve este módulo.</p>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h1 className="text-2xl font-bold theme-text mb-2">Diseñadores</h1>
+          <p className="theme-text-muted text-sm">Estos son los diseñadores (fabricantes). Edita datos, contraseñas y agrega nuevos. Solo el administrador ve este módulo.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => { setCreateOpen(true); setMsg(''); setCreateForm({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' }); }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-primary font-medium text-sm"
+        >
+          <UserPlus className="w-5 h-5" />
+          Agregar usuario
+        </button>
+      </div>
+      {msg && <p className={`text-sm mb-3 ${msg.includes('Error') ? 'text-red-500' : 'text-emerald-600'}`}>{msg}</p>}
       <div className="theme-table rounded-xl overflow-hidden border-2" style={{ borderColor: 'var(--theme-table-border)' }}>
         <table className="w-full text-left text-sm">
           <thead>
@@ -135,6 +187,26 @@ export default function Vendedores() {
         </table>
       </div>
 
+      {createOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="rounded-2xl border-2 theme-border theme-bg-card p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold theme-text mb-4">Agregar diseñador / usuario</h2>
+            <form onSubmit={saveCreate} className="space-y-3">
+              <input placeholder="Nombre *" value={createForm.nombre} onChange={(e) => setCreateForm((f) => ({ ...f, nombre: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" required />
+              <input type="email" placeholder="Correo *" value={createForm.correo} onChange={(e) => setCreateForm((f) => ({ ...f, correo: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" required />
+              <input placeholder="Teléfono" value={createForm.telefono} onChange={(e) => setCreateForm((f) => ({ ...f, telefono: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input placeholder="Banco" value={createForm.banco} onChange={(e) => setCreateForm((f) => ({ ...f, banco: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input placeholder="Cuenta" value={createForm.cuenta} onChange={(e) => setCreateForm((f) => ({ ...f, cuenta: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input placeholder="CLABE (18 dígitos)" value={createForm.clabe} onChange={(e) => setCreateForm((f) => ({ ...f, clabe: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input type="password" placeholder="Contraseña para login (mín. 12 caracteres, mayúscula, minúscula, número y carácter especial)" value={createForm.password} onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" minLength={12} autoComplete="new-password" />
+              <div className="flex gap-2 pt-2">
+                <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl btn-primary font-medium disabled:opacity-60">{saving ? 'Guardando...' : 'Crear'}</button>
+                <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-xl btn-secondary">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {editOpen && editing && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="rounded-2xl border-2 theme-border theme-bg-card p-6 w-full max-w-md shadow-xl">

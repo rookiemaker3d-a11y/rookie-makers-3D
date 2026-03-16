@@ -28,7 +28,7 @@ const NAV = [
   { to: '/inventario', label: 'Inventario', icon: Boxes },
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
   { to: '/clientes', label: 'Clientes', icon: Users },
-  { to: '/vendedores', label: 'Vendedores', icon: UserCog, adminOnly: true },
+  { to: '/vendedores', label: 'Diseñadores', icon: UserCog, adminOnly: true },
   { to: '/seguridad', label: 'Seguridad', icon: Shield },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },
   { to: '/editor-pagina', label: 'Editor página pública', icon: Palette, adminOnly: true },

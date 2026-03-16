@@ -48,6 +48,11 @@ class VendedorCreate(VendedorBase):
     pass
 
 
+class VendedorCreateWithUser(VendedorBase):
+    """Para agregar diseñador/vendedor con usuario de login. Solo admin."""
+    password: Optional[str] = None  # si se envía, se crea User con este password y role vendedor
+
+
 class VendedorResponse(VendedorBase):
     id: int
     user_id: Optional[int] = None  # para que el admin pueda cambiar contraseña
