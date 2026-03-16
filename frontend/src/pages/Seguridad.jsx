@@ -10,6 +10,8 @@ export default function Seguridad() {
   const [step, setStep] = useState('idle')
   const [qrUri, setQrUri] = useState('')
   const [code, setCode] = useState('')
+  const [desbloqueoEmail, setDesbloqueoEmail] = useState('')
+  const [desbloqueoMsg, setDesbloqueoMsg] = useState('')
 
   useEffect(() => {
     api('/auth/mfa/status')
@@ -71,6 +73,22 @@ export default function Seguridad() {
       setMsg('MFA desactivado.')
     } catch (e) {
       setMsg(e.message || 'Error')
+    }
+  }
+
+  const handleDesbloquear = async (e) => {
+    e.preventDefault()
+    const email = desbloqueoEmail.trim().toLowerCase()
+    if (!email) { setDesbloqueoMsg('Escribe el correo'); return }
+    setDesbloqueoMsg('')
+    try {
+      const res = await api('/auth/desbloquear-cuenta', { method: 'POST', body: JSON.stringify({ email }) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Error')
+      setDesbloqueoMsg('Cuenta desbloqueada. Ya puede iniciar sesión.')
+      setDesbloqueoEmail('')
+    } catch (e) {
+      setDesbloqueoMsg(e.message || 'Error')
     }
   }
 
@@ -140,6 +158,18 @@ export default function Seguridad() {
           </form>
         )}
       </div>
+
+      {user?.role === 'administrador' && (
+        <div className="rounded-xl border p-6" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-card)' }}>
+          <h2 className="theme-text font-medium mb-2">Desbloquear cuenta</h2>
+          <p className="text-sm theme-text-muted mb-3">Si un usuario quedó bloqueado por intentos fallidos, escribe su correo y desbloquéalo.</p>
+          {desbloqueoMsg && <p className={`text-sm mb-2 ${desbloqueoMsg.includes('Error') ? 'text-red-500' : 'text-emerald-600'}`}>{desbloqueoMsg}</p>}
+          <form onSubmit={handleDesbloquear} className="flex gap-2">
+            <input type="email" value={desbloqueoEmail} onChange={(e) => setDesbloqueoEmail(e.target.value)} placeholder="correo@ejemplo.com" className="flex-1 px-4 py-2 rounded-xl border theme-input" />
+            <button type="submit" className="px-4 py-2 rounded-xl btn-primary font-medium">Desbloquear</button>
+          </form>
+        </div>
+      )}
     </div>
   )
 }

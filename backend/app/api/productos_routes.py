@@ -17,10 +17,12 @@ async def list_productos(
     user=Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    """Lista productos. Si for_analysis=true y es vendedor, solo los suyos (para Análisis). Si no, todos (para listado y cotizaciones)."""
+    """Lista productos. Admin ve todos. Vendedor (diseñador) y vendedor_ventas solo los suyos."""
     q = select(Producto).order_by(Producto.id.desc())
-    if for_analysis and user.role == "vendedor" and vendedor:
+    if user.role == "vendedor" and vendedor and for_analysis:
         q = q.where(Producto.vendedor == vendedor.nombre)
+    elif user.role == "vendedor_ventas":
+        q = q.where(Producto.vendedor == user.email)
     result = await db.execute(q)
     return result.scalars().all()
 

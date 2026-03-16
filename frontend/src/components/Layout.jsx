@@ -36,6 +36,15 @@ const NAV = [
   { to: '/proyectos', label: 'Proyectos / Redes', icon: Globe },
 ]
 
+/** Menú reducido para rol vendedor_ventas: solo Dashboard, Productos, Nueva cotización, Cotizaciones espera, Análisis (solo sus datos). */
+const NAV_VENDEDOR_VENTAS = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/productos', label: 'Productos', icon: Package },
+  { to: '/cotizacion/nueva', label: 'Nueva cotización', icon: Calculator },
+  { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
+  { to: '/analisis', label: 'Análisis', icon: BarChart3 },
+]
+
 export default function Layout() {
   const { user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
@@ -116,7 +125,7 @@ export default function Layout() {
       >
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-2">
           <ul className="flex flex-wrap items-center gap-1">
-            {NAV.filter((item) => !item.adminOnly || user?.role === 'administrador').map(({ to, label, icon: Icon }) => {
+            {(user?.role === 'vendedor_ventas' ? NAV_VENDEDOR_VENTAS : NAV.filter((item) => !item.adminOnly || user?.role === 'administrador')).map(({ to, label, icon: Icon }) => {
               const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
               return (
                 <li key={to}>

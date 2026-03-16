@@ -9,7 +9,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(20), nullable=False)  # "vendedor" | "administrador"
+    role = Column(String(20), nullable=False)  # "vendedor" | "administrador" | "vendedor_ventas"
     vendedor_id = Column(Integer, ForeignKey("vendedores.id"), nullable=True)  # solo para vendedores
     is_active = Column(Boolean, default=True)
     mfa_secret = Column(String(64), nullable=True)  # TOTP secret (base32)

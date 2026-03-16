@@ -16,10 +16,12 @@ async def get_totals(
     user: User = Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    """Admin ve todo; vendedor solo sus productos (por nombre de vendedor)."""
+    """Admin ve todo; vendedor (diseñador) solo sus productos; vendedor_ventas solo los suyos (por email)."""
     q = select(Producto)
     if user.role == "vendedor" and vendedor:
         q = q.where(Producto.vendedor == vendedor.nombre)
+    elif user.role == "vendedor_ventas":
+        q = q.where(Producto.vendedor == user.email)
     result = await db.execute(q)
     products = result.scalars().all()
     total_costo = 0.0

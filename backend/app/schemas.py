@@ -76,6 +76,12 @@ class UserPasswordUpdate(BaseModel):
     new_password: str
 
 
+class VendedorVentasCreate(BaseModel):
+    """Solo admin. Crea usuario con rol vendedor_ventas (sin perfil en tabla diseñadores)."""
+    email: str
+    password: str
+
+
 # ----- Cliente -----
 class ClienteBase(BaseModel):
     nombre: str

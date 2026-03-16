@@ -8,9 +8,11 @@ export default function Vendedores() {
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
+  const [createVentasOpen, setCreateVentasOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', tarjeta: '', new_password: '' })
   const [createForm, setCreateForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' })
+  const [createVentasForm, setCreateVentasForm] = useState({ email: '', password: '' })
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -129,6 +131,37 @@ export default function Vendedores() {
     }
   }
 
+  const saveCreateVentas = async (e) => {
+    e.preventDefault()
+    if (!createVentasForm.email?.trim() || !createVentasForm.password?.trim()) {
+      setMsg('Correo y contraseña son obligatorios.')
+      return
+    }
+    setSaving(true)
+    setMsg('')
+    try {
+      const res = await api('/auth/usuarios-vendedor-ventas', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: createVentasForm.email.trim().toLowerCase(),
+          password: createVentasForm.password.trim(),
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setMsg(data?.detail || 'Error al crear')
+        return
+      }
+      setMsg('Usuario vendedor de ventas creado. Ya puede iniciar sesión con ese correo.')
+      setCreateVentasForm({ email: '', password: '' })
+      setCreateVentasOpen(false)
+    } catch (err) {
+      setMsg(err?.message || 'Error al crear')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) return <div className="p-8 theme-text-muted">Cargando...</div>
 
   return (
@@ -138,14 +171,25 @@ export default function Vendedores() {
           <h1 className="text-2xl font-bold theme-text mb-2">Diseñadores</h1>
           <p className="theme-text-muted text-sm">Estos son los diseñadores (fabricantes). Edita datos, contraseñas y agrega nuevos. Solo el administrador ve este módulo.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => { setCreateOpen(true); setMsg(''); setCreateForm({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' }); }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-primary font-medium text-sm"
-        >
-          <UserPlus className="w-5 h-5" />
-          Agregar usuario
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => { setCreateOpen(true); setMsg(''); setCreateForm({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' }); }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-primary font-medium text-sm"
+          >
+            <UserPlus className="w-5 h-5" />
+            Agregar diseñador
+          </button>
+          <button
+            type="button"
+            onClick={() => { setCreateVentasOpen(true); setMsg(''); setCreateVentasForm({ email: '', password: '' }); }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 font-medium text-sm"
+            style={{ borderColor: 'var(--theme-border)', color: 'var(--theme-text)', background: 'var(--theme-bg-card)' }}
+          >
+            <UserPlus className="w-5 h-5" />
+            Agregar vendedor de ventas
+          </button>
+        </div>
       </div>
       {msg && <p className={`text-sm mb-3 ${msg.includes('Error') ? 'text-red-500' : 'text-emerald-600'}`}>{msg}</p>}
       <div className="theme-table rounded-xl overflow-hidden border-2" style={{ borderColor: 'var(--theme-table-border)' }}>
@@ -187,10 +231,26 @@ export default function Vendedores() {
         </table>
       </div>
 
+      {createVentasOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="rounded-2xl border-2 theme-border theme-bg-card p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold theme-text mb-4">Agregar vendedor de ventas</h2>
+            <p className="theme-text-muted text-sm mb-3">Solo verá: Dashboard, Productos, Nueva cotización, Cotizaciones espera y Análisis (sus datos).</p>
+            <form onSubmit={saveCreateVentas} className="space-y-3">
+              <input type="email" placeholder="Correo *" value={createVentasForm.email} onChange={(e) => setCreateVentasForm((f) => ({ ...f, email: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" required />
+              <input type="password" placeholder="Contraseña (mín. 12 caracteres, mayúscula, minúscula, número y carácter especial)" value={createVentasForm.password} onChange={(e) => setCreateVentasForm((f) => ({ ...f, password: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" minLength={12} required autoComplete="new-password" />
+              <div className="flex gap-2 pt-2">
+                <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl btn-primary font-medium disabled:opacity-60">{saving ? 'Guardando...' : 'Crear'}</button>
+                <button type="button" onClick={() => setCreateVentasOpen(false)} className="px-4 py-2 rounded-xl btn-secondary">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {createOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="rounded-2xl border-2 theme-border theme-bg-card p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-lg font-bold theme-text mb-4">Agregar diseñador / usuario</h2>
+            <h2 className="text-lg font-bold theme-text mb-4">Agregar diseñador</h2>
             <form onSubmit={saveCreate} className="space-y-3">
               <input placeholder="Nombre *" value={createForm.nombre} onChange={(e) => setCreateForm((f) => ({ ...f, nombre: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" required />
               <input type="email" placeholder="Correo *" value={createForm.correo} onChange={(e) => setCreateForm((f) => ({ ...f, correo: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" required />

@@ -28,10 +28,12 @@ async def list_cotizaciones(
     user=Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    """Admin ve todas; vendedor solo las suyas."""
+    """Admin ve todas; vendedor (diseñador) solo las suyas; vendedor_ventas solo las suyas (por email)."""
     q = select(CotizacionEnEspera).order_by(CotizacionEnEspera.id.desc())
     if user.role == "vendedor" and vendedor:
         q = q.where(CotizacionEnEspera.vendedor == vendedor.nombre)
+    elif user.role == "vendedor_ventas":
+        q = q.where(CotizacionEnEspera.vendedor == user.email)
     result = await db.execute(q)
     return result.scalars().all()
 
@@ -43,11 +45,12 @@ async def create_cotizacion(
     user=Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    if not vendedor:
+    vendedor_nombre = vendedor.nombre if vendedor else (user.email if user.role == "vendedor_ventas" else None)
+    if not vendedor_nombre:
         from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Solo vendedores pueden crear cotizaciones en espera")
+        raise HTTPException(status_code=403, detail="Solo vendedores o vendedor de ventas pueden crear cotizaciones en espera")
     c = CotizacionEnEspera(
-        vendedor=vendedor.nombre,
+        vendedor=vendedor_nombre,
         descripcion=body.descripcion,
         cantidad=body.cantidad,
         costo_base=body.costo_base,

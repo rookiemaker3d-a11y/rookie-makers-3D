@@ -7,7 +7,7 @@ from sqlalchemy import select, func
 from app.database import get_db
 from app.auth import get_password_hash, create_access_token, create_mfa_pending_token, decode_mfa_pending_token, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
 from app.models import User, Vendedor
-from app.schemas import LoginRequest, Token, UserResponse, VendedorCreate, VendedorResponse, UserPasswordUpdate
+from app.schemas import LoginRequest, Token, UserResponse, VendedorCreate, VendedorResponse, UserPasswordUpdate, VendedorVentasCreate
 from app.audit import log_audit
 from app.config import get_settings
 
@@ -187,6 +187,50 @@ async def set_user_password(
     )
     await db.commit()
     return {"detail": "Contraseña actualizada"}
+
+
+@router.post("/desbloquear-cuenta")
+async def desbloquear_cuenta(
+    body: dict,
+    _admin=Depends(require_admin),
+):
+    """Solo administrador. Quita el bloqueo por intentos fallidos de un correo. Body: { \"email\": \"correo@ejemplo.com\" }."""
+    email = (body.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Falta el correo")
+    clear_failed_logins(email)
+    return {"detail": f"Cuenta {email} desbloqueada. Ya puede intentar iniciar sesión."}
+
+
+@router.post("/usuarios-vendedor-ventas", response_model=UserResponse)
+async def create_usuario_vendedor_ventas(
+    body: VendedorVentasCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Solo administrador. Crea un usuario con rol vendedor_ventas (ve solo: Dashboard, Productos, Nueva cotización, Cotizaciones espera, Análisis)."""
+    email = (body.email or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="El correo es obligatorio")
+    ok, msg = validate_password(body.password or "")
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    r = await db.execute(select(User).where(User.email == email))
+    if r.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con ese correo")
+    u = User(
+        email=email,
+        password_hash=get_password_hash(body.password),
+        role="vendedor_ventas",
+        vendedor_id=None,
+        is_active=True,
+    )
+    db.add(u)
+    await db.commit()
+    await db.refresh(u)
+    await log_audit(db, "user_created", user_id=_admin.id, ip=_client_ip(request), details={"email": email, "role": "vendedor_ventas"})
+    return UserResponse(id=u.id, email=u.email, role=u.role, vendedor_id=None)
 
 
 @router.get("/audit-log")

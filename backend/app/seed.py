@@ -139,8 +139,21 @@ async def _run_seed(db):
                 existing.is_active = True
         await db.commit()
 
+        # Usuario de prueba con rol vendedor_ventas (solo ve Dashboard, Productos, Nueva cotización, Cotizaciones espera, Análisis)
+        r_prueba = await db.execute(select(User).where(User.email == "prueba@rookiemakers3d.com"))
+        if r_prueba.scalar_one_or_none() is None:
+            db.add(User(
+                email="prueba@rookiemakers3d.com",
+                password_hash=get_password_hash("Prueba123!."),
+                role="vendedor_ventas",
+                vendedor_id=None,
+                is_active=True,
+            ))
+            await db.commit()
+            print("Usuario de prueba (vendedor ventas): prueba@rookiemakers3d.com / Prueba123!.")
+
         print("Seed completado. Único admin: norbertomoro4@gmail.com / admin123")
-        print("Vendedores: correo del vendedor / vendedor123")
+        print("Vendedores (diseñadores): correo del vendedor / vendedor123")
 
 
 if __name__ == "__main__":
