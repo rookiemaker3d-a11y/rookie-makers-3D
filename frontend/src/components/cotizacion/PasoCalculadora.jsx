@@ -66,7 +66,8 @@ export default function PasoCalculadora({ cotizador }) {
             <select
               value={materialId}
               onChange={(e) => setMaterialId(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} theme-input`}
+              aria-label="Material de impresión"
             >
               {MATERIALES.map((m) => (
                 <option key={m.id} value={m.id}>{m.nombre} — ${m.costoPorKg}/kg</option>
@@ -123,9 +124,10 @@ export default function PasoCalculadora({ cotizador }) {
               step={0.25}
               value={horasMaquina || ''}
               onChange={(e) => setHorasMaquina(Number(e.target.value) || 0)}
-              placeholder="Horas estimadas"
+              placeholder="Ej: 6.5 = 6 h 30 min"
               className={inputClass}
             />
+            <p className="text-slate-500 text-xs mt-1">Usa decimales: 6:30 h = 6.5</p>
           </div>
         </Card>
 

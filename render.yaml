@@ -1,0 +1,9 @@
+# Render Blueprint: backend (PostgreSQL se enlaza desde el dashboard)
+# https://docs.render.com/blueprint-spec
+services:
+  - type: web
+    name: rookie-makers-3D
+    runtime: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"

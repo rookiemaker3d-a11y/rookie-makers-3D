@@ -7,7 +7,7 @@ import { Card } from '../ui'
 
 const WHATSAPP_NUM = '524721488913'
 
-export default function PasoPDF({ folio, wizardData, desglose, notas }) {
+export default function PasoPDF({ folio, wizardData, desglose, notas, vendedor, transferencia }) {
   const [downloading, setDownloading] = useState(false)
 
   const handleDownload = async () => {
@@ -20,6 +20,8 @@ export default function PasoPDF({ folio, wizardData, desglose, notas }) {
           proyecto={wizardData?.proyecto}
           desglose={desglose}
           notas={notas}
+          vendedor={vendedor}
+          transferencia={transferencia}
         />
       )
       const blob = await pdf(doc).toBlob()

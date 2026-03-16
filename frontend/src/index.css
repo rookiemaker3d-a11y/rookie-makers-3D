@@ -157,6 +157,22 @@ html, body { min-height: 100%; margin: 0; background: var(--theme-bg-page); }
   color: var(--theme-text-dim);
 }
 
+/* Selectores: texto visible en modo oscuro (select y option) */
+[data-theme="dark"] select,
+select.theme-input {
+  color: var(--theme-text);
+  background-color: var(--theme-input-bg);
+}
+[data-theme="dark"] select option,
+select option {
+  background: #1e293b;
+  color: #f8fafc;
+}
+[data-theme="light"] select option {
+  background: #fff;
+  color: #0f172a;
+}
+
 /* Botones visibles en modo claro y oscuro */
 .btn-primary {
   background: var(--theme-btn-primary-bg);

@@ -148,6 +148,13 @@ export default function NuevaCotizacion() {
             wizardData={wizardData}
             desglose={cotizador.desglose}
             notas={notas}
+            vendedor={{
+              codigo: user?.vendedor_codigo ?? 'V001',
+              nombre: user?.vendedor_nombre || user?.email || '—',
+              email: user?.email || '—',
+              telefono: user?.vendedor_telefono || '—',
+            }}
+            transferencia={user?.vendedor_banco ? { banco: user.vendedor_banco, cuenta: user.vendedor_cuenta, clabe: user.vendedor_clabe, beneficiario: user.vendedor_nombre } : {}}
           />
         )}
         {paso === 6 && (
