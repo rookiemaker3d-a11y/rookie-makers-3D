@@ -266,12 +266,12 @@ export default function Inventario() {
       {msg && <p className="text-cyan-500 text-sm">{msg}</p>}
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
-      {/* Botón explícito: Costos de filamentos para cotización */}
+      {/* Tabla de costos de los materiales (para cotización) — explícita y editable */}
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold theme-text">Costos usados en cotización</h2>
-            <p className="theme-text-muted text-sm mt-0.5">Materiales y precio por kg que se usan en el paso calculadora de la cotización.</p>
+            <h2 className="text-lg font-semibold theme-text">Tabla de costos de los materiales (para cotización)</h2>
+            <p className="theme-text-muted text-sm mt-0.5">Estos son los precios por kg que se usan en la cotización (dropdown «Material de impresión» y en el PDF). Edítalos aquí.</p>
           </div>
           <button
             type="button"
@@ -279,7 +279,7 @@ export default function Inventario() {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm shadow-sm"
           >
             <Droplets className="w-5 h-5" />
-            {showCostosFilamento ? 'Ocultar tabla de costos de filamentos' : 'Ver tabla de costos de filamentos'}
+            {showCostosFilamento ? 'Ocultar tabla de costos de materiales' : 'Ver / editar tabla de costos de materiales'}
           </button>
         </div>
       </Card>
@@ -287,8 +287,8 @@ export default function Inventario() {
       {showCostosFilamento && (
         <>
       <SectionHeader
-        title="Costos de filamentos"
-        subtitle="Tipos de material que manejamos y su costo por kg. Estos costos se usan en la cotización (paso calculadora). Edita el valor y guarda para actualizar."
+        title="Tabla de costos de los materiales (para cotización)"
+        subtitle="Material y costo por kg (MXN). Estos precios salen en la cotización. Usa el lápiz para editar y Guardar."
       />
       <Card padding={false} className="overflow-hidden theme-table">
         <table className="w-full text-left text-sm">
@@ -340,7 +340,8 @@ export default function Inventario() {
         </table>
         {filamentos.length === 0 && !loading && (
           <div className="p-6 text-center theme-text-muted text-sm">
-            No hay materiales cargados. Ejecuta el seed del backend para cargar los filamentos por defecto.
+            <p className="font-medium theme-text mb-1">No hay materiales cargados.</p>
+            <p>Esta es la tabla de costos de los materiales que usa la cotización. Para llenarla: en la carpeta del proyecto ejecuta el seed del backend (por ejemplo <code className="bg-black/10 dark:bg-white/10 px-1 rounded">cd backend &amp;&amp; python -m app.seed</code> o el comando que uses). Así aparecerán PLA, PETG, etc. con su costo por kg y podrás editarlos aquí.</p>
           </div>
         )}
       </Card>

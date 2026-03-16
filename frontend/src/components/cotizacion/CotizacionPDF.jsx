@@ -190,19 +190,19 @@ export default function CotizacionPDF({
           <View style={styles.bankRow}><Text style={styles.bankLabel}>BENEFICIARIO:</Text><Text style={styles.bankValue}>{t.beneficiario || NA}</Text></View>
         </View>
 
-        {/* TABLA DE PARTIDAS (si hay lineas) */}
-        {hasLineas && (
-          <View style={{ marginBottom: 14 }}>
-            <View style={[styles.tableWrap, { borderTopWidth: 0 }]}>
-              <View style={[styles.tableRow, styles.blackBar, { marginBottom: 0, borderBottomWidth: 0 }]}>
-                <Text style={[styles.tableCell, styles.tableHeaderBlack]}>ID DE PRODUCTO</Text>
-                <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 2 }]}>PRODUCTO</Text>
-                <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 1.5 }]}>DESCRIPCION</Text>
-                <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO</Text>
-                <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>CANTIDAD</Text>
-                <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO FINAL</Text>
-              </View>
-              {lineas.map((l, i) => (
+        {/* TABLA DE PARTIDAS — siempre visible con encabezado negro y bloque de totales */}
+        <View style={{ marginBottom: 14 }}>
+          <View style={[styles.tableWrap, { borderTopWidth: 0 }]}>
+            <View style={[styles.tableRow, styles.blackBar, { marginBottom: 0, borderBottomWidth: 0 }]}>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack]}>ID DE PRODUCTO</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 2 }]}>PRODUCTO</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 1.5 }]}>DESCRIPCION</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>CANTIDAD</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO FINAL</Text>
+            </View>
+            {hasLineas ? (
+              lineas.map((l, i) => (
                 <View key={i} style={styles.tableRow}>
                   <Text style={styles.tableCell}>{l.id_producto || NA}</Text>
                   <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || NA}</Text>
@@ -211,31 +211,32 @@ export default function CotizacionPDF({
                   <Text style={[styles.tableCell, styles.tableRight]}>{l.cantidad ?? 1}</Text>
                   <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_final ?? 0).toFixed(2)}</Text>
                 </View>
-              ))}
-            </View>
-            <View style={styles.totalsBlock}>
-              <View style={styles.totalRow}><Text style={styles.totalLbl}>SUB TOTAL</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
-              <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
-              <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVIO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
-              <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
-            </View>
+              ))
+            ) : (
+              <View style={styles.tableRow}>
+                <Text style={styles.tableCell}>—</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>Sin partidas</Text>
+                <Text style={[styles.tableCell, { flex: 1.5 }]}>—</Text>
+                <Text style={[styles.tableCell, styles.tableRight]}>$0.00</Text>
+                <Text style={[styles.tableCell, styles.tableRight]}>0</Text>
+                <Text style={[styles.tableCell, styles.tableRight]}>$0.00</Text>
+              </View>
+            )}
           </View>
-        )}
+          <View style={styles.totalsBlock}>
+            <View style={styles.totalRow}><Text style={styles.totalLbl}>SUB TOTAL</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
+            <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
+            <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVIO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
+            <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
+          </View>
+        </View>
 
-        {/* NOTAS + TOTAL */}
+        {/* NOTAS */}
         <View style={styles.bottom}>
           <View style={styles.notesArea}>
             <Text style={styles.blackBar}>NOTAS ADICIONALES:</Text>
             <Text style={styles.notesText}>{notas && notas.trim() ? notas : NA}</Text>
           </View>
-          {!hasLineas && (
-            <View style={styles.totals}>
-              <View style={[styles.totalRow, styles.totalFinal]}>
-                <Text style={styles.totalFinalLbl}>TOTAL</Text>
-                <Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text>
-              </View>
-            </View>
-          )}
         </View>
 
         {/* TÉRMINOS */}
