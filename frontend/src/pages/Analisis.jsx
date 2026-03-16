@@ -244,6 +244,7 @@ export default function Analisis() {
         </Card>
       </div>
 
+      {user?.role !== 'vendedor_ventas' && (
       <Card>
         <button
           type="button"
@@ -368,6 +369,7 @@ export default function Analisis() {
           </div>
         )}
       </Card>
+      )}
     </motion.div>
   )
 }

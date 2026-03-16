@@ -5,10 +5,11 @@ import { Card } from '../ui'
 const inputClass =
   'w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]'
 
-export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardData, onNext }) {
+export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardData, onNext, soloResumen = false }) {
   if (!cotizador) return null
   const lineas = wizardData.lineas || []
   const proyectoNombre = wizardData.proyecto?.nombre || 'Producto'
+  const descuento = Number(wizardData.descuento) || 0
   const round2 = (n) => Math.round((n ?? 0) * 100) / 100
   const addProduct = () => {
     const d = cotizador.desglose
@@ -278,6 +279,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
           </div>
         </Card>
       </div>
+      )}
 
       {/* E — Resumen sticky */}
       <div className="lg:w-80 shrink-0">
@@ -288,46 +290,58 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               <p className="theme-text-dim text-xs mt-0.5">Precio en tiempo real</p>
             </div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between theme-text-muted">
-                <span>Material</span>
-                <span className="tabular-nums theme-text">${costoMaterial.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between theme-text-muted">
-                <span>Tiempo máquina</span>
-                <span className="tabular-nums theme-text">${costoTiempoMaquina.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between theme-text-muted">
-                <span>Diseño / archivo</span>
-                <span className="tabular-nums theme-text">${costoDisenoYArchivo.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between theme-text-muted">
-                <span>Extras</span>
-                <span className="tabular-nums theme-text">${costoExtras.toFixed(2)}</span>
-              </div>
-              <div className="border-t border-white/[0.08] pt-2 mt-2 flex justify-between font-medium theme-text">
-                <span>COSTO TOTAL</span>
-                <span className="tabular-nums">${costoTotal.toFixed(2)}</span>
-              </div>
-              <div className="pt-2">
-                <label className="theme-text-muted text-xs">Margen deseado (%)</label>
-                <input
-                  type="range"
-                  min={config.margenMin}
-                  max={config.margenMax}
-                  value={margenPorcentaje}
-                  onChange={(e) => setMargenPorcentaje(Number(e.target.value))}
-                  className="w-full mt-1"
-                />
-                <p className="theme-text-dim text-xs mt-0.5">{margenPorcentaje}%</p>
-              </div>
+              {!soloResumen && (
+                <>
+                  <div className="flex justify-between theme-text-muted">
+                    <span>Material</span>
+                    <span className="tabular-nums theme-text">${costoMaterial.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between theme-text-muted">
+                    <span>Tiempo máquina</span>
+                    <span className="tabular-nums theme-text">${costoTiempoMaquina.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between theme-text-muted">
+                    <span>Diseño / archivo</span>
+                    <span className="tabular-nums theme-text">${costoDisenoYArchivo.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between theme-text-muted">
+                    <span>Extras</span>
+                    <span className="tabular-nums theme-text">${costoExtras.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t border-white/[0.08] pt-2 mt-2 flex justify-between font-medium theme-text">
+                    <span>COSTO TOTAL</span>
+                    <span className="tabular-nums">${costoTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="pt-2">
+                    <label className="theme-text-muted text-xs">Margen deseado (%)</label>
+                    <input
+                      type="range"
+                      min={config.margenMin}
+                      max={config.margenMax}
+                      value={margenPorcentaje}
+                      onChange={(e) => setMargenPorcentaje(Number(e.target.value))}
+                      className="w-full mt-1"
+                    />
+                    <p className="theme-text-dim text-xs mt-0.5">{margenPorcentaje}%</p>
+                  </div>
+                </>
+              )}
               <div className="border-t border-white/[0.08] pt-2 mt-2 flex justify-between font-semibold theme-text">
                 <span>PRECIO CLIENTE</span>
                 <span className="tabular-nums">${precioCliente.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-emerald-400">
-                <span>Ganancia</span>
-                <span className="tabular-nums">${ganancia.toFixed(2)}</span>
-              </div>
+              {soloResumen && descuento > 0 && (
+                <div className="flex justify-between theme-text-muted">
+                  <span>Descuento</span>
+                  <span className="tabular-nums theme-text">${descuento.toFixed(2)}</span>
+                </div>
+              )}
+              {!soloResumen && (
+                <div className="flex justify-between text-emerald-400">
+                  <span>Ganancia</span>
+                  <span className="tabular-nums">${ganancia.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between theme-text-muted">
                 <span>Anticipo ({config.anticipoPorcentaje}%)</span>
                 <span className="tabular-nums theme-text">${anticipoMonto.toFixed(2)}</span>

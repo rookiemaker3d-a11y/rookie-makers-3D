@@ -139,14 +139,16 @@ export default function NuevaCotizacion() {
           title="Nueva cotización"
           subtitle={`Paso ${paso} de ${TOTAL_PASOS}`}
         />
-        <button
-          type="button"
-          onClick={() => setShowCostosFilamento(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium"
-        >
-          <Droplets className="w-4 h-4" />
-          Ver costos de filamentos
-        </button>
+        {user?.role !== 'vendedor_ventas' && (
+          <button
+            type="button"
+            onClick={() => setShowCostosFilamento(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium"
+          >
+            <Droplets className="w-4 h-4" />
+            Ver costos de filamentos
+          </button>
+        )}
       </div>
 
       {/* Modal: tabla de costos de filamentos */}
@@ -216,6 +218,7 @@ export default function NuevaCotizacion() {
             wizardData={wizardData}
             setWizardData={setWizardData}
             onNext={() => setPaso(4)}
+            soloResumen={user?.role === 'vendedor_ventas'}
           />
         )}
         {paso === 4 && (

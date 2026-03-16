@@ -13,6 +13,7 @@ export default function Vendedores() {
   const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', tarjeta: '', new_password: '' })
   const [createForm, setCreateForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' })
   const [createVentasForm, setCreateVentasForm] = useState({ email: '', password: '' })
+  const [vendedoresVentas, setVendedoresVentas] = useState([])
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -24,8 +25,19 @@ export default function Vendedores() {
       .finally(() => setLoading(false))
   }
 
+  function loadVendedoresVentas() {
+    api('/auth/usuarios-vendedor-ventas')
+      .then((r) => r.json())
+      .then(setVendedoresVentas)
+      .catch(() => setVendedoresVentas([]))
+  }
+
   useEffect(() => {
     load()
+  }, [api])
+
+  useEffect(() => {
+    loadVendedoresVentas()
   }, [api])
 
   const openEdit = (v) => {
@@ -155,6 +167,7 @@ export default function Vendedores() {
       setMsg('Usuario vendedor de ventas creado. Ya puede iniciar sesión con ese correo.')
       setCreateVentasForm({ email: '', password: '' })
       setCreateVentasOpen(false)
+      loadVendedoresVentas()
     } catch (err) {
       setMsg(err?.message || 'Error al crear')
     } finally {
@@ -192,6 +205,8 @@ export default function Vendedores() {
         </div>
       </div>
       {msg && <p className={`text-sm mb-3 ${msg.includes('Error') ? 'text-red-500' : 'text-emerald-600'}`}>{msg}</p>}
+
+      <h2 className="text-lg font-semibold theme-text mt-6 mb-2">Diseñadores (fabricantes)</h2>
       <div className="theme-table rounded-xl overflow-hidden border-2" style={{ borderColor: 'var(--theme-table-border)' }}>
         <table className="w-full text-left text-sm">
           <thead>
@@ -229,6 +244,30 @@ export default function Vendedores() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <h2 className="text-lg font-semibold theme-text mt-8 mb-2">Vendedores de ventas</h2>
+      <p className="theme-text-muted text-sm mb-3">Usuarios que solo ven cotizaciones y pueden enviar órdenes; no ven costos de filamento ni fórmulas internas.</p>
+      <div className="theme-table rounded-xl overflow-hidden border-2" style={{ borderColor: 'var(--theme-table-border)' }}>
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b">
+              <th className="p-3 theme-text-muted font-medium">ID</th>
+              <th className="p-3 theme-text-muted font-medium">Correo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {vendedoresVentas.map((u) => (
+              <tr key={u.id} className="border-b hover:bg-[var(--theme-table-row-hover)]">
+                <td className="p-3 theme-text">{u.id}</td>
+                <td className="p-3 theme-text">{u.email}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {vendedoresVentas.length === 0 && (
+          <p className="p-4 theme-text-muted text-sm">No hay vendedores de ventas. Usa el botón «Agregar vendedor de ventas» para crear uno.</p>
+        )}
       </div>
 
       {createVentasOpen && (

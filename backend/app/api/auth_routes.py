@@ -189,6 +189,17 @@ async def set_user_password(
     return {"detail": "Contraseña actualizada"}
 
 
+@router.get("/usuarios-vendedor-ventas", response_model=list[UserResponse])
+async def list_usuarios_vendedor_ventas(
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Solo administrador. Lista usuarios con rol vendedor_ventas (no están en la tabla diseñadores)."""
+    r = await db.execute(select(User).where(User.role == "vendedor_ventas").order_by(User.id))
+    users = r.scalars().all()
+    return [UserResponse(id=u.id, email=u.email, role=u.role, vendedor_id=u.vendedor_id) for u in users]
+
+
 @router.post("/desbloquear-cuenta")
 async def desbloquear_cuenta(
     body: dict,
