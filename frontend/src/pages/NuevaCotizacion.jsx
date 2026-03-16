@@ -35,6 +35,7 @@ export default function NuevaCotizacion() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [showCostosFilamento, setShowCostosFilamento] = useState(false)
+  const [ordenEnviadaMsg, setOrdenEnviadaMsg] = useState('')
 
   useEffect(() => {
     api('/materiales-filamento')
@@ -78,6 +79,39 @@ export default function NuevaCotizacion() {
   }
 
   const isVendedorVentas = user?.role === 'vendedor_ventas'
+
+  const handleEnviarOrdenDesdePaso2 = async () => {
+    if (!wizardData.cliente || !wizardData.proyecto?.nombre?.trim()) return
+    setSaveError('')
+    setOrdenEnviadaMsg('')
+    setSaving(true)
+    try {
+      const descripcion = `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
+      await api('/cotizaciones-en-espera', {
+        method: 'POST',
+        body: JSON.stringify({
+          descripcion,
+          cantidad: 1,
+          costo_base: 0,
+          costo_final: 0,
+          detalles: {
+            orden_vendedor: true,
+            estado_cotizacion_vendedor: 'pendiente',
+            visto_por_vendedor: false,
+            folio: genFolio(),
+            cliente_id: wizardData.cliente?.id,
+            proyecto: wizardData.proyecto?.nombre,
+            cliente_nombre: wizardData.cliente?.nombre,
+          },
+        }),
+      })
+      setOrdenEnviadaMsg('Orden enviada a Norberto. Aparece en su dashboard (Pipeline de pedidos). Verás "Recibido" cuando él la cotice.')
+    } catch (e) {
+      setSaveError(e?.message || 'Error al enviar la orden')
+    } finally {
+      setSaving(false)
+    }
+  }
   const lineas = wizardData.lineas || []
   const subTotal = lineas.reduce((s, l) => s + (Number(l.costo_final) || 0), 0)
   const descuento = Number(wizardData.descuento) || 0
@@ -217,6 +251,10 @@ export default function NuevaCotizacion() {
             key="paso2"
             data={wizardData}
             onChange={(patch) => setWizardData((d) => ({ ...d, ...patch }))}
+            isVendedorVentas={isVendedorVentas}
+            onEnviarOrden={handleEnviarOrdenDesdePaso2}
+            enviando={saving}
+            ordenEnviadaMsg={ordenEnviadaMsg}
           />
         )}
         {paso === 3 && isVendedorVentas ? (
@@ -225,6 +263,7 @@ export default function NuevaCotizacion() {
             wizardData={wizardData}
             setWizardData={setWizardData}
             onNext={() => setPaso(4)}
+            api={api}
           />
         ) : paso === 3 && (
           <PasoCalculadora

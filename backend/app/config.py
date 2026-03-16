@@ -25,7 +25,15 @@ class Settings(BaseSettings):
     use_https: bool = False  # Si True, se añade header Strict-Transport-Security (HSTS)
     # CORS: en producción poner ej. https://tu-app.vercel.app (varios separados por coma)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
-    
+
+    # Email (Gmail SMTP): para notificaciones al vendedor cuando su cotización está lista
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: str = "587"
+    smtp_user: str = ""  # tu_correo@gmail.com
+    smtp_password: str = ""  # Contraseña de aplicación de 16 caracteres (no la de Gmail)
+    email_from: str = ""  # Opcional; si está vacío se usa smtp_user
+    app_base_url: str = "http://localhost:5173"  # URL del frontend para el enlace en el correo
+
     # Constantes de negocio (igual que calculator_window.py)
     margen_ganancia: float = 0.50
     costo_filamento_base: float = 500.0  # MXN/kg

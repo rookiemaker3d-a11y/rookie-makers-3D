@@ -8,7 +8,9 @@ import {
   Gamepad2,
   MoreHorizontal,
   Upload,
+  Send,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Card, SectionHeader } from '../ui'
 
 const CATEGORIAS = [
@@ -197,6 +199,28 @@ export default function PasoProyecto({ data, onChange }) {
           ))}
         </div>
       </Card>
+
+      {isVendedorVentas && (
+        <Card className="border-2 border-cyan-500/30 bg-cyan-500/5">
+          <h3 className="text-sm font-semibold theme-text mb-1">Enviar orden a Norberto</h3>
+          <p className="theme-text-muted text-xs mb-3">La orden aparecerá en el dashboard del diseñador. Cuando él la cotice, verás "Recibido" en Empaque y envío o en Cotizaciones espera.</p>
+          {ordenEnviadaMsg && <p className="text-emerald-400 text-sm mb-3">{ordenEnviadaMsg}</p>}
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onEnviarOrden}
+              disabled={enviando || !nombre?.trim() || !data?.cliente}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium disabled:opacity-50 disabled:pointer-events-none"
+            >
+              <Send className="w-4 h-4" />
+              {enviando ? 'Enviando...' : 'Enviar orden a Norberto'}
+            </button>
+            <Link to="/cotizaciones-espera" className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] theme-text text-sm font-medium border border-white/[0.08]">
+              Ver Cotizaciones espera
+            </Link>
+          </div>
+        </Card>
+      )}
     </motion.div>
   )
 }

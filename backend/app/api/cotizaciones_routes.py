@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -7,6 +7,8 @@ from app.database import get_db
 from app.auth import require_user, get_vendedor_from_user
 from app.models import CotizacionEnEspera, Producto, Vendedor
 from app.schemas import CotizacionEnEsperaCreate, CotizacionEnEsperaResponse
+from app.config import get_settings
+from app.email_service import send_cotizacion_lista_notification
 from pydantic import BaseModel
 
 
@@ -17,6 +19,8 @@ class AutorizarVentaRequest(BaseModel):
 class CotizacionUpdate(BaseModel):
     detalles: dict | None = None
     fecha: str | None = None
+    costo_base: float | None = None
+    costo_final: float | None = None
 
 
 router = APIRouter(prefix="/cotizaciones-en-espera", tags=["cotizaciones"])
@@ -96,7 +100,7 @@ async def update_cotizacion(
     db: AsyncSession = Depends(get_db),
     _user=Depends(require_user),
 ):
-    """Actualiza detalles (estado del pipeline, etc.) o fecha."""
+    """Actualiza detalles (estado del pipeline, estado_cotizacion_vendedor, etc.), fecha o costos."""
     result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cotizacion_id))
     c = result.scalar_one_or_none()
     if not c:
@@ -106,9 +110,50 @@ async def update_cotizacion(
         c.detalles = {**(c.detalles or {}), **body.detalles}
     if body.fecha is not None:
         c.fecha = body.fecha
+    if body.costo_base is not None:
+        c.costo_base = body.costo_base
+    if body.costo_final is not None:
+        c.costo_final = body.costo_final
     await db.commit()
     await db.refresh(c)
+    # Enviar correo al vendedor cuando se marca como cotizado (vendedor_ventas = email en c.vendedor)
+    detalles_final = c.detalles or {}
+    if detalles_final.get("estado_cotizacion_vendedor") == "cotizado":
+        to_email = (c.vendedor or "").strip()
+        if to_email and "@" in to_email:
+            settings = get_settings()
+            app_url = (getattr(settings, "app_base_url", None) or "").strip() or "http://localhost:5173"
+            send_cotizacion_lista_notification(to_email, c.descripcion or "Cotización", float(c.costo_final or 0), app_url)
+            # Registrar envío para el scheduler de recordatorios (cada 30 min hasta que entre a la app)
+            detalles_final["last_email_sent_at"] = datetime.now(timezone.utc).isoformat()
+            detalles_final["reminder_count"] = detalles_final.get("reminder_count", 0)
+            c.detalles = detalles_final
+            await db.commit()
+            await db.refresh(c)
     return c
+
+
+@router.post("/marcar-vistas")
+async def marcar_cotizaciones_vistas(
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_user),
+):
+    """Vendedor de ventas: marca todas sus cotizaciones 'cotizado' como vistas. Deja de enviar recordatorios por correo."""
+    if user.role != "vendedor_ventas":
+        return {"ok": True, "marked": 0}
+    result = await db.execute(
+        select(CotizacionEnEspera).where(CotizacionEnEspera.vendedor == user.email)
+    )
+    items = result.scalars().all()
+    marked = 0
+    for c in items:
+        d = c.detalles or {}
+        if d.get("estado_cotizacion_vendedor") == "cotizado" and not d.get("visto_por_vendedor"):
+            d["visto_por_vendedor"] = True
+            c.detalles = d
+            marked += 1
+    await db.commit()
+    return {"ok": True, "marked": marked}
 
 
 @router.delete("/{cotizacion_id}")

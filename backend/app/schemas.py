@@ -171,6 +171,7 @@ class CotizacionEnEsperaResponse(BaseModel):
     costo_final: float
     fecha: Optional[str] = None
     detalles: Optional[dict] = None
+    created_at: Optional[str] = None
 
     class Config:
         from_attributes = True

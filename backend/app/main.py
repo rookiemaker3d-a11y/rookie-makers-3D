@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.middleware.security import SecurityHeadersMiddleware, LoginRateLimitMiddleware
+from app.scheduler_notificaciones import start_scheduler
 from app import models  # noqa: F401 - asegura que todas las tablas (incl. audit_log) estén registradas antes de init_db
 from app.api.auth_routes import router as auth_router
 from app.api.calculator_routes import router as calculator_router
@@ -28,7 +29,10 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    scheduler = start_scheduler()
     yield
+    if scheduler:
+        scheduler.shutdown(wait=False)
 
 
 app = FastAPI(
