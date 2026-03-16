@@ -65,7 +65,7 @@ export default function Layout() {
               <span className="theme-text font-semibold text-lg">Rookie Makers 3D</span>
             ) : (
               <img
-                src="/logos/logo-erp.png"
+                src="/logos/logo-cotizacion.png"
                 alt="Rookie Makers 3D"
                 className="h-8 w-auto object-contain max-w-[180px]"
                 onError={() => setLogoError(true)}
