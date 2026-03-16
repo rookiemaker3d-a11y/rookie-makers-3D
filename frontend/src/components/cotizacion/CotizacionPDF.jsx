@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   tableWrap: { borderWidth: 1, borderColor: '#111', marginTop: 4 },
   tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#ccc', paddingVertical: 3, paddingHorizontal: 4 },
   tableCell: { fontSize: 8, flex: 1 },
-  tableHeader: { fontWeight: 'bold', backgroundColor: '#eee' },
+  tableHeaderBlack: { fontWeight: 'bold', backgroundColor: '#111', color: '#fff', padding: 4 },
   tableRight: { textAlign: 'right' },
   totalsBlock: { width: 180, alignSelf: 'flex-end', marginTop: 8 },
   // Términos
@@ -192,15 +192,14 @@ export default function CotizacionPDF({
         {/* TABLA DE PARTIDAS (si hay lineas) */}
         {hasLineas && (
           <View style={{ marginBottom: 14 }}>
-            <Text style={styles.blackBar}>DETALLE DE PRODUCTOS</Text>
-            <View style={styles.tableWrap}>
-              <View style={styles.tableRow}>
-                <Text style={[styles.tableCell, styles.tableHeader]}>ID</Text>
-                <Text style={[styles.tableCell, styles.tableHeader, { flex: 2 }]}>Producto</Text>
-                <Text style={[styles.tableCell, styles.tableHeader, { flex: 1.5 }]}>Descripción</Text>
-                <Text style={[styles.tableCell, styles.tableHeader, styles.tableRight]}>Costo</Text>
-                <Text style={[styles.tableCell, styles.tableHeader, styles.tableRight]}>Cant.</Text>
-                <Text style={[styles.tableCell, styles.tableHeader, styles.tableRight]}>Costo final</Text>
+            <View style={[styles.tableWrap, { borderTopWidth: 0 }]}>
+              <View style={[styles.tableRow, styles.blackBar, { marginBottom: 0, borderBottomWidth: 0 }]}>
+                <Text style={[styles.tableCell, styles.tableHeaderBlack]}>ID DE PRODUCTO</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 2 }]}>PRODUCTO</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 1.5 }]}>DESCRIPCION</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>CANTIDAD</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO FINAL</Text>
               </View>
               {lineas.map((l, i) => (
                 <View key={i} style={styles.tableRow}>
@@ -214,10 +213,10 @@ export default function CotizacionPDF({
               ))}
             </View>
             <View style={styles.totalsBlock}>
-              <View style={styles.totalRow}><Text style={styles.totalLbl}>Sub total</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
-              <View style={styles.totalRow}><Text style={styles.totalLbl}>Descuento</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
-              <View style={styles.totalRow}><Text style={styles.totalLbl}>Envío</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
-              <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>Total</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalLbl}>SUB TOTAL</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVIO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
+              <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
             </View>
           </View>
         )}

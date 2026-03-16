@@ -106,7 +106,7 @@ export default function NuevaCotizacion() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link
           to="/"
-          className="flex items-center gap-2 text-slate-400 hover:text-white text-sm"
+          className="flex items-center gap-2 theme-text-muted hover:theme-text text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver al dashboard
@@ -210,28 +210,28 @@ export default function NuevaCotizacion() {
             type="button"
             onClick={handlePrev}
             disabled={paso <= 1}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-white disabled:opacity-40 disabled:pointer-events-none"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] theme-text disabled:opacity-40 disabled:pointer-events-none"
           >
             <ArrowLeft className="w-4 h-4" />
             Anterior
           </button>
           {paso === 1 && (
-            <button type="button" onClick={handleNext} disabled={!wizardData.cliente} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none">
+            <button type="button" onClick={handleNext} disabled={!wizardData.cliente} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none">
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}
           {paso === 2 && (
-            <button type="button" onClick={handleNext} disabled={!wizardData.proyecto?.nombre?.trim()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none">
+            <button type="button" onClick={handleNext} disabled={!wizardData.proyecto?.nombre?.trim()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none">
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}
           {paso === 3 && lineas.length === 0 && (
-            <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08]">
+            <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08]">
               Siguiente (un solo total) <ArrowRight className="w-4 h-4" />
             </button>
           )}
           {paso === 4 && (
-            <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08]">
+            <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08]">
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}

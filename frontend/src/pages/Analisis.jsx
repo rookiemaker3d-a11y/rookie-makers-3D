@@ -73,6 +73,29 @@ export default function Analisis() {
       .finally(() => setLoading(false))
   }, [api])
 
+  /** Rango [inicio, fin] en ISO para el periodo elegido (fin = hoy). */
+  const getDateRange = (p) => {
+    const fin = new Date()
+    fin.setHours(23, 59, 59, 999)
+    const inicio = new Date(fin)
+    if (p === '7dias' || p === 'semana') {
+      inicio.setDate(inicio.getDate() - 7)
+    } else if (p === 'mes') {
+      inicio.setMonth(inicio.getMonth() - 1)
+    } else if (p === '3meses') {
+      inicio.setMonth(inicio.getMonth() - 3)
+    } else {
+      inicio.setDate(inicio.getDate() - 7)
+    }
+    inicio.setHours(0, 0, 0, 0)
+    return [inicio.toISOString(), fin.toISOString()]
+  }
+
+  const [rangeStart, rangeEnd] = getDateRange(periodo)
+  const inRange = (iso) => iso && iso >= rangeStart && iso <= rangeEnd
+  const productosFiltrados = productos.filter((p) => inRange(p.created_at))
+  const cotizacionesFiltradas = cotizaciones.filter((c) => inRange(c.created_at))
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -81,16 +104,16 @@ export default function Analisis() {
     )
   }
 
-  const totalVenta = totals?.total_venta ?? 0
-  const totalCosto = totals?.total_costo ?? 0
-  const ganancia = totals?.ganancia_neta ?? 0
-  const cantidad = totals?.cantidad_productos ?? 0
+  const totalVenta = productosFiltrados.reduce((s, p) => s + (Number(p.costo_final) || 0), 0)
+  const totalCosto = productosFiltrados.reduce((s, p) => s + (Number(p.costo) ?? 0), 0)
+  const ganancia = totalVenta - totalCosto
+  const cantidad = productosFiltrados.length
   const ticketPromedio = cantidad > 0 ? totalVenta / cantidad : 0
   const margenPromedio = totalVenta > 0 ? (ganancia / totalVenta) * 100 : 0
 
   const ingresosPorMes = (() => {
     const byMonth = {}
-    productos.forEach((p) => {
+    productosFiltrados.forEach((p) => {
       const created = p.created_at?.slice(0, 7)
       if (created) {
         byMonth[created] = (byMonth[created] || 0) + (p.costo_final || 0)
@@ -102,9 +125,9 @@ export default function Analisis() {
       .slice(-6)
   })()
 
-  const enEspera = cotizaciones.filter((c) => (c.detalles?.estado || 'espera') === 'espera')
-  const aprobadas = cotizaciones.filter((c) => (c.detalles?.estado || '') === 'aprobado').length
-  const conversion = cotizaciones.length > 0 ? (aprobadas / cotizaciones.length) * 100 : 0
+  const enEspera = cotizacionesFiltradas.filter((c) => (c.detalles?.estado || 'espera') === 'espera')
+  const aprobadas = cotizacionesFiltradas.filter((c) => (c.detalles?.estado || '') === 'aprobado').length
+  const conversion = cotizacionesFiltradas.length > 0 ? (aprobadas / cotizacionesFiltradas.length) * 100 : 0
   const montoEspera = enEspera.reduce((s, c) => s + (c.costo_final || 0), 0)
 
   return (
@@ -119,14 +142,14 @@ export default function Analisis() {
       />
 
       <div className="flex flex-wrap gap-2">
-        {['mes', 'semana', '3meses'].map((p) => (
+        {['7dias', 'semana', 'mes', '3meses'].map((p) => (
           <button
             key={p}
             type="button"
             onClick={() => setPeriodo(p)}
             className={`px-3 py-1.5 rounded-lg text-sm ${periodo === p ? 'bg-white/[0.1] theme-text' : 'bg-white/[0.04] theme-text-muted'}`}
           >
-            {p === 'mes' ? 'Este mes' : p === 'semana' ? 'Esta semana' : 'Últimos 3 meses'}
+            {p === '7dias' ? 'Últimos 7 días' : p === 'semana' ? 'Esta semana' : p === 'mes' ? 'Este mes' : 'Últimos 3 meses'}
           </button>
         ))}
       </div>

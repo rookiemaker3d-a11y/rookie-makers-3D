@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -40,6 +41,7 @@ export default function Layout() {
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
+  const [logoError, setLogoError] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -58,8 +60,17 @@ export default function Layout() {
         style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-header)' }}
       >
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 shrink-0" style={{ color: 'var(--theme-text)' }} title="Rookie Makers 3D">
-            <img src="/logos/logo-erp.png" alt="Rookie Makers 3D" className="h-8 w-auto object-contain max-w-[180px]" />
+          <Link to="/" className="flex items-center gap-2 shrink-0 theme-text" title="Rookie Makers 3D">
+            {logoError ? (
+              <span className="theme-text font-semibold text-lg">Rookie Makers 3D</span>
+            ) : (
+              <img
+                src="/logos/logo-erp.png"
+                alt="Rookie Makers 3D"
+                className="h-8 w-auto object-contain max-w-[180px]"
+                onError={() => setLogoError(true)}
+              />
+            )}
           </Link>
           <div className="flex items-center gap-3">
             <button

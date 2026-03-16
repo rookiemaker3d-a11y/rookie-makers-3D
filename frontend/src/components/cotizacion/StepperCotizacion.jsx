@@ -34,16 +34,16 @@ export default function StepperCotizacion({ pasoActual, onPasoClick }) {
                   ? 'bg-white/[0.1] border border-white/[0.15] shadow-[0_2px_12px_rgba(79,142,247,0.15)]'
                   : isPast
                     ? 'text-emerald-400/90 hover:bg-white/[0.05]'
-                    : 'text-slate-500 hover:text-slate-400 hover:bg-white/[0.04]'
+                    : 'theme-text-dim hover:theme-text-muted hover:bg-white/[0.04]'
               }`}
             >
               <span
                 className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
                   isActive
-                    ? 'bg-[rgba(79,142,247,0.3)] text-white'
+                    ? 'bg-[rgba(79,142,247,0.3)] theme-text'
                     : isPast
                       ? 'bg-emerald-500/20 text-emerald-400'
-                      : 'bg-white/[0.06] text-slate-400'
+                      : 'bg-white/[0.06] theme-text-muted'
                 }`}
               >
                 {isPast ? <CheckCircle className="w-5 h-5" /> : step.id}

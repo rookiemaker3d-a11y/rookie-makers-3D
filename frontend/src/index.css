@@ -113,6 +113,8 @@ html, body { min-height: 100%; margin: 0; background: var(--theme-bg-page); }
 .theme-text-dim { color: var(--theme-text-dim); }
 .theme-bg-card { background: var(--theme-bg-card); }
 .theme-border { border-color: var(--theme-border); }
+.hover\:theme-text:hover { color: var(--theme-text); }
+.placeholder-theme-dim::placeholder { color: var(--theme-text-dim); opacity: 1; }
 
 /* Tablas que respetan tema claro/oscuro — contornos visibles y colores claros */
 .theme-table {

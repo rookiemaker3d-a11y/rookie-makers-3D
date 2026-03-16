@@ -78,18 +78,18 @@ export default function PasoProyecto({ data, onChange }) {
       />
 
       <Card>
-        <label className="block text-sm font-medium text-slate-400 mb-2">Nombre del proyecto *</label>
+        <label className="block text-sm font-medium theme-text-muted mb-2">Nombre del proyecto *</label>
         <input
           type="text"
           value={nombre}
           onChange={(e) => set('nombre', e.target.value)}
           placeholder="Ej: Soporte para monitor"
-          className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white placeholder-slate-500 focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
+          className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
         />
       </Card>
 
       <Card>
-        <label className="block text-sm font-medium text-slate-400 mb-3">Categoría</label>
+        <label className="block text-sm font-medium theme-text-muted mb-3">Categoría</label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {CATEGORIAS.map((cat) => {
             const Icon = cat.icon
@@ -105,8 +105,8 @@ export default function PasoProyecto({ data, onChange }) {
                     : 'border-white/[0.08] hover:bg-white/[0.04]'
                 }`}
               >
-                <Icon className={`w-8 h-8 ${active ? 'text-blue-400' : 'text-slate-500'}`} />
-                <span className="text-xs font-medium text-white text-center">{cat.label}</span>
+                <Icon className={`w-8 h-8 ${active ? 'text-blue-400' : 'theme-text-dim'}`} />
+                <span className="text-xs font-medium theme-text text-center">{cat.label}</span>
               </button>
             )
           })}
@@ -115,8 +115,8 @@ export default function PasoProyecto({ data, onChange }) {
 
       <Card>
         <div className="flex justify-between items-center mb-2">
-          <label className="text-sm font-medium text-slate-400">Descripción</label>
-          <span className="text-slate-500 text-xs tabular-nums">
+          <label className="text-sm font-medium theme-text-muted">Descripción</label>
+          <span className="theme-text-dim text-xs tabular-nums">
             {descripcion.length} / {MAX_DESC}
           </span>
         </div>
@@ -125,12 +125,12 @@ export default function PasoProyecto({ data, onChange }) {
           onChange={(e) => set('descripcion', e.target.value.slice(0, MAX_DESC))}
           rows={4}
           placeholder="Describe el proyecto, dimensiones, cantidad de piezas..."
-          className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white placeholder-slate-500 resize-none focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
+          className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim resize-none focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
         />
       </Card>
 
       <Card>
-        <label className="block text-sm font-medium text-slate-400 mb-2">Archivo de referencia (STL, imagen o boceto)</label>
+        <label className="block text-sm font-medium theme-text-muted mb-2">Archivo de referencia (STL, imagen o boceto)</label>
         <div
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
@@ -161,16 +161,16 @@ export default function PasoProyecto({ data, onChange }) {
               <button
                 type="button"
                 onClick={() => handleFile(null)}
-                className="text-slate-400 hover:text-white text-sm"
+                className="theme-text-muted hover:theme-text text-sm"
               >
                 Quitar
               </button>
             </div>
           ) : (
             <>
-              <Upload className="w-10 h-10 text-slate-500 mx-auto mb-2" />
-              <p className="text-slate-400 text-sm">Arrastra un archivo aquí o haz clic para elegir</p>
-              <label htmlFor="file-ref" className="inline-block mt-2 px-4 py-2 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] text-white text-sm cursor-pointer">
+              <Upload className="w-10 h-10 theme-text-dim mx-auto mb-2" />
+              <p className="theme-text-muted text-sm">Arrastra un archivo aquí o haz clic para elegir</p>
+              <label htmlFor="file-ref" className="inline-block mt-2 px-4 py-2 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] theme-text text-sm cursor-pointer">
                 Seleccionar archivo
               </label>
             </>
@@ -179,7 +179,7 @@ export default function PasoProyecto({ data, onChange }) {
       </Card>
 
       <Card>
-        <label className="block text-sm font-medium text-slate-400 mb-2">¿Tiene archivo listo para imprimir?</label>
+        <label className="block text-sm font-medium theme-text-muted mb-2">¿Tiene archivo listo para imprimir?</label>
         <div className="flex flex-wrap gap-2">
           {ARCHIVO_LISTO_OPCIONES.map((opt) => (
             <button
@@ -188,8 +188,8 @@ export default function PasoProyecto({ data, onChange }) {
               onClick={() => set('archivoListo', opt.id)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
                 archivoListo === opt.id
-                  ? 'bg-[rgba(79,142,247,0.2)] text-white border border-[rgba(79,142,247,0.4)]'
-                  : 'bg-white/[0.06] text-slate-400 hover:text-white border border-white/[0.08]'
+                  ? 'bg-[rgba(79,142,247,0.2)] theme-text border border-[rgba(79,142,247,0.4)]'
+                  : 'bg-white/[0.06] theme-text-muted hover:theme-text border border-white/[0.08]'
               }`}
             >
               {opt.label}

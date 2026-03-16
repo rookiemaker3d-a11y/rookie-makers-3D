@@ -65,7 +65,6 @@ export default function Inventario() {
   const [error, setError] = useState('')
   const [editingCostoId, setEditingCostoId] = useState(null)
   const [costoTemp, setCostoTemp] = useState('')
-  const [tabStock, setTabStock] = useState(false)
   const [formFilamentoOpen, setFormFilamentoOpen] = useState(false)
   const [formFilamento, setFormFilamento] = useState({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' })
   const [consumirGramos, setConsumirGramos] = useState({ id: null, gramos: '' })
@@ -83,8 +82,11 @@ export default function Inventario() {
   function loadStockFilamentos() {
     api('/inventario-filamento')
       .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setStockFilamentos(Array.isArray(data) ? data : []))
-      .catch(() => setStockFilamentos([]))
+      .then((data) => { setStockFilamentos(Array.isArray(data) ? data : []); setError(''); })
+      .catch(() => {
+        setStockFilamentos([])
+        setError('No se pudo conectar al servidor. ¿Está activo? (Render puede tardar ~1 min en despertar).')
+      })
   }
 
   function load() {
@@ -93,7 +95,7 @@ export default function Inventario() {
       api('/inventario').then((r) => (r.ok ? r.json() : [])).then((data) => setItems(Array.isArray(data) ? data : [])),
       api('/materiales-filamento').then((r) => (r.ok ? r.json() : [])).then((data) => setFilamentos(Array.isArray(data) ? data : [])),
       api('/inventario-filamento').then((r) => (r.ok ? r.json() : [])).then((data) => setStockFilamentos(Array.isArray(data) ? data : [])),
-    ]).catch(() => setError('Error al cargar inventario')).finally(() => setLoading(false))
+    ]).then(() => setError('')).catch(() => setError('No se pudo conectar al servidor. ¿Está activo? (Render puede tardar ~1 min en despertar).')).finally(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -218,7 +220,10 @@ export default function Inventario() {
       setFormFilamentoOpen(false)
       loadStockFilamentos()
     } catch (err) {
-      setError(err?.message || (err?.status === 403 ? 'Solo vendedores pueden agregar filamentos.' : 'Error al guardar.'))
+      const isNetwork = err?.message === 'Failed to fetch' || err?.name === 'TypeError'
+      setError(isNetwork
+        ? 'No se pudo conectar al servidor. ¿Está activo? (Render puede tardar ~1 min en despertar).'
+        : (err?.message || (err?.status === 403 ? 'Solo vendedores pueden agregar filamentos.' : 'Error al guardar.')))
     }
   }
 
@@ -257,27 +262,8 @@ export default function Inventario() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-2 border-b pb-2" style={{ borderColor: 'var(--theme-border)' }}>
-        <button
-          type="button"
-          onClick={() => setTabStock(false)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${!tabStock ? 'btn-primary' : 'theme-text-muted hover:bg-[var(--theme-bg-card)]'}`}
-        >
-          <Droplets className="w-4 h-4" />
-          Costos de filamentos
-        </button>
-        <button
-          type="button"
-          onClick={() => setTabStock(true)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${tabStock ? 'btn-primary' : 'theme-text-muted hover:bg-[var(--theme-bg-card)]'}`}
-        >
-          <Package className="w-4 h-4" />
-          Stock de filamentos
-        </button>
-      </div>
-
-      {!tabStock && (
-        <>
+      {msg && <p className="text-cyan-500 text-sm">{msg}</p>}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
       {/* Costos de filamentos para cotizador */}
       <SectionHeader
         title="Costos de filamentos"
@@ -337,11 +323,8 @@ export default function Inventario() {
           </div>
         )}
       </Card>
-        </>
-      )}
 
-      {tabStock && (
-        <>
+      {/* Stock de filamentos */}
       <SectionHeader
         title="Stock de filamentos"
         subtitle="Filamentos disponibles (nombre, color, gramos). El color se detecta automáticamente de la foto. Norberto y Daniel comparten este listado; Fidel ve solo el suyo."
@@ -490,8 +473,6 @@ export default function Inventario() {
           </div>
         )}
       </Card>
-        </>
-      )}
 
       <SectionHeader
         title="Inventario (materiales / materias primas)"
@@ -510,9 +491,6 @@ export default function Inventario() {
           </button>
         }
       />
-      {msg && <p className="text-cyan-500 text-sm">{msg}</p>}
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-
       {(formOpen || editingId) && (
         <Card className="theme-table">
           <form onSubmit={submit} className="p-4 space-y-3">

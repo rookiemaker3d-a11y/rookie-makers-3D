@@ -58,8 +58,8 @@ export default function AnexoFotosCard({ cotizacion, onSave, api, setUpdating })
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="rounded-xl border border-white/[0.08] bg-slate-900 p-4 w-full max-w-sm">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-white font-medium text-sm">Anexo de foto terminado</span>
-              <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-white">
+              <span className="theme-text font-medium text-sm">Anexo de foto terminado</span>
+              <button type="button" onClick={() => setOpen(false)} className="theme-text-muted hover:theme-text">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -73,7 +73,7 @@ export default function AnexoFotosCard({ cotizacion, onSave, api, setUpdating })
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="w-full py-2 rounded-lg border border-dashed border-white/20 text-slate-400 text-sm mb-2"
+              className="w-full py-2 rounded-lg border border-dashed border-white/20 theme-text-muted text-sm mb-2"
             >
               + Añadir imagen
             </button>
@@ -96,13 +96,13 @@ export default function AnexoFotosCard({ cotizacion, onSave, api, setUpdating })
               onChange={(e) => setNotas(e.target.value)}
               placeholder="Notas internas (opcional)"
               rows={2}
-              className="w-full px-2 py-1.5 rounded bg-white/[0.04] border border-white/[0.08] text-white text-xs placeholder-slate-500 mb-3"
+              className="w-full px-2 py-1.5 rounded bg-white/[0.04] border border-white/[0.08] theme-text text-xs placeholder-theme-dim mb-3"
             />
             <button
               type="button"
               onClick={save}
               disabled={fotos.length === 0 || saving}
-              className="w-full py-2 rounded-lg bg-white/[0.1] hover:bg-white/[0.14] text-white text-sm disabled:opacity-50"
+              className="w-full py-2 rounded-lg bg-white/[0.1] hover:bg-white/[0.14] theme-text text-sm disabled:opacity-50"
             >
               {saving ? 'Guardando...' : 'Guardar'}
             </button>

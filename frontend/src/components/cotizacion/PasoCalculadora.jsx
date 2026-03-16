@@ -3,7 +3,7 @@ import { Plus, ArrowRight } from 'lucide-react'
 import { Card } from '../ui'
 
 const inputClass =
-  'w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white placeholder-slate-500 focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]'
+  'w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]'
 
 export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardData, onNext }) {
   if (!cotizador) return null
@@ -83,8 +83,8 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
         {/* A — Material */}
         <Card>
           <div className="border-b border-white/[0.08] pb-3 mb-3">
-            <h3 className="text-sm font-semibold text-white">Material de impresión</h3>
-            <p className="text-slate-500 text-xs mt-0.5">Costo por kg y gramos estimados</p>
+            <h3 className="text-sm font-semibold theme-text">Material de impresión</h3>
+            <p className="theme-text-dim text-xs mt-0.5">Costo por kg y gramos estimados</p>
           </div>
           <div className="space-y-3 pt-2">
             <select
@@ -104,7 +104,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                 onChange={(e) => setMaterialEspecial(e.target.checked)}
                 className="rounded border-white/20"
               />
-              <span className="text-slate-400 text-sm">Material especial o premium (costo manual)</span>
+              <span className="theme-text-muted text-sm">Material especial o premium (costo manual)</span>
             </label>
             {materialEspecial ? (
               <input
@@ -118,7 +118,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               />
             ) : (
               <div>
-                <label className="text-slate-400 text-sm">Gramos estimados</label>
+                <label className="theme-text-muted text-sm">Gramos estimados</label>
                 <input
                   type="number"
                   min={0}
@@ -127,7 +127,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                   onChange={(e) => setGramos(Number(e.target.value) || 0)}
                   className={inputClass}
                 />
-                <p className="text-slate-500 text-xs mt-1">
+                <p className="theme-text-dim text-xs mt-1">
                   Costo = (gramos/1000) × ${material?.costoPorKg ?? 500}/kg
                 </p>
               </div>
@@ -138,8 +138,8 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
         {/* B — Tiempo máquina */}
         <Card>
           <div className="border-b border-white/[0.08] pb-3 mb-3">
-            <h3 className="text-sm font-semibold text-white">Tiempo de máquina</h3>
-            <p className="text-slate-500 text-xs mt-0.5">${config.costoHoraMaquina} MXN/hr</p>
+            <h3 className="text-sm font-semibold theme-text">Tiempo de máquina</h3>
+            <p className="theme-text-dim text-xs mt-0.5">${config.costoHoraMaquina} MXN/hr</p>
           </div>
           <div className="space-y-3 pt-2">
             <input
@@ -151,19 +151,19 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               placeholder="Ej: 6.5 = 6 h 30 min"
               className={inputClass}
             />
-            <p className="text-slate-500 text-xs mt-1">Usa decimales: 6:30 h = 6.5</p>
+            <p className="theme-text-dim text-xs mt-1">Usa decimales: 6:30 h = 6.5</p>
           </div>
         </Card>
 
         {/* C — Diseño y corrección */}
         <Card>
           <div className="border-b border-white/[0.08] pb-3 mb-3">
-            <h3 className="text-sm font-semibold text-white">Diseño y corrección</h3>
-            <p className="text-slate-500 text-xs mt-0.5">Diseño, STL e ingeniería reversa</p>
+            <h3 className="text-sm font-semibold theme-text">Diseño y corrección</h3>
+            <p className="theme-text-dim text-xs mt-0.5">Diseño, STL e ingeniería reversa</p>
           </div>
           <div className="space-y-3 pt-2">
             <label className="flex items-center justify-between gap-4">
-              <span className="text-slate-300 text-sm">¿Requiere diseño desde cero?</span>
+              <span className="theme-text-secondary text-sm">¿Requiere diseño desde cero?</span>
               <input
                 type="checkbox"
                 checked={requiereDiseno}
@@ -183,7 +183,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               />
             )}
             <label className="flex items-center justify-between gap-4">
-              <span className="text-slate-300 text-sm">¿Requiere corrección de STL?</span>
+              <span className="theme-text-secondary text-sm">¿Requiere corrección de STL?</span>
               <input
                 type="checkbox"
                 checked={requiereCorreccionSTL}
@@ -192,10 +192,10 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               />
             </label>
             {requiereCorreccionSTL && (
-              <p className="text-slate-500 text-xs">Costo fijo: ${config.costoCorreccionSTL} MXN</p>
+              <p className="theme-text-dim text-xs">Costo fijo: ${config.costoCorreccionSTL} MXN</p>
             )}
             <label className="flex items-center justify-between gap-4">
-              <span className="text-slate-300 text-sm">¿Requiere ingeniería reversa?</span>
+              <span className="theme-text-secondary text-sm">¿Requiere ingeniería reversa?</span>
               <input
                 type="checkbox"
                 checked={requiereIngenieriaReversa}
@@ -220,8 +220,8 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
         {/* D — Extras */}
         <Card>
           <div className="border-b border-white/[0.08] pb-3 mb-3">
-            <h3 className="text-sm font-semibold text-white">Extras y acabados</h3>
-            <p className="text-slate-500 text-xs mt-0.5">Cada concepto con su costo</p>
+            <h3 className="text-sm font-semibold theme-text">Extras y acabados</h3>
+            <p className="theme-text-dim text-xs mt-0.5">Cada concepto con su costo</p>
           </div>
           <div className="space-y-3 pt-2">
             {EXTRAS_CONFIG.map((ec) => {
@@ -237,7 +237,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                     onChange={(ev) => updateExtra(ec.id, { on: ev.target.checked })}
                     className="rounded border-white/20"
                   />
-                  <span className="text-slate-300 text-sm flex-1 min-w-0">{ec.label}</span>
+                  <span className="theme-text-secondary text-sm flex-1 min-w-0">{ec.label}</span>
                   {ec.porUnidad ? (
                     <>
                       <input
@@ -245,31 +245,31 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                         min={0}
                         value={e.cantidad ?? 0}
                         onChange={(ev) => updateExtra(ec.id, { cantidad: Number(ev.target.value) || 0 })}
-                        className="w-20 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white text-sm"
+                        className="w-20 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] theme-text text-sm"
                       />
-                      <span className="text-slate-500">×</span>
+                      <span className="theme-text-dim">×</span>
                       <input
                         type="number"
                         min={0}
                         step={0.01}
                         value={e.valor ?? ''}
                         onChange={(ev) => updateExtra(ec.id, { valor: Number(ev.target.value) || 0 })}
-                        className="w-20 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white text-sm"
+                        className="w-20 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] theme-text text-sm"
                       />
-                      <span className="text-slate-500 text-xs">MXN</span>
+                      <span className="theme-text-dim text-xs">MXN</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-slate-500 text-xs">+</span>
+                      <span className="theme-text-dim text-xs">+</span>
                       <input
                         type="number"
                         min={0}
                         step={0.01}
                         value={e.valor ?? ''}
                         onChange={(ev) => updateExtra(ec.id, { valor: Number(ev.target.value) || 0 })}
-                        className="w-24 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] text-white text-sm"
+                        className="w-24 px-2 py-1 rounded bg-white/[0.04] border border-white/[0.08] theme-text text-sm"
                       />
-                      <span className="text-slate-500 text-xs">MXN</span>
+                      <span className="theme-text-dim text-xs">MXN</span>
                     </>
                   )}
                 </label>
@@ -284,32 +284,32 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
         <div className="lg:sticky lg:top-24">
           <Card>
             <div className="border-b border-white/[0.08] pb-3 mb-3">
-              <h3 className="text-sm font-semibold text-white">Resumen</h3>
-              <p className="text-slate-500 text-xs mt-0.5">Precio en tiempo real</p>
+              <h3 className="text-sm font-semibold theme-text">Resumen</h3>
+              <p className="theme-text-dim text-xs mt-0.5">Precio en tiempo real</p>
             </div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between theme-text-muted">
                 <span>Material</span>
-                <span className="tabular-nums text-white">${costoMaterial.toFixed(2)}</span>
+                <span className="tabular-nums theme-text">${costoMaterial.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between theme-text-muted">
                 <span>Tiempo máquina</span>
-                <span className="tabular-nums text-white">${costoTiempoMaquina.toFixed(2)}</span>
+                <span className="tabular-nums theme-text">${costoTiempoMaquina.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between theme-text-muted">
                 <span>Diseño / archivo</span>
-                <span className="tabular-nums text-white">${costoDisenoYArchivo.toFixed(2)}</span>
+                <span className="tabular-nums theme-text">${costoDisenoYArchivo.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between theme-text-muted">
                 <span>Extras</span>
-                <span className="tabular-nums text-white">${costoExtras.toFixed(2)}</span>
+                <span className="tabular-nums theme-text">${costoExtras.toFixed(2)}</span>
               </div>
-              <div className="border-t border-white/[0.08] pt-2 mt-2 flex justify-between font-medium text-white">
+              <div className="border-t border-white/[0.08] pt-2 mt-2 flex justify-between font-medium theme-text">
                 <span>COSTO TOTAL</span>
                 <span className="tabular-nums">${costoTotal.toFixed(2)}</span>
               </div>
               <div className="pt-2">
-                <label className="text-slate-400 text-xs">Margen deseado (%)</label>
+                <label className="theme-text-muted text-xs">Margen deseado (%)</label>
                 <input
                   type="range"
                   min={config.margenMin}
@@ -318,9 +318,9 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                   onChange={(e) => setMargenPorcentaje(Number(e.target.value))}
                   className="w-full mt-1"
                 />
-                <p className="text-slate-500 text-xs mt-0.5">{margenPorcentaje}%</p>
+                <p className="theme-text-dim text-xs mt-0.5">{margenPorcentaje}%</p>
               </div>
-              <div className="border-t border-white/[0.08] pt-2 mt-2 flex justify-between font-semibold text-white">
+              <div className="border-t border-white/[0.08] pt-2 mt-2 flex justify-between font-semibold theme-text">
                 <span>PRECIO CLIENTE</span>
                 <span className="tabular-nums">${precioCliente.toFixed(2)}</span>
               </div>
@@ -328,15 +328,15 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                 <span>Ganancia</span>
                 <span className="tabular-nums">${ganancia.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between theme-text-muted">
                 <span>Anticipo ({config.anticipoPorcentaje}%)</span>
-                <span className="tabular-nums text-white">${anticipoMonto.toFixed(2)}</span>
+                <span className="tabular-nums theme-text">${anticipoMonto.toFixed(2)}</span>
               </div>
               <div className="border-t border-white/[0.08] pt-3 mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={addProduct}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] text-white text-sm font-medium"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] theme-text text-sm font-medium"
                 >
                   <Plus className="w-4 h-4" />
                   Añadir producto a la cotización
@@ -345,7 +345,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                   <button
                     type="button"
                     onClick={onNext}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 theme-text text-sm font-medium"
                   >
                     Siguiente (ver tabla)
                     <ArrowRight className="w-4 h-4" />
@@ -354,16 +354,16 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               </div>
               {lineas.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-white/[0.08]">
-                  <p className="text-slate-400 text-xs mb-2">Partidas añadidas: {lineas.length}</p>
+                  <p className="theme-text-muted text-xs mb-2">Partidas añadidas: {lineas.length}</p>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {lineas.map((l, i) => (
-                      <div key={i} className="flex justify-between text-xs text-slate-300">
+                      <div key={i} className="flex justify-between text-xs theme-text-secondary">
                         <span>{l.id_producto} – {l.nombre_producto}</span>
                         <span className="tabular-nums">${(l.costo_final || 0).toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
-                  <p className="text-slate-500 text-xs mt-1">Más productos: completa la calculadora arriba y pulsa «Añadir producto».</p>
+                  <p className="theme-text-dim text-xs mt-1">Más productos: completa la calculadora arriba y pulsa «Añadir producto».</p>
                 </div>
               )}
             </div>
