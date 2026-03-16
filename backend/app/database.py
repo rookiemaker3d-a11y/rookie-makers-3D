@@ -76,7 +76,21 @@ def _migrate_add_mfa_columns(sync_conn):
             pass  # columna ya existe
 
 
+def _migrate_add_vendedor_clabe(sync_conn):
+    """Añade columna clabe a vendedores si no existe."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmt = "ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS clabe VARCHAR(22)"
+    else:
+        stmt = "ALTER TABLE vendedores ADD COLUMN clabe VARCHAR(22)"
+    try:
+        sync_conn.execute(text(stmt))
+    except Exception:
+        pass  # columna ya existe
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_migrate_add_mfa_columns)
+        await conn.run_sync(_migrate_add_vendedor_clabe)

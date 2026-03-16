@@ -95,6 +95,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
     vendedor_telefono = None
     vendedor_banco = None
     vendedor_cuenta = None
+    vendedor_clabe = None
     if user.vendedor_id:
         res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
         v = res.scalar_one_or_none()
@@ -104,6 +105,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             vendedor_telefono = getattr(v, "telefono", None) or None
             vendedor_banco = getattr(v, "banco", None) or None
             vendedor_cuenta = getattr(v, "cuenta", None) or None
+            vendedor_clabe = getattr(v, "clabe", None) or None
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -117,6 +119,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             "vendedor_telefono": vendedor_telefono,
             "vendedor_banco": vendedor_banco,
             "vendedor_cuenta": vendedor_cuenta,
+            "vendedor_clabe": vendedor_clabe,
         },
     }
 
@@ -128,6 +131,7 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
     vendedor_telefono = None
     vendedor_banco = None
     vendedor_cuenta = None
+    vendedor_clabe = None
     if user.vendedor_id:
         res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
         v = res.scalar_one_or_none()
@@ -137,6 +141,7 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
             vendedor_telefono = getattr(v, "telefono", None) or None
             vendedor_banco = getattr(v, "banco", None) or None
             vendedor_cuenta = getattr(v, "cuenta", None) or None
+            vendedor_clabe = getattr(v, "clabe", None) or None
     return UserResponse(
         id=user.id,
         email=user.email,
@@ -147,6 +152,7 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
         vendedor_telefono=vendedor_telefono,
         vendedor_banco=vendedor_banco,
         vendedor_cuenta=vendedor_cuenta,
+        vendedor_clabe=vendedor_clabe,
     )
 
 
@@ -244,6 +250,7 @@ async def mfa_verify_login(
     vendedor_telefono = None
     vendedor_banco = None
     vendedor_cuenta = None
+    vendedor_clabe = None
     if user.vendedor_id:
         res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
         v = res.scalar_one_or_none()
@@ -253,6 +260,7 @@ async def mfa_verify_login(
             vendedor_telefono = getattr(v, "telefono", None) or None
             vendedor_banco = getattr(v, "banco", None) or None
             vendedor_cuenta = getattr(v, "cuenta", None) or None
+            vendedor_clabe = getattr(v, "clabe", None) or None
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -266,6 +274,7 @@ async def mfa_verify_login(
             "vendedor_telefono": vendedor_telefono,
             "vendedor_banco": vendedor_banco,
             "vendedor_cuenta": vendedor_cuenta,
+            "vendedor_clabe": vendedor_clabe,
         },
     }
 

@@ -26,6 +26,7 @@ class UserResponse(BaseModel):
     vendedor_telefono: Optional[str] = None
     vendedor_banco: Optional[str] = None
     vendedor_cuenta: Optional[str] = None
+    vendedor_clabe: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -38,6 +39,7 @@ class VendedorBase(BaseModel):
     telefono: Optional[str] = None
     banco: Optional[str] = None
     cuenta: Optional[str] = None
+    clabe: Optional[str] = None
 
 
 class VendedorCreate(VendedorBase):
@@ -58,6 +60,7 @@ class VendedorUpdate(BaseModel):
     telefono: Optional[str] = None
     banco: Optional[str] = None
     cuenta: Optional[str] = None
+    clabe: Optional[str] = None
 
 
 class UserPasswordUpdate(BaseModel):

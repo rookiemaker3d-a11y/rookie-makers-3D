@@ -28,6 +28,7 @@ async def list_vendedores(_user=Depends(require_admin), db: AsyncSession = Depen
             telefono=v.telefono,
             banco=v.banco,
             cuenta=v.cuenta,
+            clabe=getattr(v, "clabe", None),
             user_id=user_by_v.get(v.id),
         )
         for v in vendedores
@@ -56,5 +57,5 @@ async def update_vendedor(
     if u:
         user_id = u.id
     return VendedorResponse(
-        id=v.id, nombre=v.nombre, correo=v.correo, telefono=v.telefono, banco=v.banco, cuenta=v.cuenta, user_id=user_id
+        id=v.id, nombre=v.nombre, correo=v.correo, telefono=v.telefono, banco=v.banco, cuenta=v.cuenta, clabe=getattr(v, "clabe", None), user_id=user_id
     )

@@ -26,6 +26,7 @@ class Vendedor(Base):
     telefono = Column(String(50))
     banco = Column(String(255))
     cuenta = Column(String(100))
+    clabe = Column(String(22), nullable=True)  # CLABE 18 dígitos en México
     user = relationship("User", back_populates="vendedor", uselist=False)
 
 

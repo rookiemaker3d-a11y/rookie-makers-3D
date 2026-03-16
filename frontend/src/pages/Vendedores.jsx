@@ -8,7 +8,7 @@ export default function Vendedores() {
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', new_password: '' })
+  const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', new_password: '' })
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -32,6 +32,7 @@ export default function Vendedores() {
       telefono: v.telefono || '',
       banco: v.banco || '',
       cuenta: v.cuenta || '',
+      clabe: v.clabe || '',
       new_password: '',
     })
     setEditOpen(true)
@@ -58,6 +59,7 @@ export default function Vendedores() {
           telefono: form.telefono || null,
           banco: form.banco || null,
           cuenta: form.cuenta || null,
+          clabe: form.clabe || null,
         }),
       })
       if (!res.ok) {
@@ -166,6 +168,12 @@ export default function Vendedores() {
                 placeholder="Cuenta"
                 value={form.cuenta}
                 onChange={(e) => setForm((f) => ({ ...f, cuenta: e.target.value }))}
+                className="theme-input w-full px-4 py-2.5 rounded-xl border"
+              />
+              <input
+                placeholder="CLABE (18 dígitos)"
+                value={form.clabe}
+                onChange={(e) => setForm((f) => ({ ...f, clabe: e.target.value }))}
                 className="theme-input w-full px-4 py-2.5 rounded-xl border"
               />
               <input

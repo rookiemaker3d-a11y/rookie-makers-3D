@@ -230,7 +230,7 @@ export default function NuevaCotizacion() {
               telefono: user?.vendedor_telefono,
               rfc: user?.vendedor_rfc,
             }}
-            transferencia={user?.vendedor_banco ? { banco: user.vendedor_banco, cuenta: user.vendedor_cuenta, clabe: user.vendedor_clabe, beneficiario: user.vendedor_nombre } : {}}
+            transferencia={user?.vendedor_id ? { banco: user.vendedor_banco ?? '', cuenta: user.vendedor_cuenta ?? '', clabe: user.vendedor_clabe ?? '', beneficiario: user.vendedor_nombre ?? '' } : {}}
           />
         )}
         {paso === 6 && (
