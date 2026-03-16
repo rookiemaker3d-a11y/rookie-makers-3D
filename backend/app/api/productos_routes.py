@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.database import get_db
 from app.auth import require_user, get_vendedor_from_user, require_admin
 from app.models import Producto, Vendedor
-from app.schemas import ProductoCreate, ProductoResponse
+from app.schemas import ProductoCreate, ProductoResponse, ProductoUpdate
 
 router = APIRouter(prefix="/productos", tags=["productos"])
 
@@ -43,6 +43,29 @@ async def create_producto(
         detalles=body.detalles or {},
     )
     db.add(p)
+    await db.flush()
+    await db.refresh(p)
+    return p
+
+
+@router.patch("/{producto_id}", response_model=ProductoResponse)
+async def update_producto(
+    producto_id: int,
+    body: ProductoUpdate,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Actualiza detalles y/o costos del producto (recalcular desde análisis)."""
+    result = await db.execute(select(Producto).where(Producto.id == producto_id))
+    p = result.scalar_one_or_none()
+    if not p:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    if body.detalles is not None:
+        p.detalles = {**(p.detalles or {}), **body.detalles}
+    if body.costo_base is not None:
+        p.costo_base = body.costo_base
+    if body.costo_final is not None:
+        p.costo_final = body.costo_final
     await db.flush()
     await db.refresh(p)
     return p

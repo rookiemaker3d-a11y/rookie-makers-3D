@@ -59,21 +59,7 @@ const styles = StyleSheet.create({
   bankRow: { flexDirection: 'row', fontSize: 10, paddingHorizontal: 5, paddingVertical: 2 },
   bankLabel: { width: 90, fontWeight: 'bold', color: '#222' },
   bankValue: { flex: 1, color: '#222' },
-  // Tabla
-  table: { width: '100%', marginBottom: 12, borderWidth: 1.5, borderColor: '#111' },
-  tableHeadRow: { flexDirection: 'row', backgroundColor: '#111' },
-  tableHead: {
-    color: '#fff',
-    fontWeight: 'bold',
-    padding: 5,
-    fontSize: 9,
-    flex: 1,
-  },
-  tableHeadRight: { textAlign: 'right' },
-  tableBodyRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#111', padding: 5 },
-  tableCell: { flex: 1, color: '#222', fontSize: 10 },
-  tableCellRight: { flex: 1, textAlign: 'right', color: '#222', fontSize: 10 },
-  // Notas + totales
+  // Notas + total (sin desglose de costos en la cotización)
   bottom: { flexDirection: 'row', gap: 20, marginBottom: 14 },
   notesArea: { flex: 1, borderWidth: 1.5, borderColor: '#111' },
   notesText: { fontSize: 10, color: '#333', lineHeight: 1.7, minHeight: 40, padding: 6 },
@@ -128,13 +114,6 @@ export default function CotizacionPDF({
 
   const v = vendedor
   const t = transferencia
-
-  const rows = [
-    { id: 'MAT', name: 'Material', desc: 'Impresión 3D', cost: material, qty: 1 },
-    { id: 'MAQ', name: 'Tiempo máquina', desc: 'Horas de impresión', cost: tiempoMaquina, qty: 1 },
-    { id: 'DIS', name: 'Diseño / archivo', desc: 'Diseño, STL, ingeniería', cost: disenoArchivo, qty: 1 },
-    { id: 'EXT', name: 'Extras', desc: 'Acabados y adicionales', cost: extras, qty: 1 },
-  ]
 
   return (
     <Document>
@@ -193,38 +172,13 @@ export default function CotizacionPDF({
           <View style={styles.bankRow}><Text style={styles.bankLabel}>BENEFICIARIO:</Text><Text style={styles.bankValue}>{t.beneficiario || '—'}</Text></View>
         </View>
 
-        {/* TABLA: conceptos */}
-        <View style={styles.table}>
-          <View style={styles.tableHeadRow}>
-            <Text style={[styles.tableHead, { flex: 0.8 }]}>ID PROD.</Text>
-            <Text style={[styles.tableHead, { flex: 1.5 }]}>PRODUCTO</Text>
-            <Text style={[styles.tableHead, { flex: 2 }]}>DESCRIPCION</Text>
-            <Text style={[styles.tableHead, styles.tableHeadRight, { flex: 0.9 }]}>COSTO</Text>
-            <Text style={[styles.tableHead, styles.tableHeadRight, { flex: 0.7 }]}>CANT.</Text>
-            <Text style={[styles.tableHead, styles.tableHeadRight, { flex: 0.9 }]}>COSTO FINAL</Text>
-          </View>
-          {rows.map((r) => (
-            <View key={r.id} style={styles.tableBodyRow}>
-              <Text style={[styles.tableCell, { flex: 0.8 }]}>{r.id}</Text>
-              <Text style={[styles.tableCell, { flex: 1.5 }]}>{r.name}</Text>
-              <Text style={[styles.tableCell, { flex: 2 }]}>{r.desc}</Text>
-              <Text style={[styles.tableCellRight, { flex: 0.9 }]}>${r.cost.toFixed(2)}</Text>
-              <Text style={[styles.tableCellRight, { flex: 0.7 }]}>{r.qty}</Text>
-              <Text style={[styles.tableCellRight, { flex: 0.9 }]}>${(r.cost * r.qty).toFixed(2)}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* NOTAS + TOTALES */}
+        {/* NOTAS + TOTAL (sin desglose de costos) */}
         <View style={styles.bottom}>
           <View style={styles.notesArea}>
             <Text style={styles.blackBar}>NOTAS ADICIONALES:</Text>
             <Text style={styles.notesText}>{notas || ''}</Text>
           </View>
           <View style={styles.totals}>
-            <View style={styles.totalRow}><Text style={styles.totalLbl}>SUB TOTAL</Text><Text style={styles.totalVal}>${subtotal.toFixed(2)}</Text></View>
-            <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
-            <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVÍO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
             <View style={[styles.totalRow, styles.totalFinal]}>
               <Text style={styles.totalFinalLbl}>TOTAL</Text>
               <Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text>

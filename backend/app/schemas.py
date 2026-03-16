@@ -115,6 +115,13 @@ class ProductoCreate(ProductoBase):
     pass
 
 
+class ProductoUpdate(BaseModel):
+    """Actualización parcial: detalles y/o costos (desde análisis/edición)."""
+    detalles: Optional[dict] = None
+    costo_base: Optional[float] = None
+    costo_final: Optional[float] = None
+
+
 class ProductoResponse(ProductoBase):
     id: int
     detalles: Optional[dict] = None
