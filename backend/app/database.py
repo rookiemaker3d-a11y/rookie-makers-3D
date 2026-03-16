@@ -55,19 +55,28 @@ async def get_db():
             await session.close()
 
 
-def _migrate_sqlite(sync_conn):
-    """Añade columnas que falten en tablas existentes (SQLite). create_all no añade columnas nuevas."""
-    for stmt in [
-        "ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(64)",
-        "ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0",
-    ]:
+def _migrate_add_mfa_columns(sync_conn):
+    """Añade columnas MFA a users si no existen. create_all no añade columnas a tablas ya existentes."""
+    dialect = sync_conn.engine.dialect.name
+    # PostgreSQL: DEFAULT false; SQLite: DEFAULT 0
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret VARCHAR(64)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled BOOLEAN DEFAULT false",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE users ADD COLUMN mfa_secret VARCHAR(64)",
+            "ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN DEFAULT 0",
+        ]
+    for stmt in stmts:
         try:
             sync_conn.execute(text(stmt))
         except Exception:
-            pass  # columna ya existe o no es SQLite
+            pass  # columna ya existe
 
 
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        await conn.run_sync(_migrate_sqlite)
+        await conn.run_sync(_migrate_add_mfa_columns)
