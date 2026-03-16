@@ -1,7 +1,10 @@
 /**
  * Preview embebido de la landing: misma estructura que Proyectos (Hero, Stats, Process, Gallery, CTA, Footer)
  * para el editor. Recibe theme + content y opcionalmente fontSizeTitle / fontSizeSubtitle.
+ * En modo edición: editMode, selectedElement, onSelectElement, layout, onLayoutChange para arrastrar elementos.
  */
+import Draggable from 'react-draggable'
+
 const DEFAULT = {
   hero: { tag: '', titleLine1: 'Del Bit', titleLine2: 'al Átomo', titleAccent: 'al Átomo', tagline: '', description: '', ctaPrimary: 'Solicitar cotización', ctaSecondary: 'Ver galería' },
   stats: [{ value: '500+', label: 'Piezas entregadas' }, { value: '0.05', label: 'mm precisión' }, { value: '24/7', label: 'Producción' }],
@@ -13,38 +16,130 @@ const DEFAULT = {
   gallery: [{ label: 'Prototipos', name: 'Prototipos' }, { label: 'Piezas', name: 'Piezas' }, { label: 'Arte', name: 'Arte' }],
   cta: { tag: '¿Listo?', title: 'Cuéntanos tu proyecto', subtitle: 'Cotización sin compromiso.', buttonText: 'Contactar', buttonMailto: 'mailto:contacto@ejemplo.com', whatsappText: '#' },
   footer: { logoText: 'Rookie Makers', copyright: '© 2025', links: [{ label: 'Inicio', href: '#' }, { label: 'Contacto', href: '#contacto' }] },
+  logoUrl: '/logos/logo-web.png',
 }
 
-export default function LandingPreview({ theme = 'cyan', content = {}, fontSizeTitle = 36, fontSizeSubtitle = 18 }) {
+export default function LandingPreview({ theme = 'cyan', content = {}, fontSizeTitle = 36, fontSizeSubtitle = 18, editMode = false, selectedElement = null, onSelectElement, layout: layoutProp = {}, onLayoutChange }) {
   const hero = content.hero || DEFAULT.hero
   const stats = Array.isArray(content.stats) && content.stats.length > 0 ? content.stats : DEFAULT.stats
   const process = Array.isArray(content.process) && content.process.length > 0 ? content.process : DEFAULT.process
   const galleryItems = Array.isArray(content.gallery) && content.gallery.length > 0 ? content.gallery : DEFAULT.gallery
   const cta = content.cta || DEFAULT.cta
   const footer = content.footer || DEFAULT.footer
+  const logoUrl = content.logoUrl || DEFAULT.logoUrl
+  const layout = layoutProp || {}
   const isGreen = theme === 'green'
   const titlePx = Math.max(20, Math.min(72, fontSizeTitle))
   const subtitlePx = Math.max(12, Math.min(28, fontSizeSubtitle))
   const bg = isGreen ? '#f8faf8' : '#050508'
+
+  const heroTitleLayout = layout.heroTitle || {}
+  const heroDescLayout = layout.heroDesc || {}
+  const isSelected = (section, key) => selectedElement && selectedElement.section === section && selectedElement.key === key
+  const dragAreaW = 500
+  const dragAreaH = 280
+
+  const handleDragHeroTitle = (_e, data) => {
+    if (!onLayoutChange) return
+    const pctX = Math.max(0, Math.min(100, (data.x / dragAreaW) * 100))
+    const pctY = Math.max(0, Math.min(100, (data.y / dragAreaH) * 100))
+    onLayoutChange('heroTitle', { x: pctX, y: pctY })
+  }
+  const handleDragHeroDesc = (_e, data) => {
+    if (!onLayoutChange) return
+    const pctX = Math.max(0, Math.min(100, (data.x / dragAreaW) * 100))
+    const pctY = Math.max(0, Math.min(100, (data.y / dragAreaH) * 100))
+    onLayoutChange('heroDesc', { x: pctX, y: pctY })
+  }
 
   return (
     <div className={`lp lp-preview ${isGreen ? 'lp--green' : ''}`} style={{ backgroundColor: bg }}>
       <main className="lp-preview-main">
         <section className="lp-hero" aria-label="Hero">
           <div className="lp-hero-bg" />
-          <div className="lp-hero-content">
-            <p className="lp-hero-label">{hero.tag}</p>
-            <h1 className="lp-hero-title" style={{ fontSize: `${titlePx}px` }}>
-              {hero.titleLine1}
-              <br />
-              <span className="lp-accent">{hero.titleAccent || hero.titleLine2}</span>
-              <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>{hero.tagline}</span>
-            </h1>
-            <p className="lp-hero-desc" style={{ fontSize: `${subtitlePx}px` }}>{hero.description}</p>
-            <div className="lp-hero-buttons">
-              <span className="lp-btn lp-btn-primary lp-btn-hero">{hero.ctaPrimary}</span>
-              <span className="lp-btn lp-btn-ghost">{hero.ctaSecondary}</span>
-            </div>
+          <div
+            className="lp-hero-content"
+            style={
+              editMode
+                ? { position: 'relative', minHeight: dragAreaH, width: '100%', maxWidth: dragAreaW }
+                : (heroTitleLayout.x != null || heroDescLayout.x != null) ? { position: 'relative', minHeight: 260 } : {}
+            }
+          >
+            {editMode ? (
+              <>
+                <p className="lp-hero-label" onClick={() => onSelectElement?.({ section: 'hero', key: 'tag' })} style={{ cursor: 'pointer', outline: isSelected('hero', 'tag') ? '2px solid var(--lp-accent)' : 'none' }}>{hero.tag}</p>
+                {(heroTitleLayout.x != null && heroTitleLayout.y != null) ? (
+                  <Draggable position={{ x: (heroTitleLayout.x / 100) * dragAreaW, y: (heroTitleLayout.y / 100) * dragAreaH }} onStop={handleDragHeroTitle} bounds="parent">
+                    <div
+                      className="lp-hero-title-wrap"
+                      onClick={(e) => { e.stopPropagation(); onSelectElement?.({ section: 'hero', key: 'title' }); }}
+                      style={{ cursor: 'move', outline: isSelected('hero', 'title') ? '2px solid var(--lp-accent)' : 'none', fontSize: `${titlePx}px` }}
+                    >
+                      {hero.titleLine1}
+                      <br />
+                      <span className="lp-accent">{hero.titleAccent || hero.titleLine2}</span>
+                      <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>{hero.tagline}</span>
+                    </div>
+                  </Draggable>
+                ) : (
+                  <h1
+                    className="lp-hero-title"
+                    style={{ fontSize: `${titlePx}px`, cursor: editMode ? 'pointer' : undefined, outline: isSelected('hero', 'title') ? '2px solid var(--lp-accent)' : 'none' }}
+                    onClick={() => onSelectElement?.({ section: 'hero', key: 'title' })}
+                  >
+                    {hero.titleLine1}
+                    <br />
+                    <span className="lp-accent">{hero.titleAccent || hero.titleLine2}</span>
+                    <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>{hero.tagline}</span>
+                  </h1>
+                )}
+                {(heroDescLayout.x != null && heroDescLayout.y != null) ? (
+                  <Draggable position={{ x: (heroDescLayout.x / 100) * dragAreaW, y: (heroDescLayout.y / 100) * dragAreaH }} onStop={handleDragHeroDesc} bounds="parent">
+                    <p
+                      className="lp-hero-desc"
+                      style={{ fontSize: `${subtitlePx}px`, cursor: 'move', outline: isSelected('hero', 'desc') ? '2px solid var(--lp-accent)' : 'none' }}
+                      onClick={(e) => { e.stopPropagation(); onSelectElement?.({ section: 'hero', key: 'desc' }); }}
+                    >
+                      {hero.description}
+                    </p>
+                  </Draggable>
+                ) : (
+                  <p className="lp-hero-desc" style={{ fontSize: `${subtitlePx}px`, cursor: editMode ? 'pointer' : undefined, outline: isSelected('hero', 'desc') ? '2px solid var(--lp-accent)' : 'none' }} onClick={() => onSelectElement?.({ section: 'hero', key: 'desc' })}>{hero.description}</p>
+                )}
+                <div className="lp-hero-buttons">
+                  <span className="lp-btn lp-btn-primary lp-btn-hero" onClick={() => onSelectElement?.({ section: 'hero', key: 'cta1' })} style={{ cursor: 'pointer', outline: isSelected('hero', 'cta1') ? '2px solid var(--lp-accent)' : 'none' }}>{hero.ctaPrimary}</span>
+                  <span className="lp-btn lp-btn-ghost" onClick={() => onSelectElement?.({ section: 'hero', key: 'cta2' })} style={{ cursor: 'pointer', outline: isSelected('hero', 'cta2') ? '2px solid var(--lp-accent)' : 'none' }}>{hero.ctaSecondary}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="lp-hero-label">{hero.tag}</p>
+                {(heroTitleLayout.x != null && heroTitleLayout.y != null) ? (
+                  <h1 className="lp-hero-title" style={{ fontSize: `${titlePx}px`, position: 'absolute', left: `${heroTitleLayout.x}%`, top: `${heroTitleLayout.y}%`, margin: 0 }}>
+                    {hero.titleLine1}
+                    <br />
+                    <span className="lp-accent">{hero.titleAccent || hero.titleLine2}</span>
+                    <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>{hero.tagline}</span>
+                  </h1>
+                ) : (
+                  <h1 className="lp-hero-title" style={{ fontSize: `${titlePx}px` }}>
+                    {hero.titleLine1}
+                    <br />
+                    <span className="lp-accent">{hero.titleAccent || hero.titleLine2}</span>
+                    <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>{hero.tagline}</span>
+                  </h1>
+                )}
+                {(heroDescLayout.x != null && heroDescLayout.y != null) ? (
+                  <p className="lp-hero-desc" style={{ fontSize: `${subtitlePx}px`, position: 'absolute', left: `${heroDescLayout.x}%`, top: `${heroDescLayout.y}%`, margin: 0 }}>{hero.description}</p>
+                ) : (
+                  <p className="lp-hero-desc" style={{ fontSize: `${subtitlePx}px` }}>{hero.description}</p>
+                )}
+                <div className="lp-hero-buttons">
+                  <span className="lp-btn lp-btn-primary lp-btn-hero">{hero.ctaPrimary}</span>
+                  <span className="lp-btn lp-btn-ghost">{hero.ctaSecondary}</span>
+                </div>
+              </>
+            )}
           </div>
         </section>
         <section className="lp-stats">
@@ -100,7 +195,11 @@ export default function LandingPreview({ theme = 'cyan', content = {}, fontSizeT
         </section>
         <footer className="lp-footer">
           <div className="lp-footer-inner">
-            <span className="lp-logo">{footer.logoText}<span className="lp-accent">.</span></span>
+            {logoUrl ? (
+              <img src={logoUrl} alt={footer.logoText} className="h-8 w-auto object-contain opacity-90" />
+            ) : (
+              <span className="lp-logo">{footer.logoText}<span className="lp-accent">.</span></span>
+            )}
             <span className="lp-footer-copy">{footer.copyright}</span>
             <div className="lp-footer-links">
               {(footer.links || []).map((link) => (

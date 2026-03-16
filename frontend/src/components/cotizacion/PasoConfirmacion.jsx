@@ -4,7 +4,8 @@ import { motion } from 'framer-motion'
 import { CheckCircle, FileText, LayoutDashboard } from 'lucide-react'
 import { Card } from '../ui'
 
-export default function PasoConfirmacion({ folio, wizardData, desglose, onConfirm, saving }) {
+export default function PasoConfirmacion({ folio, wizardData, desglose, lineas = [], totalFinal, onConfirm, saving }) {
+  const totalDisplay = (Array.isArray(lineas) && lineas.length > 0) ? totalFinal : desglose?.precioCliente
   const navigate = useNavigate()
   const [confirmed, setConfirmed] = useState(false)
 
@@ -69,7 +70,7 @@ export default function PasoConfirmacion({ folio, wizardData, desglose, onConfir
           <p className="text-slate-500 text-sm mt-0.5">La cotización quedará en estado &quot;En espera&quot;</p>
         </div>
         <p className="text-slate-300 text-sm mb-4">
-          Cliente: <strong className="text-white">{wizardData?.cliente?.nombre}</strong> · Total: <strong className="text-white">${desglose?.precioCliente?.toFixed(2)}</strong> MXN
+          Cliente: <strong className="text-white">{wizardData?.cliente?.nombre}</strong> · Total: <strong className="text-white">${(totalDisplay ?? 0).toFixed(2)}</strong> MXN
         </p>
         <button
           type="button"

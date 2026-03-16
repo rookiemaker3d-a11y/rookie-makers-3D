@@ -123,6 +123,21 @@ class InventarioItem(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class InventarioFilamento(Base):
+    """Stock de filamento por vendedor: nombre, color (auto desde foto), gramos, foto. Compartido Norberto+Daniel; Fidel aparte."""
+    __tablename__ = "inventario_filamento"
+    id = Column(Integer, primary_key=True, index=True)
+    vendedor_id = Column(Integer, ForeignKey("vendedores.id"), nullable=False)
+    nombre = Column(String(255), nullable=False)
+    tipo = Column(String(50), default="PLA")  # PLA, PETG, etc.
+    color_hex = Column(String(20), nullable=True)  # auto desde foto
+    color_nombre = Column(String(100), nullable=True)
+    cantidad_gramos = Column(Float, default=0)
+    foto_url = Column(String(500), nullable=True)  # URL o path a la imagen
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class PaginaPublicaConfig(Base):
     """Configuración editable por admin: tamaños, fondos, categorías de la página pública."""
     __tablename__ = "pagina_publica_config"

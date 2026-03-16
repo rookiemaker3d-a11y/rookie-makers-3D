@@ -58,12 +58,8 @@ export default function Layout() {
         style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-header)' }}
       >
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link
-            to="/"
-            className="text-lg font-bold tracking-tight transition-colors hover:opacity-90"
-            style={{ color: 'var(--theme-text)' }}
-          >
-            Rookie Makers 3D
+          <Link to="/" className="flex items-center gap-2 shrink-0" style={{ color: 'var(--theme-text)' }} title="Rookie Makers 3D">
+            <img src="/logos/logo-erp.png" alt="Rookie Makers 3D" className="h-8 w-auto object-contain max-w-[180px]" />
           </Link>
           <div className="flex items-center gap-3">
             <button

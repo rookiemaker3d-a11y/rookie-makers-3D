@@ -23,6 +23,9 @@ export default function NuevaCotizacion() {
   const [wizardData, setWizardData] = useState({
     cliente: null,
     proyecto: {},
+    lineas: [],
+    descuento: 0,
+    envio: 0,
   })
   const [notas, setNotas] = useState('')
   const [saving, setSaving] = useState(false)
@@ -53,27 +56,39 @@ export default function NuevaCotizacion() {
     if (paso > 1) setPaso((p) => p - 1)
   }
 
+  const lineas = wizardData.lineas || []
+  const subTotal = lineas.reduce((s, l) => s + (Number(l.costo_final) || 0), 0)
+  const descuento = Number(wizardData.descuento) || 0
+  const envio = Number(wizardData.envio) || 0
+  const totalFinal = subTotal - descuento + envio
+
   const handleConfirm = async () => {
     setSaveError('')
     setSaving(true)
     try {
       const d = cotizador.desglose
       const descripcion = `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
+      const detalles = {
+        ...d,
+        folio,
+        cliente_id: wizardData.cliente?.id,
+        proyecto: wizardData.proyecto?.nombre,
+        notas,
+        estado: 'espera',
+        lineas: lineas.length ? lineas : undefined,
+        descuento: lineas.length ? descuento : undefined,
+        envio: lineas.length ? envio : undefined,
+        sub_total: lineas.length ? subTotal : undefined,
+        total: lineas.length ? totalFinal : undefined,
+      }
       await api('/cotizaciones-en-espera', {
         method: 'POST',
         body: JSON.stringify({
           descripcion,
           cantidad: 1,
-          costo_base: d.costoTotal,
-          costo_final: d.precioCliente,
-          detalles: {
-            ...d,
-            folio,
-            cliente_id: wizardData.cliente?.id,
-            proyecto: wizardData.proyecto?.nombre,
-            notas,
-            estado: 'espera',
-          },
+          costo_base: lineas.length ? subTotal : d.costoTotal,
+          costo_final: lineas.length ? totalFinal : d.precioCliente,
+          detalles,
         }),
       })
       return true
@@ -130,15 +145,28 @@ export default function NuevaCotizacion() {
           />
         )}
         {paso === 3 && (
-          <PasoCalculadora key="paso3" cotizador={cotizador} />
+          <PasoCalculadora
+            key="paso3"
+            cotizador={cotizador}
+            wizardData={wizardData}
+            setWizardData={setWizardData}
+            onNext={() => setPaso(4)}
+          />
         )}
         {paso === 4 && (
           <PasoPreview
             key="paso4"
             wizardData={wizardData}
+            setWizardData={setWizardData}
             desglose={cotizador.desglose}
+            lineas={lineas}
+            subTotal={subTotal}
+            descuento={descuento}
+            envio={envio}
+            totalFinal={totalFinal}
             notas={notas}
             setNotas={setNotas}
+            onMasProductos={() => setPaso(3)}
           />
         )}
         {paso === 5 && (
@@ -147,6 +175,11 @@ export default function NuevaCotizacion() {
             folio={folio}
             wizardData={wizardData}
             desglose={cotizador.desglose}
+            lineas={lineas}
+            subTotal={subTotal}
+            descuento={descuento}
+            envio={envio}
+            totalFinal={totalFinal}
             notas={notas}
             vendedor={{
               codigo: user?.vendedor_codigo ?? 'V001',
@@ -163,6 +196,8 @@ export default function NuevaCotizacion() {
             folio={folio}
             wizardData={wizardData}
             desglose={cotizador.desglose}
+            lineas={lineas}
+            totalFinal={totalFinal}
             onConfirm={handleConfirm}
             saving={saving}
           />
@@ -180,15 +215,24 @@ export default function NuevaCotizacion() {
             <ArrowLeft className="w-4 h-4" />
             Anterior
           </button>
-          {paso <= 4 && (
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={(paso === 1 && !wizardData.cliente) || (paso === 2 && !wizardData.proyecto?.nombre?.trim())}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none"
-            >
-              Siguiente
-              <ArrowRight className="w-4 h-4" />
+          {paso === 1 && (
+            <button type="button" onClick={handleNext} disabled={!wizardData.cliente} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none">
+              Siguiente <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+          {paso === 2 && (
+            <button type="button" onClick={handleNext} disabled={!wizardData.proyecto?.nombre?.trim()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none">
+              Siguiente <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+          {paso === 3 && lineas.length === 0 && (
+            <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08]">
+              Siguiente (un solo total) <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
+          {paso === 4 && (
+            <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] text-white font-medium border border-white/[0.08]">
+              Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>

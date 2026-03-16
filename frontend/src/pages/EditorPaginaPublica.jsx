@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { ChevronDown, Save, ExternalLink, RotateCcw, Layout, Type, Palette } from 'lucide-react'
+import { ChevronDown, Save, ExternalLink, RotateCcw, Layout, Type, Palette, Move } from 'lucide-react'
 import LandingPreview from '../components/LandingPreview'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
 const DEFAULT_LANDING = {
   theme: 'cyan',
+  logoUrl: '/logos/logo-web.png',
   hero: {
     tag: 'Impresión 3D profesional',
     titleLine1: 'Del Bit',
@@ -83,6 +84,7 @@ export default function EditorPaginaPublica() {
   const [viewport, setViewport] = useState('desktop') // desktop | tablet | mobile
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
+  const [selectedElement, setSelectedElement] = useState(null) // { section, key }
 
   function load() {
     setLoading(true)
@@ -106,6 +108,20 @@ export default function EditorPaginaPublica() {
   useEffect(() => { load() }, [])
 
   const updateLanding = (key, value) => setLanding((prev) => ({ ...prev, [key]: value }))
+  const layout = landing.layout || {}
+  const updateLayout = (elementKey, pos) => {
+    setLanding((prev) => ({
+      ...prev,
+      layout: { ...(prev.layout || {}), [elementKey]: pos },
+    }))
+  }
+  const clearLayout = (elementKey) => {
+    setLanding((prev) => {
+      const next = { ...(prev.layout || {}) }
+      delete next[elementKey]
+      return { ...prev, layout: next }
+    })
+  }
   const updateHero = (key, value) => setLanding((prev) => ({ ...prev, hero: { ...(prev.hero || {}), [key]: value } }))
   const updateCta = (key, value) => setLanding((prev) => ({ ...prev, cta: { ...(prev.cta || {}), [key]: value } }))
   const updateFooter = (key, value) => setLanding((prev) => ({ ...prev, footer: { ...(prev.footer || {}), [key]: value } }))
@@ -192,6 +208,15 @@ export default function EditorPaginaPublica() {
                 <option value="cyan">Cyan (Del Bit al Átomo)</option>
                 <option value="green">Verde minimalista</option>
               </select>
+              <label className="block text-xs theme-text-muted mb-1 mt-2">URL del logo (p. ej. /logos/logo-web.png)</label>
+              <input
+                type="text"
+                value={landing.logoUrl || ''}
+                onChange={(e) => updateLanding('logoUrl', e.target.value)}
+                placeholder="/logos/logo-web.png"
+                className="w-full px-3 py-2 rounded-lg border text-sm"
+                style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+              />
             </Accordion>
 
             <Accordion id="hero" open={openSection === 'hero'} onToggle={setOpenSection} title="Hero" icon={Type}>
@@ -320,6 +345,37 @@ export default function EditorPaginaPublica() {
               </div>
             </Accordion>
 
+            <Accordion id="position" open={openSection === 'position'} onToggle={setOpenSection} title="Posición y figuras" icon={Move}>
+              {selectedElement ? (
+                <div className="space-y-2 text-sm">
+                  <p className="theme-text-muted">Elemento: {selectedElement.section} / {selectedElement.key}</p>
+                  {(selectedElement.key === 'title' || selectedElement.key === 'desc') && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => updateLayout(selectedElement.key === 'title' ? 'heroTitle' : 'heroDesc', { x: 0, y: 0 })}
+                        className="w-full px-3 py-2 rounded-lg border text-left"
+                        style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }}
+                      >
+                        Activar arrastre (mover en vista previa)
+                      </button>
+                      {(layout.heroTitle?.x != null || layout.heroDesc?.x != null) && (
+                        <button
+                          type="button"
+                          onClick={() => clearLayout(selectedElement.key === 'title' ? 'heroTitle' : 'heroDesc')}
+                          className="w-full px-3 py-2 rounded-lg border border-amber-500/50 text-amber-500 text-left"
+                        >
+                          Restablecer posición
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <p className="text-xs theme-text-muted">Haz clic en un elemento del preview (título, descripción, etc.) para seleccionarlo y activar arrastre.</p>
+              )}
+            </Accordion>
+
             <Accordion id="actions" open={openSection === 'actions'} onToggle={setOpenSection} title="Acciones" icon={Palette}>
               <div className="flex flex-col gap-2">
                 <button type="button" onClick={save} disabled={saving} className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-medium btn-primary disabled:opacity-60">
@@ -359,7 +415,17 @@ export default function EditorPaginaPublica() {
           </div>
           <div className="flex-1 overflow-auto p-4 flex justify-center" style={{ background: 'var(--theme-bg)' }}>
             <div className="shadow-2xl overflow-hidden rounded-lg transition-all duration-200" style={{ width: previewWidth, maxWidth: '100%', minHeight: '500px' }}>
-              <LandingPreview theme={landing.theme || 'cyan'} content={landing} fontSizeTitle={config.fontSizeTitle} fontSizeSubtitle={config.fontSizeSubtitle} />
+              <LandingPreview
+                theme={landing.theme || 'cyan'}
+                content={landing}
+                fontSizeTitle={config.fontSizeTitle}
+                fontSizeSubtitle={config.fontSizeSubtitle}
+                editMode
+                selectedElement={selectedElement}
+                onSelectElement={setSelectedElement}
+                layout={layout}
+                onLayoutChange={(key, pos) => updateLayout(key, pos)}
+              />
             </div>
           </div>
         </div>

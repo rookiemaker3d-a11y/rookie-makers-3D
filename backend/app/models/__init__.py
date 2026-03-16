@@ -10,6 +10,7 @@ from app.models.models import (
     VideoPromocional,
     MaterialFilamento,
     InventarioItem,
+    InventarioFilamento,
     PaginaPublicaConfig,
     AuditLog,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "VideoPromocional",
     "MaterialFilamento",
     "InventarioItem",
+    "InventarioFilamento",
     "PaginaPublicaConfig",
     "AuditLog",
 ]

@@ -1,12 +1,62 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Package, Droplets } from 'lucide-react'
+
+/** Extrae color dominante (hex) de un archivo de imagen usando canvas. */
+function getDominantColorFromFile(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file)
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        const size = 64
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        if (!ctx) { URL.revokeObjectURL(url); resolve(null); return }
+        ctx.drawImage(img, 0, 0, size, size)
+        const data = ctx.getImageData(size / 4, size / 4, size / 2, size / 2).data
+        let r = 0, g = 0, b = 0, n = 0
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i]
+          g += data[i + 1]
+          b += data[i + 2]
+          n++
+        }
+        if (n) {
+          r = Math.round(r / n)
+          g = Math.round(g / n)
+          b = Math.round(b / n)
+          resolve('#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join(''))
+        } else resolve(null)
+      } catch {
+        resolve(null)
+      }
+      URL.revokeObjectURL(url)
+    }
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null) }
+    img.src = url
+  })
+}
+
+/** Convierte archivo a data URL. */
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result)
+    r.onerror = reject
+    r.readAsDataURL(file)
+  })
+}
 
 export default function Inventario() {
   const { api, user } = useAuth()
   const [items, setItems] = useState([])
   const [filamentos, setFilamentos] = useState([])
+  const [stockFilamentos, setStockFilamentos] = useState([])
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
@@ -15,6 +65,11 @@ export default function Inventario() {
   const [error, setError] = useState('')
   const [editingCostoId, setEditingCostoId] = useState(null)
   const [costoTemp, setCostoTemp] = useState('')
+  const [tabStock, setTabStock] = useState(false)
+  const [formFilamentoOpen, setFormFilamentoOpen] = useState(false)
+  const [formFilamento, setFormFilamento] = useState({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' })
+  const [consumirGramos, setConsumirGramos] = useState({ id: null, gramos: '' })
+  const fileInputRef = useRef(null)
 
   const isAdmin = user?.role === 'administrador'
 
@@ -25,11 +80,19 @@ export default function Inventario() {
       .catch(() => setFilamentos([]))
   }
 
+  function loadStockFilamentos() {
+    api('/inventario-filamento')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setStockFilamentos(Array.isArray(data) ? data : []))
+      .catch(() => setStockFilamentos([]))
+  }
+
   function load() {
     setLoading(true)
     Promise.all([
       api('/inventario').then((r) => (r.ok ? r.json() : [])).then((data) => setItems(Array.isArray(data) ? data : [])),
       api('/materiales-filamento').then((r) => (r.ok ? r.json() : [])).then((data) => setFilamentos(Array.isArray(data) ? data : [])),
+      api('/inventario-filamento').then((r) => (r.ok ? r.json() : [])).then((data) => setStockFilamentos(Array.isArray(data) ? data : [])),
     ]).catch(() => setError('Error al cargar inventario')).finally(() => setLoading(false))
   }
 
@@ -120,6 +183,70 @@ export default function Inventario() {
     setForm({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza' })
   }
 
+  const onFilamentoPhotoChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      setFormFilamento((f) => ({ ...f, foto_url: dataUrl }))
+      const hex = await getDominantColorFromFile(file)
+      if (hex) setFormFilamento((f) => ({ ...f, color_hex: hex }))
+    } catch {
+      setError('Error al procesar la imagen.')
+    }
+  }
+
+  const submitFilamento = async (e) => {
+    e.preventDefault()
+    if (!formFilamento.nombre?.trim()) { setError('Nombre obligatorio'); return }
+    setError('')
+    setMsg('')
+    try {
+      await api('/inventario-filamento', {
+        method: 'POST',
+        body: JSON.stringify({
+          nombre: formFilamento.nombre.trim(),
+          tipo: formFilamento.tipo || 'PLA',
+          color_hex: formFilamento.color_hex || null,
+          color_nombre: formFilamento.color_nombre || null,
+          cantidad_gramos: Number(formFilamento.cantidad_gramos) || 0,
+          foto_url: formFilamento.foto_url || null,
+        }),
+      })
+      setMsg('Filamento agregado.')
+      setFormFilamento({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' })
+      setFormFilamentoOpen(false)
+      loadStockFilamentos()
+    } catch (err) {
+      setError(err?.message || (err?.status === 403 ? 'Solo vendedores pueden agregar filamentos.' : 'Error al guardar.'))
+    }
+  }
+
+  const deleteFilamento = async (id) => {
+    if (!confirm('¿Eliminar este filamento del inventario?')) return
+    try {
+      await api(`/inventario-filamento/${id}`, { method: 'DELETE' })
+      setMsg('Filamento eliminado.')
+      loadStockFilamentos()
+    } catch {
+      setError('Error al eliminar.')
+    }
+  }
+
+  const consumirFilamento = async () => {
+    const id = consumirGramos.id
+    const g = Number(consumirGramos.gramos)
+    if (!id || g <= 0) return
+    try {
+      await api(`/inventario-filamento/${id}/consumir`, { method: 'PATCH', body: JSON.stringify({ gramos: g }) })
+      setConsumirGramos({ id: null, gramos: '' })
+      setMsg('Consumo registrado.')
+      loadStockFilamentos()
+    } catch (err) {
+      setError(err?.message || 'Error al consumir.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20 theme-text-muted">
@@ -130,6 +257,27 @@ export default function Inventario() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap gap-2 border-b pb-2" style={{ borderColor: 'var(--theme-border)' }}>
+        <button
+          type="button"
+          onClick={() => setTabStock(false)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${!tabStock ? 'btn-primary' : 'theme-text-muted hover:bg-[var(--theme-bg-card)]'}`}
+        >
+          <Droplets className="w-4 h-4" />
+          Costos de filamentos
+        </button>
+        <button
+          type="button"
+          onClick={() => setTabStock(true)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${tabStock ? 'btn-primary' : 'theme-text-muted hover:bg-[var(--theme-bg-card)]'}`}
+        >
+          <Package className="w-4 h-4" />
+          Stock de filamentos
+        </button>
+      </div>
+
+      {!tabStock && (
+        <>
       {/* Costos de filamentos para cotizador */}
       <SectionHeader
         title="Costos de filamentos"
@@ -189,6 +337,161 @@ export default function Inventario() {
           </div>
         )}
       </Card>
+        </>
+      )}
+
+      {tabStock && (
+        <>
+      <SectionHeader
+        title="Stock de filamentos"
+        subtitle="Filamentos disponibles (nombre, color, gramos). El color se detecta automáticamente de la foto. Norberto y Daniel comparten este listado; Fidel ve solo el suyo."
+        action={
+          (user?.role === 'vendedor' || user?.role === 'administrador') && (
+            <button
+              type="button"
+              onClick={() => { setFormFilamentoOpen(true); setFormFilamento({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' }); }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg btn-primary hover:opacity-95 text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar filamento
+            </button>
+          )
+        }
+      />
+      {formFilamentoOpen && (
+        <Card>
+          <form onSubmit={submitFilamento} className="p-4 space-y-3">
+            <h2 className="text-lg font-medium theme-text">Nuevo filamento (uno por uno)</h2>
+            <input
+              placeholder="Nombre *"
+              value={formFilamento.nombre}
+              onChange={(e) => setFormFilamento((f) => ({ ...f, nombre: e.target.value }))}
+              className="theme-input w-full px-3 py-2 rounded-lg border"
+            />
+            <div className="flex gap-4 flex-wrap">
+              <select
+                value={formFilamento.tipo}
+                onChange={(e) => setFormFilamento((f) => ({ ...f, tipo: e.target.value }))}
+                className="theme-input px-3 py-2 rounded-lg border"
+              >
+                <option value="PLA">PLA</option>
+                <option value="PETG">PETG</option>
+              </select>
+              <input
+                placeholder="Color (nombre)"
+                value={formFilamento.color_nombre}
+                onChange={(e) => setFormFilamento((f) => ({ ...f, color_nombre: e.target.value }))}
+                className="theme-input flex-1 min-w-32 px-3 py-2 rounded-lg border"
+              />
+              {formFilamento.color_hex && (
+                <span className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded border shrink-0" style={{ backgroundColor: formFilamento.color_hex }} title={formFilamento.color_hex} />
+                  <span className="text-sm theme-text-muted">{formFilamento.color_hex}</span>
+                </span>
+              )}
+              <input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Gramos"
+                value={formFilamento.cantidad_gramos || ''}
+                onChange={(e) => setFormFilamento((f) => ({ ...f, cantidad_gramos: e.target.value }))}
+                className="theme-input w-28 px-3 py-2 rounded-lg border"
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onFilamentoPhotoChange}
+              />
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 rounded-lg border theme-input">
+                Subir foto (detecta color)
+              </button>
+              {formFilamento.foto_url && (
+                <img src={formFilamento.foto_url} alt="Vista previa" className="h-12 w-12 object-cover rounded border" />
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" className="px-4 py-2 rounded-lg btn-primary font-medium">Agregar</button>
+              <button type="button" onClick={() => setFormFilamentoOpen(false)} className="px-4 py-2 rounded-lg bg-slate-600 text-white">Cancelar</button>
+            </div>
+          </form>
+        </Card>
+      )}
+      <Card padding={false} className="overflow-hidden theme-table">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <th className="p-3 theme-text-muted font-medium">Color</th>
+              <th className="p-3 theme-text-muted font-medium">Nombre</th>
+              <th className="p-3 theme-text-muted font-medium">Tipo</th>
+              <th className="p-3 theme-text-muted font-medium">Gramos</th>
+              <th className="p-3 theme-text-muted font-medium">Foto</th>
+              <th className="p-3 theme-text-muted font-medium w-32"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {stockFilamentos.map((f) => (
+              <tr key={f.id} className="border-b hover:bg-[var(--theme-table-row-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+                <td className="p-3">
+                  {f.color_hex ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-6 h-6 rounded border shrink-0" style={{ backgroundColor: f.color_hex }} title={f.color_hex} />
+                      <span className="theme-text-muted text-xs">{f.color_hex}</span>
+                    </span>
+                  ) : (
+                    <span className="theme-text-muted">—</span>
+                  )}
+                </td>
+                <td className="p-3 theme-text font-medium">{f.nombre}</td>
+                <td className="p-3 theme-text-muted">{f.tipo || 'PLA'}</td>
+                <td className="p-3 theme-text tabular-nums">{f.cantidad_gramos ?? 0} g</td>
+                <td className="p-3">
+                  {f.foto_url ? (
+                    <img src={f.foto_url} alt="" className="h-10 w-10 object-cover rounded border" />
+                  ) : (
+                    <span className="theme-text-muted">—</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {consumirGramos.id === f.id ? (
+                      <>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={consumirGramos.gramos}
+                          onChange={(e) => setConsumirGramos((c) => ({ ...c, gramos: e.target.value }))}
+                          className="theme-input w-20 px-2 py-1 rounded text-sm"
+                          placeholder="g"
+                        />
+                        <button type="button" onClick={consumirFilamento} className="px-2 py-1 rounded bg-amber-600 text-white text-xs">Ok</button>
+                        <button type="button" onClick={() => setConsumirGramos({ id: null, gramos: '' })} className="text-xs theme-text-muted">Cancelar</button>
+                      </>
+                    ) : (
+                      <button type="button" onClick={() => setConsumirGramos({ id: f.id, gramos: '' })} className="px-2 py-1 rounded bg-amber-600/20 text-amber-400 text-xs">Consumir</button>
+                    )}
+                    <button type="button" onClick={() => deleteFilamento(f.id)} className="p-1.5 rounded text-red-500 hover:bg-red-500/10" aria-label="Eliminar">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {stockFilamentos.length === 0 && (
+          <div className="p-8 text-center theme-text-muted">
+            No hay filamentos en stock. Agrega uno con «Agregar filamento» (solo vendedores).
+          </div>
+        )}
+      </Card>
+        </>
+      )}
 
       <SectionHeader
         title="Inventario (materiales / materias primas)"

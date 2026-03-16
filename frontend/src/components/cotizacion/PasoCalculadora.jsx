@@ -1,11 +1,35 @@
 import { motion } from 'framer-motion'
+import { Plus, ArrowRight } from 'lucide-react'
 import { Card } from '../ui'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white placeholder-slate-500 focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]'
 
-export default function PasoCalculadora({ cotizador }) {
+export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardData, onNext }) {
   if (!cotizador) return null
+  const lineas = wizardData.lineas || []
+  const proyectoNombre = wizardData.proyecto?.nombre || 'Producto'
+  const round2 = (n) => Math.round((n ?? 0) * 100) / 100
+  const addProduct = () => {
+    const d = cotizador.desglose
+    const costoUnit = Number(d.precioCliente) || 0
+    const cantidad = 1
+    const id = `P${String(lineas.length + 1).padStart(3, '0')}`
+    setWizardData((prev) => ({
+      ...prev,
+      lineas: [
+        ...(prev.lineas || []),
+        {
+          id_producto: id,
+          nombre_producto: proyectoNombre,
+          descripcion: 'Impresión',
+          costo_unitario: costoUnit,
+          cantidad,
+          costo_final: round2(costoUnit * cantidad),
+        },
+      ],
+    }))
+  }
 
   const {
     config,
@@ -308,6 +332,40 @@ export default function PasoCalculadora({ cotizador }) {
                 <span>Anticipo ({config.anticipoPorcentaje}%)</span>
                 <span className="tabular-nums text-white">${anticipoMonto.toFixed(2)}</span>
               </div>
+              <div className="border-t border-white/[0.08] pt-3 mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={addProduct}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] text-white text-sm font-medium"
+                >
+                  <Plus className="w-4 h-4" />
+                  Añadir producto a la cotización
+                </button>
+                {lineas.length > 0 && onNext && (
+                  <button
+                    type="button"
+                    onClick={onNext}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium"
+                  >
+                    Siguiente (ver tabla)
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {lineas.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/[0.08]">
+                  <p className="text-slate-400 text-xs mb-2">Partidas añadidas: {lineas.length}</p>
+                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                    {lineas.map((l, i) => (
+                      <div key={i} className="flex justify-between text-xs text-slate-300">
+                        <span>{l.id_producto} – {l.nombre_producto}</span>
+                        <span className="tabular-nums">${(l.costo_final || 0).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-slate-500 text-xs mt-1">Más productos: completa la calculadora arriba y pulsa «Añadir producto».</p>
+                </div>
+              )}
             </div>
           </Card>
         </div>

@@ -12,8 +12,9 @@ from app.services.pdf_service import build_quote_pdf
 
 router = APIRouter(prefix="/pdf", tags=["pdf"])
 
-# Ruta del logo (opcional). Puedes configurarla por env o usar la del config original.
-LOGO_PATH = os.environ.get("LOGO_PATH") or os.path.join(os.path.dirname(__file__), "..", "..", "..", "logo.png")
+# Ruta del logo para cotización (B/N). Por defecto: frontend/public/logos del proyecto.
+_BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+LOGO_PATH = os.environ.get("LOGO_PATH") or os.path.join(_BASE, "frontend", "public", "logos", "logo-cotizacion.png")
 
 
 @router.post("/cotizacion")

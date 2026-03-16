@@ -41,6 +41,7 @@ const DEFAULT_LANDING = {
     buttonMailto: 'mailto:contacto@ejemplo.com',
     whatsappText: 'https://wa.me/521234567890',
   },
+  logoUrl: '/logos/logo-web.png',
   footer: {
     logoText: 'Rookie Makers',
     copyright: '© 2025 Rookie Makers. Todos los derechos reservados.',
@@ -62,6 +63,7 @@ export default function Proyectos() {
   const [config, setConfig] = useState(null)
   const [landing, setLanding] = useState(DEFAULT_LANDING)
   const [navScrolled, setNavScrolled] = useState(false)
+  const [filamentosColores, setFilamentosColores] = useState([])
 
   useEffect(() => {
     fetch(`${API_BASE}/api/videos-promocionales/public`)
@@ -82,6 +84,13 @@ export default function Proyectos() {
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => data && setLanding(data))
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/inventario-filamento/public`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setFilamentosColores(Array.isArray(data) ? data : []))
+      .catch(() => setFilamentosColores([]))
   }, [])
 
   useEffect(() => {
@@ -111,8 +120,12 @@ export default function Proyectos() {
     <div className={`lp ${isGreen ? 'lp--green' : ''}`} style={{ backgroundColor: bg }}>
       <header className={`lp-header ${navScrolled ? 'lp-header--scrolled' : ''}`}>
         <div className="lp-header-inner">
-          <Link to="/proyectos" className="lp-logo">
-            {footer.logoText || 'Rookie Makers'}<span className="lp-accent">.</span>
+          <Link to="/proyectos" className="lp-logo flex items-center gap-2">
+            {landing.logoUrl ? (
+              <img src={landing.logoUrl} alt={footer.logoText || 'Rookie Makers'} className="h-9 w-auto object-contain max-w-[200px]" />
+            ) : (
+              <>{footer.logoText || 'Rookie Makers'}<span className="lp-accent">.</span></>
+            )}
           </Link>
           <nav className="lp-nav">
             {(navContent.links || []).map((link) => (
@@ -176,6 +189,31 @@ export default function Proyectos() {
             ))}
           </div>
         </section>
+
+        {filamentosColores.length > 0 && (
+          <section id="materiales" className="lp-section lp-section--dark">
+            <div className="lp-section-head">
+              <div>
+                <p className="lp-label">Materiales</p>
+                <h2 className="lp-section-title">Filamentos y colores</h2>
+                <p className="lp-section-desc">Colores disponibles en nuestro inventario.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-4 justify-center">
+              {filamentosColores.map((f) => (
+                <div key={f.id} className="flex flex-col items-center gap-2 p-3 rounded-xl border border-white/10 bg-white/5 min-w-[100px]">
+                  {f.color_hex ? (
+                    <span className="w-12 h-12 rounded-lg border-2 border-white/20 shrink-0" style={{ backgroundColor: f.color_hex }} title={f.color_hex} />
+                  ) : (
+                    <span className="w-12 h-12 rounded-lg border-2 border-white/20 bg-white/10 shrink-0" />
+                  )}
+                  <span className="text-sm font-medium text-center theme-text">{f.nombre}</span>
+                  <span className="text-xs theme-text-muted">{f.tipo}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section id="detalle" className="lp-section">
           <div className="lp-section-head lp-section-head--center">

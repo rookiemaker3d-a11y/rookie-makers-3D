@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.database import Base, init_db, AsyncSessionLocal
-from app.models import User, Vendedor, Servicio, MaterialFilamento
+from app.models import User, Vendedor, Servicio, MaterialFilamento, InventarioFilamento
 from app.auth import get_password_hash
 
 def _get_engine_and_session():
@@ -49,6 +49,19 @@ MATERIALES_FILAMENTO = [
     {"id_externo": "otro", "nombre": "Otro", "costo_por_kg": 500, "orden": 10},
 ]
 
+# Filamentos de ejemplo para inventario (vendedor_id 1 = Daniel, compartido con Norberto)
+FILAMENTOS_INVENTARIO = [
+    {"vendedor_id": 1, "nombre": "PLA Negro", "tipo": "PLA", "color_hex": "#1a1a1a", "color_nombre": "Negro", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PLA Blanco", "tipo": "PLA", "color_hex": "#f5f5f5", "color_nombre": "Blanco", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PLA Gris", "tipo": "PLA", "color_hex": "#808080", "color_nombre": "Gris", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PLA Amarillo", "tipo": "PLA", "color_hex": "#ffd700", "color_nombre": "Amarillo", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PLA Rosa", "tipo": "PLA", "color_hex": "#ff69b4", "color_nombre": "Rosa", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PLA Rojo", "tipo": "PLA", "color_hex": "#cc0000", "color_nombre": "Rojo", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PLA Mármol azul gris", "tipo": "PLA", "color_hex": "#708090", "color_nombre": "Mármol azul tipo gris", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PETG Negro", "tipo": "PETG", "color_hex": "#1a1a1a", "color_nombre": "Negro", "cantidad_gramos": 1000},
+    {"vendedor_id": 1, "nombre": "PETG Blanco", "tipo": "PETG", "color_hex": "#f5f5f5", "color_nombre": "Blanco", "cantidad_gramos": 1000},
+]
+
 
 async def run():
     engine, session_factory = _get_engine_and_session()
@@ -80,6 +93,12 @@ async def _run_seed(db):
         if r.scalars().first() is None:
             for mat in MATERIALES_FILAMENTO:
                 db.add(MaterialFilamento(**mat))
+            await db.commit()
+
+        r = await db.execute(select(InventarioFilamento))
+        if r.scalars().first() is None:
+            for f in FILAMENTOS_INVENTARIO:
+                db.add(InventarioFilamento(**f))
             await db.commit()
 
         r = await db.execute(select(User).where(User.email == "norbertomoro4@gmail.com"))

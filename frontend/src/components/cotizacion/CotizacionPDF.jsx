@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 
 const styles = StyleSheet.create({
   page: {
@@ -15,6 +15,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logoWrap: { alignItems: 'flex-start' },
+  logoImage: { width: 60, height: 42, marginBottom: 6, objectFit: 'contain' },
   logoBox: {
     width: 60,
     height: 60,
@@ -70,6 +71,13 @@ const styles = StyleSheet.create({
   totalFinal: { borderTopWidth: 2, borderTopColor: '#111', paddingTop: 4, marginTop: 2 },
   totalFinalLbl: { fontWeight: 'bold', color: '#111' },
   totalFinalVal: { fontSize: 13, fontWeight: 'bold', textAlign: 'right' },
+  // Tabla partidas
+  tableWrap: { borderWidth: 1, borderColor: '#111', marginTop: 4 },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#ccc', paddingVertical: 3, paddingHorizontal: 4 },
+  tableCell: { fontSize: 8, flex: 1 },
+  tableHeader: { fontWeight: 'bold', backgroundColor: '#eee' },
+  tableRight: { textAlign: 'right' },
+  totalsBlock: { width: 180, alignSelf: 'flex-end', marginTop: 8 },
   // Términos
   termsArea: { borderWidth: 1.5, borderColor: '#111', marginTop: 14 },
   termsText: { fontSize: 9, lineHeight: 1.9, color: '#333', padding: 6 },
@@ -93,24 +101,27 @@ export default function CotizacionPDF({
   proyecto,
   desglose,
   notas,
+  lineas,
+  subTotal: subTotalProp,
+  descuento: descuentoProp,
+  envio: envioProp,
+  totalFinal: totalFinalProp,
   vendedor = {},
   transferencia = {},
   diasValidez = 7,
   terminos = TERMINOS_DEFAULT,
+  logoUrl,
 }) {
   const d = desglose || {}
   const hoy = new Date()
   const expira = new Date(hoy)
   expira.setDate(expira.getDate() + (diasValidez || 7))
 
-  const material = Number(d.material) || 0
-  const tiempoMaquina = Number(d.tiempoMaquina) || 0
-  const disenoArchivo = Number(d.disenoArchivo) || 0
-  const extras = Number(d.extras) || 0
-  const subtotal = material + tiempoMaquina + disenoArchivo + extras
-  const descuento = 0
-  const envio = 0
-  const total = Number(d.precioCliente) || subtotal - descuento + envio
+  const hasLineas = Array.isArray(lineas) && lineas.length > 0
+  const subTotal = hasLineas ? (Number(subTotalProp) || 0) : (Number(d.material) || 0) + (Number(d.tiempoMaquina) || 0) + (Number(d.disenoArchivo) || 0) + (Number(d.extras) || 0)
+  const descuento = hasLineas ? (Number(descuentoProp) || 0) : 0
+  const envio = hasLineas ? (Number(envioProp) || 0) : 0
+  const total = hasLineas ? (Number(totalFinalProp) || subTotal - descuento + envio) : (Number(d.precioCliente) || subTotal - descuento + envio)
 
   const v = vendedor
   const t = transferencia
@@ -121,9 +132,15 @@ export default function CotizacionPDF({
         {/* TOP: logo + COTIZACIÓN y meta */}
         <View style={styles.top}>
           <View style={styles.logoWrap}>
-            <View style={styles.logoBox} />
-            <Text style={styles.brandName}>ROOKIE{'\n'}MAKERS 3D</Text>
-            <Text style={styles.tagline}>PRINT YOUR DREAMS</Text>
+            {logoUrl ? (
+              <Image src={logoUrl} style={styles.logoImage} />
+            ) : (
+              <>
+                <View style={styles.logoBox} />
+                <Text style={styles.brandName}>ROOKIE{'\n'}MAKERS 3D</Text>
+                <Text style={styles.tagline}>PRINT YOUR DREAMS</Text>
+              </>
+            )}
           </View>
           <View style={styles.metaRight}>
             <Text style={styles.docTitle}>COTIZACIÓN</Text>
@@ -172,18 +189,53 @@ export default function CotizacionPDF({
           <View style={styles.bankRow}><Text style={styles.bankLabel}>BENEFICIARIO:</Text><Text style={styles.bankValue}>{t.beneficiario || '—'}</Text></View>
         </View>
 
-        {/* NOTAS + TOTAL (sin desglose de costos) */}
+        {/* TABLA DE PARTIDAS (si hay lineas) */}
+        {hasLineas && (
+          <View style={{ marginBottom: 14 }}>
+            <Text style={styles.blackBar}>DETALLE DE PRODUCTOS</Text>
+            <View style={styles.tableWrap}>
+              <View style={styles.tableRow}>
+                <Text style={[styles.tableCell, styles.tableHeader]}>ID</Text>
+                <Text style={[styles.tableCell, styles.tableHeader, { flex: 2 }]}>Producto</Text>
+                <Text style={[styles.tableCell, styles.tableHeader, { flex: 1.5 }]}>Descripción</Text>
+                <Text style={[styles.tableCell, styles.tableHeader, styles.tableRight]}>Costo</Text>
+                <Text style={[styles.tableCell, styles.tableHeader, styles.tableRight]}>Cant.</Text>
+                <Text style={[styles.tableCell, styles.tableHeader, styles.tableRight]}>Costo final</Text>
+              </View>
+              {lineas.map((l, i) => (
+                <View key={i} style={styles.tableRow}>
+                  <Text style={styles.tableCell}>{l.id_producto || ''}</Text>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || ''}</Text>
+                  <Text style={[styles.tableCell, { flex: 1.5 }]}>{l.descripcion || '—'}</Text>
+                  <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_unitario ?? 0).toFixed(2)}</Text>
+                  <Text style={[styles.tableCell, styles.tableRight]}>{l.cantidad ?? 1}</Text>
+                  <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_final ?? 0).toFixed(2)}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.totalsBlock}>
+              <View style={styles.totalRow}><Text style={styles.totalLbl}>Sub total</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalLbl}>Descuento</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
+              <View style={styles.totalRow}><Text style={styles.totalLbl}>Envío</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
+              <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>Total</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
+            </View>
+          </View>
+        )}
+
+        {/* NOTAS + TOTAL */}
         <View style={styles.bottom}>
           <View style={styles.notesArea}>
             <Text style={styles.blackBar}>NOTAS ADICIONALES:</Text>
             <Text style={styles.notesText}>{notas || ''}</Text>
           </View>
-          <View style={styles.totals}>
-            <View style={[styles.totalRow, styles.totalFinal]}>
-              <Text style={styles.totalFinalLbl}>TOTAL</Text>
-              <Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text>
+          {!hasLineas && (
+            <View style={styles.totals}>
+              <View style={[styles.totalRow, styles.totalFinal]}>
+                <Text style={styles.totalFinalLbl}>TOTAL</Text>
+                <Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
 
         {/* TÉRMINOS */}

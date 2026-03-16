@@ -7,21 +7,28 @@ import { Card } from '../ui'
 
 const WHATSAPP_NUM = '524721488913'
 
-export default function PasoPDF({ folio, wizardData, desglose, notas, vendedor, transferencia }) {
+export default function PasoPDF({ folio, wizardData, desglose, lineas = [], subTotal = 0, descuento = 0, envio = 0, totalFinal = 0, notas, vendedor, transferencia }) {
   const [downloading, setDownloading] = useState(false)
 
   const handleDownload = async () => {
     setDownloading(true)
     try {
+      const logoUrl = typeof window !== 'undefined' ? `${window.location.origin}/logos/logo-cotizacion.png` : ''
       const doc = (
         <CotizacionPDF
           folio={folio}
           cliente={wizardData?.cliente}
           proyecto={wizardData?.proyecto}
           desglose={desglose}
+          lineas={lineas}
+          subTotal={subTotal}
+          descuento={descuento}
+          envio={envio}
+          totalFinal={totalFinal}
           notas={notas}
           vendedor={vendedor}
           transferencia={transferencia}
+          logoUrl={logoUrl}
         />
       )
       const blob = await pdf(doc).toBlob()
@@ -36,8 +43,9 @@ export default function PasoPDF({ folio, wizardData, desglose, notas, vendedor, 
     }
   }
 
+  const totalParaWhatsApp = (Array.isArray(lineas) && lineas.length > 0) ? totalFinal : desglose?.precioCliente
   const whatsappText = encodeURIComponent(
-    `Hola, te envío la cotización ${folio} por un total de $${desglose?.precioCliente?.toFixed(2) ?? '0'} MXN. Anticipo: $${desglose?.anticipoMonto?.toFixed(2) ?? '0'}.`
+    `Hola, te envío la cotización ${folio} por un total de $${(totalParaWhatsApp ?? 0).toFixed(2)} MXN.${(Array.isArray(lineas) && lineas.length === 0) ? ` Anticipo: $${(desglose?.anticipoMonto ?? 0).toFixed(2)}.` : ''}`
   )
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUM}?text=${whatsappText}`
 

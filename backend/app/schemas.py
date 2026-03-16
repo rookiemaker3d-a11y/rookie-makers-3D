@@ -228,6 +228,46 @@ class InventarioItemResponse(InventarioItemBase):
         from_attributes = True
 
 
+# ----- Inventario filamento (stock por vendedor, color desde foto) -----
+class InventarioFilamentoCreate(BaseModel):
+    nombre: str
+    tipo: str = "PLA"
+    color_hex: Optional[str] = None
+    color_nombre: Optional[str] = None
+    cantidad_gramos: float = 0
+    foto_url: Optional[str] = None  # data URL o path
+
+
+class InventarioFilamentoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    tipo: Optional[str] = None
+    color_hex: Optional[str] = None
+    color_nombre: Optional[str] = None
+    cantidad_gramos: Optional[float] = None
+    foto_url: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+class InventarioFilamentoResponse(BaseModel):
+    id: int
+    vendedor_id: int
+    nombre: str
+    tipo: str
+    color_hex: Optional[str] = None
+    color_nombre: Optional[str] = None
+    cantidad_gramos: float
+    foto_url: Optional[str] = None
+    activo: bool = True
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ConsumirFilamentoBody(BaseModel):
+    gramos: float
+
+
 # ----- Página pública (config editable por admin) -----
 class PaginaPublicaConfigUpdate(BaseModel):
     fontSizeTitle: Optional[int] = None
