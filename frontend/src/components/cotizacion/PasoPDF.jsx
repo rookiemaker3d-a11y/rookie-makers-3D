@@ -7,7 +7,22 @@ import { Card } from '../ui'
 
 const WHATSAPP_NUM = '524721488913'
 
-export default function PasoPDF({ folio, wizardData, desglose, lineas = [], subTotal = 0, descuento = 0, envio = 0, totalFinal = 0, notas, vendedor, transferencia }) {
+export default function PasoPDF({
+  folio,
+  wizardData,
+  desglose,
+  lineas = [],
+  subTotal = 0,
+  descuento = 0,
+  envio = 0,
+  totalFinal = 0,
+  notas,
+  vendedor,
+  transferencia,
+  vendedores,
+  vendedorSeleccionadoId,
+  onChangeVendedorSeleccionadoId,
+}) {
   const [downloading, setDownloading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const prevUrlRef = useRef(null)
@@ -93,6 +108,28 @@ export default function PasoPDF({ folio, wizardData, desglose, lineas = [], subT
       animate={{ opacity: 1, x: 0 }}
       className="space-y-6"
     >
+      {Array.isArray(vendedores) && vendedores.length > 0 && typeof onChangeVendedorSeleccionadoId === 'function' && (
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-lg font-semibold theme-text">Perfil de vendedor para la cotización</h3>
+              <p className="theme-text-muted text-sm mt-0.5">Selecciona el vendedor cuyos datos (banco/cuenta/clabe/beneficiario) aparecerán en el PDF.</p>
+            </div>
+            <select
+              value={vendedorSeleccionadoId ?? ''}
+              onChange={(e) => onChangeVendedorSeleccionadoId(Number(e.target.value) || null)}
+              className="theme-input px-3 py-2 rounded-xl border"
+            >
+              {vendedores.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.nombre} — {v.correo}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
+
       {/* Vista previa del PDF */}
       <Card>
         <div className="flex items-center gap-2 mb-3">

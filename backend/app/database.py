@@ -89,8 +89,29 @@ def _migrate_add_vendedor_clabe(sync_conn):
         pass  # columna ya existe
 
 
+def _migrate_add_vendedor_tarjeta(sync_conn):
+    """Añade columnas tarjeta_ultimos4 y tarjeta_enc a vendedores si no existen."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS tarjeta_ultimos4 VARCHAR(4)",
+            "ALTER TABLE vendedores ADD COLUMN IF NOT EXISTS tarjeta_enc TEXT",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE vendedores ADD COLUMN tarjeta_ultimos4 VARCHAR(4)",
+            "ALTER TABLE vendedores ADD COLUMN tarjeta_enc TEXT",
+        ]
+    for stmt in stmts:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass  # columna ya existe
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_migrate_add_mfa_columns)
         await conn.run_sync(_migrate_add_vendedor_clabe)
+        await conn.run_sync(_migrate_add_vendedor_tarjeta)

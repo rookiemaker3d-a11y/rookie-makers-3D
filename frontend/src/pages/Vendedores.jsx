@@ -8,7 +8,7 @@ export default function Vendedores() {
   const [loading, setLoading] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', new_password: '' })
+  const [form, setForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', tarjeta: '', new_password: '' })
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -33,6 +33,7 @@ export default function Vendedores() {
       banco: v.banco || '',
       cuenta: v.cuenta || '',
       clabe: v.clabe || '',
+      tarjeta: '',
       new_password: '',
     })
     setEditOpen(true)
@@ -42,7 +43,7 @@ export default function Vendedores() {
   const closeEdit = () => {
     setEditOpen(false)
     setEditing(null)
-    setForm({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', new_password: '' })
+    setForm({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', tarjeta: '', new_password: '' })
   }
 
   const saveEdit = async (e) => {
@@ -60,6 +61,7 @@ export default function Vendedores() {
           banco: form.banco || null,
           cuenta: form.cuenta || null,
           clabe: form.clabe || null,
+          ...(form.tarjeta.trim() ? { tarjeta_numero: form.tarjeta.trim() } : {}),
         }),
       })
       if (!res.ok) {
@@ -103,6 +105,7 @@ export default function Vendedores() {
               <th className="p-3 theme-text-muted font-medium">Correo</th>
               <th className="p-3 theme-text-muted font-medium">Teléfono</th>
               <th className="p-3 theme-text-muted font-medium">Banco / Cuenta</th>
+              <th className="p-3 theme-text-muted font-medium">Tarjeta</th>
               <th className="p-3 theme-text-muted font-medium w-24">Acción</th>
             </tr>
           </thead>
@@ -114,6 +117,7 @@ export default function Vendedores() {
                 <td className="p-3 theme-text">{v.correo}</td>
                 <td className="p-3 theme-text-muted">{v.telefono}</td>
                 <td className="p-3 theme-text-muted">{v.banco} — {v.cuenta}</td>
+                <td className="p-3 theme-text-muted">{v.tarjeta_ultimos4 ? `**** ${v.tarjeta_ultimos4}` : '—'}</td>
                 <td className="p-3">
                   <button
                     type="button"
@@ -175,6 +179,14 @@ export default function Vendedores() {
                 value={form.clabe}
                 onChange={(e) => setForm((f) => ({ ...f, clabe: e.target.value }))}
                 className="theme-input w-full px-4 py-2.5 rounded-xl border"
+              />
+              <input
+                placeholder="Tarjeta (se guarda encriptada; solo se mostrará **** 1234)"
+                value={form.tarjeta}
+                onChange={(e) => setForm((f) => ({ ...f, tarjeta: e.target.value }))}
+                className="theme-input w-full px-4 py-2.5 rounded-xl border"
+                inputMode="numeric"
+                autoComplete="off"
               />
               <input
                 type="password"

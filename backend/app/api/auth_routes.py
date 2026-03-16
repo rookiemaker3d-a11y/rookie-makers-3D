@@ -96,6 +96,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
     vendedor_banco = None
     vendedor_cuenta = None
     vendedor_clabe = None
+    vendedor_tarjeta_ultimos4 = None
     if user.vendedor_id:
         res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
         v = res.scalar_one_or_none()
@@ -106,6 +107,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             vendedor_banco = getattr(v, "banco", None) or None
             vendedor_cuenta = getattr(v, "cuenta", None) or None
             vendedor_clabe = getattr(v, "clabe", None) or None
+            vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -120,6 +122,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             "vendedor_banco": vendedor_banco,
             "vendedor_cuenta": vendedor_cuenta,
             "vendedor_clabe": vendedor_clabe,
+            "vendedor_tarjeta_ultimos4": vendedor_tarjeta_ultimos4,
         },
     }
 
@@ -132,6 +135,7 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
     vendedor_banco = None
     vendedor_cuenta = None
     vendedor_clabe = None
+    vendedor_tarjeta_ultimos4 = None
     if user.vendedor_id:
         res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
         v = res.scalar_one_or_none()
@@ -142,6 +146,7 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
             vendedor_banco = getattr(v, "banco", None) or None
             vendedor_cuenta = getattr(v, "cuenta", None) or None
             vendedor_clabe = getattr(v, "clabe", None) or None
+            vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
     return UserResponse(
         id=user.id,
         email=user.email,
@@ -153,6 +158,7 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
         vendedor_banco=vendedor_banco,
         vendedor_cuenta=vendedor_cuenta,
         vendedor_clabe=vendedor_clabe,
+        vendedor_tarjeta_ultimos4=vendedor_tarjeta_ultimos4,
     )
 
 

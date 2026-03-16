@@ -19,6 +19,8 @@ const TOTAL_PASOS = 6
 export default function NuevaCotizacion() {
   const { api, user } = useAuth()
   const [materiales, setMateriales] = useState([])
+  const [vendedores, setVendedores] = useState([])
+  const [vendedorSeleccionadoId, setVendedorSeleccionadoId] = useState(null)
   const [paso, setPaso] = useState(1)
   const [wizardData, setWizardData] = useState({
     cliente: null,
@@ -38,6 +40,22 @@ export default function NuevaCotizacion() {
       .then((data) => setMateriales(Array.isArray(data) ? data : []))
       .catch(() => setMateriales([]))
   }, [api])
+
+  const isAdmin = user?.role === 'administrador'
+  useEffect(() => {
+    if (!isAdmin) return
+    api('/vendedores')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : []
+        setVendedores(arr)
+        // default: vendedor con correo igual al user.email, si existe; si no, el primero.
+        const match = arr.find((v) => (v?.correo || '').toLowerCase() === (user?.email || '').toLowerCase())
+        const id = match?.id ?? arr[0]?.id ?? null
+        setVendedorSeleccionadoId((prev) => prev ?? id)
+      })
+      .catch(() => setVendedores([]))
+  }, [api, isAdmin, user?.email])
 
   const materialesParaCotizador = useMemo(() => materialesFromAPI(materiales), [materiales])
   const cotizador = useCotizador({ materiales: materialesParaCotizador ?? undefined })
@@ -62,6 +80,11 @@ export default function NuevaCotizacion() {
   const descuento = Number(wizardData.descuento) || 0
   const envio = Number(wizardData.envio) || 0
   const totalFinal = subTotal - descuento + envio
+
+  const vendedorSeleccionado = useMemo(() => {
+    if (!isAdmin) return null
+    return vendedores.find((v) => v?.id === vendedorSeleccionadoId) || null
+  }, [isAdmin, vendedores, vendedorSeleccionadoId])
 
   const handleConfirm = async () => {
     setSaveError('')
@@ -223,14 +246,46 @@ export default function NuevaCotizacion() {
             envio={envio}
             totalFinal={totalFinal}
             notas={notas}
-            vendedor={{
-              codigo: user?.vendedor_codigo ?? 'V001',
-              nombre: user?.vendedor_nombre || user?.email,
-              email: user?.vendedor_correo || user?.email,
-              telefono: user?.vendedor_telefono,
-              rfc: user?.vendedor_rfc,
-            }}
-            transferencia={user?.vendedor_id ? { banco: user.vendedor_banco ?? '', cuenta: user.vendedor_cuenta ?? '', clabe: user.vendedor_clabe ?? '', beneficiario: user.vendedor_nombre ?? '' } : {}}
+            vendedores={isAdmin ? vendedores : undefined}
+            vendedorSeleccionadoId={isAdmin ? vendedorSeleccionadoId : undefined}
+            onChangeVendedorSeleccionadoId={isAdmin ? setVendedorSeleccionadoId : undefined}
+            vendedor={
+              isAdmin
+                ? {
+                    codigo: `V${String(vendedorSeleccionado?.id ?? '').padStart(3, '0')}` || 'V001',
+                    nombre: vendedorSeleccionado?.nombre || user?.email,
+                    email: vendedorSeleccionado?.correo || user?.email,
+                    telefono: vendedorSeleccionado?.telefono,
+                  }
+                : {
+                    codigo: user?.vendedor_codigo ?? 'V001',
+                    nombre: user?.vendedor_nombre || user?.email,
+                    email: user?.vendedor_correo || user?.email,
+                    telefono: user?.vendedor_telefono,
+                    rfc: user?.vendedor_rfc,
+                  }
+            }
+            transferencia={
+              isAdmin
+                ? (vendedorSeleccionado
+                    ? {
+                        banco: vendedorSeleccionado?.banco ?? '',
+                        cuenta: vendedorSeleccionado?.cuenta ?? '',
+                        clabe: vendedorSeleccionado?.clabe ?? '',
+                        beneficiario: vendedorSeleccionado?.nombre ?? '',
+                        tarjeta_ultimos4: vendedorSeleccionado?.tarjeta_ultimos4 ?? '',
+                      }
+                    : {})
+                : (user?.vendedor_id
+                    ? {
+                        banco: user.vendedor_banco ?? '',
+                        cuenta: user.vendedor_cuenta ?? '',
+                        clabe: user.vendedor_clabe ?? '',
+                        beneficiario: user.vendedor_nombre ?? '',
+                        tarjeta_ultimos4: user.vendedor_tarjeta_ultimos4 ?? '',
+                      }
+                    : {})
+            }
           />
         )}
         {paso === 6 && (

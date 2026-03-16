@@ -188,6 +188,9 @@ export default function CotizacionPDF({
           <View style={styles.bankRow}><Text style={styles.bankLabel}>CUENTA:</Text><Text style={styles.bankValue}>{t.cuenta || NA}</Text></View>
           <View style={styles.bankRow}><Text style={styles.bankLabel}>CLABE:</Text><Text style={styles.bankValue}>{t.clabe || NA}</Text></View>
           <View style={styles.bankRow}><Text style={styles.bankLabel}>BENEFICIARIO:</Text><Text style={styles.bankValue}>{t.beneficiario || NA}</Text></View>
+          {!!t.tarjeta_ultimos4 && (
+            <View style={styles.bankRow}><Text style={styles.bankLabel}>TARJETA:</Text><Text style={styles.bankValue}>{`**** ${t.tarjeta_ultimos4}`}</Text></View>
+          )}
         </View>
 
         {/* TABLA DE PARTIDAS — siempre visible con encabezado negro y bloque de totales */}

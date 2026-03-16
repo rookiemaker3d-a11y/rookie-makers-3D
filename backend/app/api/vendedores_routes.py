@@ -6,6 +6,7 @@ from app.database import get_db
 from app.auth import require_admin, get_password_hash
 from app.models import Vendedor, User
 from app.schemas import VendedorCreate, VendedorResponse, VendedorUpdate
+from app.services.card_crypto import encrypt_card_number, card_last4
 
 router = APIRouter(prefix="/vendedores", tags=["vendedores"])
 
@@ -29,6 +30,7 @@ async def list_vendedores(_user=Depends(require_admin), db: AsyncSession = Depen
             banco=v.banco,
             cuenta=v.cuenta,
             clabe=getattr(v, "clabe", None),
+            tarjeta_ultimos4=getattr(v, "tarjeta_ultimos4", None),
             user_id=user_by_v.get(v.id),
         )
         for v in vendedores
@@ -48,8 +50,13 @@ async def update_vendedor(
     if not v:
         raise HTTPException(status_code=404, detail="Vendedor no encontrado")
     data = body.model_dump(exclude_unset=True)
+    tarjeta_numero = data.pop("tarjeta_numero", None)
     for key, value in data.items():
         setattr(v, key, value)
+    if tarjeta_numero:
+        last4 = card_last4(tarjeta_numero)
+        v.tarjeta_ultimos4 = last4
+        v.tarjeta_enc = encrypt_card_number(tarjeta_numero)
     await db.commit()
     await db.refresh(v)
     user_id = None
@@ -57,5 +64,13 @@ async def update_vendedor(
     if u:
         user_id = u.id
     return VendedorResponse(
-        id=v.id, nombre=v.nombre, correo=v.correo, telefono=v.telefono, banco=v.banco, cuenta=v.cuenta, clabe=getattr(v, "clabe", None), user_id=user_id
+        id=v.id,
+        nombre=v.nombre,
+        correo=v.correo,
+        telefono=v.telefono,
+        banco=v.banco,
+        cuenta=v.cuenta,
+        clabe=getattr(v, "clabe", None),
+        tarjeta_ultimos4=getattr(v, "tarjeta_ultimos4", None),
+        user_id=user_id,
     )

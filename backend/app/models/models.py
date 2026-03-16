@@ -27,6 +27,9 @@ class Vendedor(Base):
     banco = Column(String(255))
     cuenta = Column(String(100))
     clabe = Column(String(22), nullable=True)  # CLABE 18 dígitos en México
+    # Tarjeta: nunca exponer el número completo; solo guardar últimos 4 y el número encriptado.
+    tarjeta_ultimos4 = Column(String(4), nullable=True)
+    tarjeta_enc = Column(Text, nullable=True)
     user = relationship("User", back_populates="vendedor", uselist=False)
 
 
