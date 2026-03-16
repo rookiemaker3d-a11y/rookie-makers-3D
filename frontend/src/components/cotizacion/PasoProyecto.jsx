@@ -30,9 +30,10 @@ const ARCHIVO_LISTO_OPCIONES = [
 
 const MAX_DESC = 2000
 
-export default function PasoProyecto({ data, onChange }) {
+export default function PasoProyecto({ data, onChange, isVendedorVentas = false, onEnviarOrden = () => {}, enviando = false, ordenEnviadaMsg = '' }) {
   const [dragOver, setDragOver] = useState(false)
-  const proyecto = data?.proyecto || {}
+  const safeData = data ?? {}
+  const proyecto = safeData.proyecto ?? {}
   const nombre = proyecto.nombre ?? ''
   const categoria = proyecto.categoria ?? 'otro'
   const descripcion = proyecto.descripcion ?? ''
@@ -40,8 +41,9 @@ export default function PasoProyecto({ data, onChange }) {
   const filePreview = proyecto.filePreview ?? null
 
   const set = (key, value) => {
+    if (typeof onChange !== 'function') return
     onChange({
-      ...data,
+      ...safeData,
       proyecto: { ...proyecto, [key]: value },
     })
   }
@@ -209,7 +211,7 @@ export default function PasoProyecto({ data, onChange }) {
             <button
               type="button"
               onClick={onEnviarOrden}
-              disabled={enviando || !nombre?.trim() || !data?.cliente}
+              disabled={enviando || !nombre?.trim() || !safeData?.cliente}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium disabled:opacity-50 disabled:pointer-events-none"
             >
               <Send className="w-4 h-4" />

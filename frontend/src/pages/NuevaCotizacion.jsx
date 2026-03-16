@@ -60,9 +60,10 @@ export default function NuevaCotizacion() {
       .catch(() => setVendedores([]))
   }, [api, isAdmin, user?.email])
 
-  const materialesParaCotizador = useMemo(() => materialesFromAPI(materiales), [materiales])
-  const cotizador = useCotizador({ materiales: materialesParaCotizador ?? undefined })
-  const folio = useMemo(() => genFolio(), [])
+  const materialesParaCotizador = useMemo(() => materialesFromAPI(Array.isArray(materiales) ? materiales : []), [materiales])
+  const cotizadorConfig = useMemo(() => ({ materiales: materialesParaCotizador || undefined }), [materialesParaCotizador])
+  const cotizador = useCotizador(cotizadorConfig)
+  const folio = useMemo(() => (typeof genFolio === 'function' ? genFolio() : `COT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`), [])
 
   const canGoNext = () => {
     if (paso === 1) return !!wizardData.cliente
@@ -87,7 +88,7 @@ export default function NuevaCotizacion() {
     setSaving(true)
     try {
       const descripcion = `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
-      await api('/cotizaciones-en-espera', {
+      const res = await api('/cotizaciones-en-espera', {
         method: 'POST',
         body: JSON.stringify({
           descripcion,
@@ -105,6 +106,11 @@ export default function NuevaCotizacion() {
           },
         }),
       })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        setSaveError(errData?.detail || res.statusText || 'Error al enviar la orden')
+        return
+      }
       setOrdenEnviadaMsg('Orden enviada a Norberto. Aparece en su dashboard (Pipeline de pedidos). Verás "Recibido" cuando él la cotice.')
     } catch (e) {
       setSaveError(e?.message || 'Error al enviar la orden')
@@ -128,7 +134,7 @@ export default function NuevaCotizacion() {
     setSaveError('')
     setSaving(true)
     try {
-      const d = cotizador.desglose
+      const d = cotizador?.desglose ?? {}
       const descripcion = `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
       const esOrdenVendedor = isVendedorVentas && lineas.length === 0
       const detalles = {
@@ -151,7 +157,7 @@ export default function NuevaCotizacion() {
         body: JSON.stringify({
           descripcion,
           cantidad: 1,
-          costo_base: lineas.length ? subTotal : (esOrdenVendedor ? 0 : d.costoTotal),
+          costo_base: lineas.length ? subTotal : (esOrdenVendedor ? 0 : (d.costoTotal ?? 0)),
           costo_final: totalFinal,
           detalles,
         }),
@@ -279,7 +285,7 @@ export default function NuevaCotizacion() {
             key="paso4"
             wizardData={wizardData}
             setWizardData={setWizardData}
-            desglose={cotizador.desglose}
+            desglose={cotizador?.desglose ?? {}}
             lineas={lineas}
             subTotal={subTotal}
             descuento={descuento}
@@ -297,7 +303,7 @@ export default function NuevaCotizacion() {
             key="paso5"
             folio={folio}
             wizardData={wizardData}
-            desglose={isVendedorVentas && !lineas.length ? null : cotizador.desglose}
+            desglose={isVendedorVentas && !lineas.length ? null : (cotizador?.desglose ?? null)}
             lineas={lineas}
             subTotal={subTotal}
             descuento={descuento}
