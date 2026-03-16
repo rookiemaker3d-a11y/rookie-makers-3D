@@ -17,10 +17,20 @@ const STEPS = [
   { id: 6, label: 'Confirmación', icon: CheckCircle },
 ]
 
-export default function StepperCotizacion({ pasoActual, onPasoClick }) {
+const STEPS_VENDEDOR = [
+  { id: 1, label: 'Cliente', icon: User },
+  { id: 2, label: 'Proyecto', icon: FileText },
+  { id: 3, label: 'Empaque y envío', icon: Calculator },
+  { id: 4, label: 'Vista previa', icon: Eye },
+  { id: 5, label: 'PDF', icon: FileDown },
+  { id: 6, label: 'Confirmación', icon: CheckCircle },
+]
+
+export default function StepperCotizacion({ pasoActual, onPasoClick, isVendedorVentas = false }) {
+  const steps = isVendedorVentas ? STEPS_VENDEDOR : STEPS
   return (
     <nav className="flex items-center justify-center gap-1 sm:gap-4 mb-8 overflow-x-auto pb-2">
-      {STEPS.map((step, index) => {
+      {steps.map((step, index) => {
         const isActive = pasoActual === step.id
         const isPast = pasoActual > step.id
         const Icon = step.icon

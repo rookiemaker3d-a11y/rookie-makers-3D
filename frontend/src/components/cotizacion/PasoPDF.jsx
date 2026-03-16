@@ -15,6 +15,7 @@ export default function PasoPDF({
   subTotal = 0,
   descuento = 0,
   envio = 0,
+  empaque = 0,
   totalFinal = 0,
   notas,
   vendedor,
@@ -38,6 +39,7 @@ export default function PasoPDF({
       subTotal={subTotal}
       descuento={descuento}
       envio={envio}
+      empaque={empaque}
       totalFinal={totalFinal}
       notas={notas}
       vendedor={vendedor}
@@ -58,6 +60,7 @@ export default function PasoPDF({
         subTotal={subTotal}
         descuento={descuento}
         envio={envio}
+        empaque={empaque}
         totalFinal={totalFinal}
         notas={notas}
         vendedor={vendedor}
@@ -79,7 +82,7 @@ export default function PasoPDF({
         prevUrlRef.current = null
       }
     }
-  }, [folio, subTotal, descuento, envio, totalFinal, lineas?.length, wizardData?.cliente?.id, wizardData?.proyecto?.nombre, notas])
+  }, [folio, subTotal, descuento, envio, empaque, totalFinal, lineas?.length, wizardData?.cliente?.id, wizardData?.proyecto?.nombre, notas])
 
   const handleDownload = async () => {
     setDownloading(true)
@@ -96,7 +99,7 @@ export default function PasoPDF({
     }
   }
 
-  const totalParaWhatsApp = (Array.isArray(lineas) && lineas.length > 0) ? totalFinal : desglose?.precioCliente
+  const totalParaWhatsApp = (Array.isArray(lineas) && lineas.length > 0) ? totalFinal : (desglose?.precioCliente ?? totalFinal)
   const whatsappText = encodeURIComponent(
     `Hola, te envío la cotización ${folio} por un total de $${(totalParaWhatsApp ?? 0).toFixed(2)} MXN.${(Array.isArray(lineas) && lineas.length === 0) ? ` Anticipo: $${(desglose?.anticipoMonto ?? 0).toFixed(2)}.` : ''}`
   )

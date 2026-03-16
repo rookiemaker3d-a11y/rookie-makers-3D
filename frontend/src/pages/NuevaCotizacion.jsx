@@ -8,6 +8,7 @@ import StepperCotizacion from '../components/cotizacion/StepperCotizacion'
 import PasoCliente from '../components/cotizacion/PasoCliente'
 import PasoProyecto from '../components/cotizacion/PasoProyecto'
 import PasoCalculadora from '../components/cotizacion/PasoCalculadora'
+import PasoEmpaqueEnvio from '../components/cotizacion/PasoEmpaqueEnvio'
 import PasoPreview from '../components/cotizacion/PasoPreview'
 import { folio as genFolio } from '../components/cotizacion/PasoPreview'
 import PasoPDF from '../components/cotizacion/PasoPDF'
@@ -28,6 +29,7 @@ export default function NuevaCotizacion() {
     lineas: [],
     descuento: 0,
     envio: 0,
+    empaque: 0,
   })
   const [notas, setNotas] = useState('')
   const [saving, setSaving] = useState(false)
@@ -75,11 +77,13 @@ export default function NuevaCotizacion() {
     if (paso > 1) setPaso((p) => p - 1)
   }
 
+  const isVendedorVentas = user?.role === 'vendedor_ventas'
   const lineas = wizardData.lineas || []
   const subTotal = lineas.reduce((s, l) => s + (Number(l.costo_final) || 0), 0)
   const descuento = Number(wizardData.descuento) || 0
   const envio = Number(wizardData.envio) || 0
-  const totalFinal = subTotal - descuento + envio
+  const empaque = Number(wizardData.empaque) || 0
+  const totalFinal = subTotal - descuento + envio + empaque
 
   const vendedorSeleccionado = useMemo(() => {
     if (!isAdmin) return null
@@ -92,26 +96,29 @@ export default function NuevaCotizacion() {
     try {
       const d = cotizador.desglose
       const descripcion = `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
+      const esOrdenVendedor = isVendedorVentas && lineas.length === 0
       const detalles = {
-        ...d,
+        ...(esOrdenVendedor ? {} : d),
         folio,
         cliente_id: wizardData.cliente?.id,
         proyecto: wizardData.proyecto?.nombre,
         notas,
         estado: 'espera',
+        orden_vendedor: esOrdenVendedor || undefined,
         lineas: lineas.length ? lineas : undefined,
         descuento: lineas.length ? descuento : undefined,
-        envio: lineas.length ? envio : undefined,
-        sub_total: lineas.length ? subTotal : undefined,
-        total: lineas.length ? totalFinal : undefined,
+        envio,
+        empaque: empaque || undefined,
+        sub_total: lineas.length ? subTotal : (esOrdenVendedor ? 0 : undefined),
+        total: totalFinal,
       }
       await api('/cotizaciones-en-espera', {
         method: 'POST',
         body: JSON.stringify({
           descripcion,
           cantidad: 1,
-          costo_base: lineas.length ? subTotal : d.costoTotal,
-          costo_final: lineas.length ? totalFinal : d.precioCliente,
+          costo_base: lineas.length ? subTotal : (esOrdenVendedor ? 0 : d.costoTotal),
+          costo_final: totalFinal,
           detalles,
         }),
       })
@@ -187,6 +194,7 @@ export default function NuevaCotizacion() {
       <StepperCotizacion
         pasoActual={paso}
         onPasoClick={(id) => setPaso(id)}
+        isVendedorVentas={isVendedorVentas}
       />
 
       {saveError && (
@@ -211,14 +219,20 @@ export default function NuevaCotizacion() {
             onChange={(patch) => setWizardData((d) => ({ ...d, ...patch }))}
           />
         )}
-        {paso === 3 && (
+        {paso === 3 && isVendedorVentas ? (
+          <PasoEmpaqueEnvio
+            key="paso3"
+            wizardData={wizardData}
+            setWizardData={setWizardData}
+            onNext={() => setPaso(4)}
+          />
+        ) : paso === 3 && (
           <PasoCalculadora
             key="paso3"
             cotizador={cotizador}
             wizardData={wizardData}
             setWizardData={setWizardData}
             onNext={() => setPaso(4)}
-            soloResumen={user?.role === 'vendedor_ventas'}
           />
         )}
         {paso === 4 && (
@@ -231,10 +245,12 @@ export default function NuevaCotizacion() {
             subTotal={subTotal}
             descuento={descuento}
             envio={envio}
+            empaque={empaque}
             totalFinal={totalFinal}
             notas={notas}
             setNotas={setNotas}
-            onMasProductos={() => setPaso(3)}
+            onMasProductos={isVendedorVentas ? undefined : () => setPaso(3)}
+            isVendedorVentas={isVendedorVentas}
           />
         )}
         {paso === 5 && (
@@ -242,11 +258,12 @@ export default function NuevaCotizacion() {
             key="paso5"
             folio={folio}
             wizardData={wizardData}
-            desglose={cotizador.desglose}
+            desglose={isVendedorVentas && !lineas.length ? null : cotizador.desglose}
             lineas={lineas}
             subTotal={subTotal}
             descuento={descuento}
             envio={envio}
+            empaque={empaque}
             totalFinal={totalFinal}
             notas={notas}
             vendedores={isAdmin ? vendedores : undefined}
@@ -326,7 +343,7 @@ export default function NuevaCotizacion() {
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}
-          {paso === 3 && lineas.length === 0 && (
+          {paso === 3 && !isVendedorVentas && lineas.length === 0 && (
             <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08]">
               Siguiente (un solo total) <ArrowRight className="w-4 h-4" />
             </button>

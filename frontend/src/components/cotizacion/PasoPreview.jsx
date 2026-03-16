@@ -4,14 +4,16 @@ import { Card } from '../ui'
 
 const folio = () => `COT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`
 
-export default function PasoPreview({ wizardData, setWizardData, desglose, lineas = [], subTotal = 0, descuento = 0, envio = 0, totalFinal = 0, notas, setNotas, onMasProductos }) {
+export default function PasoPreview({ wizardData, setWizardData, desglose, lineas = [], subTotal = 0, descuento = 0, envio = 0, empaque = 0, totalFinal = 0, notas, setNotas, onMasProductos, isVendedorVentas = false }) {
   const cliente = wizardData?.cliente
   const proyecto = wizardData?.proyecto
   const d = desglose || {}
   const hasLineas = Array.isArray(lineas) && lineas.length > 0
+  const soloOrdenVendedor = isVendedorVentas && !hasLineas
 
   const setDescuento = (v) => setWizardData((prev) => ({ ...prev, descuento: Number(v) || 0 }))
   const setEnvio = (v) => setWizardData((prev) => ({ ...prev, envio: Number(v) || 0 }))
+  const setEmpaque = (v) => setWizardData((prev) => ({ ...prev, empaque: Number(v) || 0 }))
 
   return (
     <motion.div
@@ -25,7 +27,7 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
             <h3 className="text-lg font-semibold theme-text">Vista previa de cotización</h3>
             <p className="theme-text-dim text-sm mt-0.5">Folio: {folio()}</p>
           </div>
-          {onMasProductos && (
+          {onMasProductos && !soloOrdenVendedor && (
             <button type="button" onClick={onMasProductos} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] theme-text-secondary text-sm">
               <Plus className="w-4 h-4" /> Más productos
             </button>
@@ -45,7 +47,28 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
           </div>
         </div>
 
-        {hasLineas ? (
+        {soloOrdenVendedor ? (
+          <div className="mt-4 space-y-4">
+            <p className="theme-text-muted text-sm rounded-lg bg-white/[0.04] border border-white/[0.08] px-3 py-2">
+              Orden enviada para cotización. El diseñador asignará el precio del producto y los acabados. Aquí solo se muestran empaque y envío que añadiste.
+            </p>
+            <div className="flex flex-wrap gap-6 justify-end items-start">
+              <div className="space-y-1 text-sm text-right">
+                <div className="flex justify-between gap-8 items-center">
+                  <span className="theme-text-muted">Empaque</span>
+                  <input type="number" min={0} step={0.01} value={empaque} onChange={(e) => setEmpaque(e.target.value)} className="w-24 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
+                </div>
+                <div className="flex justify-between gap-8 items-center">
+                  <span className="theme-text-muted">Envío</span>
+                  <input type="number" min={0} step={0.01} value={envio} onChange={(e) => setEnvio(e.target.value)} className="w-24 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
+                </div>
+                <div className="border-t border-white/[0.1] pt-2 mt-2 flex justify-between gap-8 font-semibold theme-text">
+                  <span>Total (empaque + envío)</span><span className="tabular-nums">${totalFinal.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : hasLineas ? (
           <>
             <div className="overflow-x-auto mt-4">
               <table className="w-full text-sm border-collapse">
@@ -84,6 +107,12 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
                   <span className="theme-text-muted">Envío</span>
                   <input type="number" min={0} step={0.01} value={envio} onChange={(e) => setEnvio(e.target.value)} className="w-24 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
                 </div>
+                {(empaque > 0) && (
+                  <div className="flex justify-between gap-8 items-center">
+                    <span className="theme-text-muted">Empaque</span>
+                    <input type="number" min={0} step={0.01} value={empaque} onChange={(e) => setEmpaque(e.target.value)} className="w-24 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
+                  </div>
+                )}
                 <div className="border-t border-white/[0.1] pt-2 mt-2 flex justify-between gap-8 font-semibold theme-text">
                   <span>Total</span><span className="tabular-nums">${totalFinal.toFixed(2)}</span>
                 </div>

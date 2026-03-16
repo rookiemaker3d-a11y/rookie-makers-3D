@@ -106,6 +106,7 @@ export default function CotizacionPDF({
   subTotal: subTotalProp,
   descuento: descuentoProp,
   envio: envioProp,
+  empaque: empaqueProp = 0,
   totalFinal: totalFinalProp,
   vendedor = {},
   transferencia = {},
@@ -121,8 +122,9 @@ export default function CotizacionPDF({
   const hasLineas = Array.isArray(lineas) && lineas.length > 0
   const subTotal = hasLineas ? (Number(subTotalProp) || 0) : (Number(d.material) || 0) + (Number(d.tiempoMaquina) || 0) + (Number(d.disenoArchivo) || 0) + (Number(d.extras) || 0)
   const descuento = hasLineas ? (Number(descuentoProp) || 0) : 0
-  const envio = hasLineas ? (Number(envioProp) || 0) : 0
-  const total = hasLineas ? (Number(totalFinalProp) || subTotal - descuento + envio) : (Number(d.precioCliente) || subTotal - descuento + envio)
+  const envio = hasLineas ? (Number(envioProp) || 0) : (Number(envioProp) || 0)
+  const empaque = Number(empaqueProp) || 0
+  const total = Number(totalFinalProp) || (hasLineas ? subTotal - descuento + envio + empaque : (Number(d.precioCliente) || 0) + envio + empaque)
 
   const v = vendedor
   const t = transferencia
@@ -229,6 +231,7 @@ export default function CotizacionPDF({
           <View style={styles.totalsBlock}>
             <View style={styles.totalRow}><Text style={styles.totalLbl}>SUB TOTAL</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
             <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
+            {empaque > 0 && <View style={styles.totalRow}><Text style={styles.totalLbl}>EMPAQUE</Text><Text style={styles.totalVal}>${empaque.toFixed(2)}</Text></View>}
             <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVIO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
             <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
           </View>
