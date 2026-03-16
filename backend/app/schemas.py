@@ -22,6 +22,10 @@ class UserResponse(BaseModel):
     role: str
     vendedor_id: Optional[int] = None
     vendedor_nombre: Optional[str] = None
+    vendedor_correo: Optional[str] = None
+    vendedor_telefono: Optional[str] = None
+    vendedor_banco: Optional[str] = None
+    vendedor_cuenta: Optional[str] = None
 
     class Config:
         from_attributes = True

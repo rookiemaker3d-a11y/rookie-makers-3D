@@ -68,6 +68,7 @@ export default function Inventario() {
   const [formFilamentoOpen, setFormFilamentoOpen] = useState(false)
   const [formFilamento, setFormFilamento] = useState({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' })
   const [consumirGramos, setConsumirGramos] = useState({ id: null, gramos: '' })
+  const [showCostosFilamento, setShowCostosFilamento] = useState(true)
   const fileInputRef = useRef(null)
 
   const isAdmin = user?.role === 'administrador'
@@ -264,7 +265,27 @@ export default function Inventario() {
     <div className="space-y-6">
       {msg && <p className="text-cyan-500 text-sm">{msg}</p>}
       {error && <p className="text-red-500 text-sm">{error}</p>}
-      {/* Costos de filamentos para cotizador */}
+
+      {/* Botón explícito: Costos de filamentos para cotización */}
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold theme-text">Costos usados en cotización</h2>
+            <p className="theme-text-muted text-sm mt-0.5">Materiales y precio por kg que se usan en el paso calculadora de la cotización.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCostosFilamento((v) => !v)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium text-sm shadow-sm"
+          >
+            <Droplets className="w-5 h-5" />
+            {showCostosFilamento ? 'Ocultar tabla de costos de filamentos' : 'Ver tabla de costos de filamentos'}
+          </button>
+        </div>
+      </Card>
+
+      {showCostosFilamento && (
+        <>
       <SectionHeader
         title="Costos de filamentos"
         subtitle="Tipos de material que manejamos y su costo por kg. Estos costos se usan en la cotización (paso calculadora). Edita el valor y guarda para actualizar."
@@ -321,6 +342,48 @@ export default function Inventario() {
           <div className="p-6 text-center theme-text-muted text-sm">
             No hay materiales cargados. Ejecuta el seed del backend para cargar los filamentos por defecto.
           </div>
+        )}
+      </Card>
+        </>
+      )}
+
+      {/* Tabla de colores (stock de filamentos por color) */}
+      <SectionHeader
+        title="Tabla de colores"
+        subtitle="Colores de filamento en stock (hex y nombre). Útil para referencia en cotización."
+      />
+      <Card padding={false} className="overflow-hidden theme-table">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <th className="p-3 theme-text-muted font-medium">Color</th>
+              <th className="p-3 theme-text-muted font-medium">Nombre</th>
+              <th className="p-3 theme-text-muted font-medium">Tipo</th>
+              <th className="p-3 theme-text-muted font-medium">Gramos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stockFilamentos.filter((f) => f.color_hex || f.color_nombre).map((f) => (
+              <tr key={f.id} className="border-b hover:bg-[var(--theme-table-row-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+                <td className="p-3">
+                  {f.color_hex ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="w-8 h-8 rounded border shrink-0" style={{ backgroundColor: f.color_hex }} title={f.color_hex} />
+                      <span className="theme-text-muted text-xs">{f.color_hex}</span>
+                    </span>
+                  ) : (
+                    <span className="theme-text-muted">—</span>
+                  )}
+                </td>
+                <td className="p-3 theme-text font-medium">{f.nombre || '—'}</td>
+                <td className="p-3 theme-text-muted">{f.tipo || 'PLA'}</td>
+                <td className="p-3 theme-text tabular-nums">{f.cantidad_gramos ?? 0} g</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {stockFilamentos.filter((f) => f.color_hex || f.color_nombre).length === 0 && (
+          <div className="p-6 text-center theme-text-muted text-sm">No hay filamentos con color en stock.</div>
         )}
       </Card>
 

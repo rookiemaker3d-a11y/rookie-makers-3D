@@ -89,8 +89,9 @@ LOS TIEMPOS DE ENTREGA QUEDAN DE 3 A 5 DIAS HABILES. (ZONA LOCAL)
 COTIZACION VALIDA POR 7 DIAS NATURALES A PARTIR DE LA RECEPCION
 CUALQUIER DUDA O ACLARACIÓN COMUNICARSE AL TELÉFONO DE CONTACTO DE SU VENDEDOR`
 
+const NA = 'N/A'
 function formatDate(d) {
-  if (!d) return '—'
+  if (!d) return NA
   const date = d instanceof Date ? d : new Date(d)
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`
 }
@@ -147,7 +148,7 @@ export default function CotizacionPDF({
             <View style={styles.metaTable}>
               <Text><Text style={styles.metaB}>FECHA:</Text> {formatDate(hoy)}</Text>
               <Text><Text style={styles.metaB}>FECHA DE EXPIRACIÓN:</Text> {formatDate(expira)}</Text>
-              <Text><Text style={styles.metaB}>NO. COTIZACIÓN:</Text> {folio || '—'}</Text>
+              <Text><Text style={styles.metaB}>NO. COTIZACIÓN:</Text> {folio || NA}</Text>
             </View>
             <Text style={styles.validityNote}>
               Cotización válida por {diasValidez} días naturales a partir de la recepción
@@ -162,20 +163,20 @@ export default function CotizacionPDF({
           <View style={styles.partyCol}>
             <Text style={styles.sectionHead}>DATOS DEL VENDEDOR:</Text>
             <View style={styles.infoBlock}>
-              <Text><Text style={styles.infoB}>{v.codigo || '—'}</Text>{v.id ? ` · ${v.id}` : ''}</Text>
-              <Text><Text style={styles.infoB}>{v.nombre || '—'}</Text></Text>
-              <Text>{v.email || '—'}</Text>
-              <Text>{v.telefono || '—'}</Text>
-              <Text>{v.rfc || 'N/A'}</Text>
+              <Text><Text style={styles.infoB}>{v.codigo || NA}</Text>{v.id ? ` · ${v.id}` : ''}</Text>
+              <Text><Text style={styles.infoB}>{v.nombre || NA}</Text></Text>
+              <Text>{v.email || NA}</Text>
+              <Text>{v.telefono || NA}</Text>
+              <Text>{v.rfc || NA}</Text>
             </View>
           </View>
           <View style={styles.partyCol}>
             <Text style={styles.sectionHead}>DATOS DEL CLIENTE:</Text>
             <View style={styles.infoBlock}>
               {cliente?.id && <Text><Text style={styles.infoB}>{cliente.id}</Text></Text>}
-              <Text><Text style={styles.infoB}>{cliente?.nombre || '—'}</Text></Text>
-              <Text>{cliente?.correo || '—'}</Text>
-              <Text>{cliente?.telefono || '—'}</Text>
+              <Text><Text style={styles.infoB}>{cliente?.nombre || NA}</Text></Text>
+              <Text>{cliente?.correo || NA}</Text>
+              <Text>{cliente?.telefono || NA}</Text>
             </View>
           </View>
         </View>
@@ -183,10 +184,10 @@ export default function CotizacionPDF({
         {/* DATOS DE TRANSFERENCIA */}
         <View style={styles.bankWrap}>
           <Text style={styles.blackBar}>DATOS DE TRANSFERENCIA</Text>
-          <View style={styles.bankRow}><Text style={styles.bankLabel}>BANCO:</Text><Text style={styles.bankValue}>{t.banco || '—'}</Text></View>
-          <View style={styles.bankRow}><Text style={styles.bankLabel}>CUENTA:</Text><Text style={styles.bankValue}>{t.cuenta || '—'}</Text></View>
-          <View style={styles.bankRow}><Text style={styles.bankLabel}>CLABE:</Text><Text style={styles.bankValue}>{t.clabe || '—'}</Text></View>
-          <View style={styles.bankRow}><Text style={styles.bankLabel}>BENEFICIARIO:</Text><Text style={styles.bankValue}>{t.beneficiario || '—'}</Text></View>
+          <View style={styles.bankRow}><Text style={styles.bankLabel}>BANCO:</Text><Text style={styles.bankValue}>{t.banco || NA}</Text></View>
+          <View style={styles.bankRow}><Text style={styles.bankLabel}>CUENTA:</Text><Text style={styles.bankValue}>{t.cuenta || NA}</Text></View>
+          <View style={styles.bankRow}><Text style={styles.bankLabel}>CLABE:</Text><Text style={styles.bankValue}>{t.clabe || NA}</Text></View>
+          <View style={styles.bankRow}><Text style={styles.bankLabel}>BENEFICIARIO:</Text><Text style={styles.bankValue}>{t.beneficiario || NA}</Text></View>
         </View>
 
         {/* TABLA DE PARTIDAS (si hay lineas) */}
@@ -203,9 +204,9 @@ export default function CotizacionPDF({
               </View>
               {lineas.map((l, i) => (
                 <View key={i} style={styles.tableRow}>
-                  <Text style={styles.tableCell}>{l.id_producto || ''}</Text>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || ''}</Text>
-                  <Text style={[styles.tableCell, { flex: 1.5 }]}>{l.descripcion || '—'}</Text>
+                  <Text style={styles.tableCell}>{l.id_producto || NA}</Text>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || NA}</Text>
+                  <Text style={[styles.tableCell, { flex: 1.5 }]}>{l.descripcion || NA}</Text>
                   <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_unitario ?? 0).toFixed(2)}</Text>
                   <Text style={[styles.tableCell, styles.tableRight]}>{l.cantidad ?? 1}</Text>
                   <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_final ?? 0).toFixed(2)}</Text>
@@ -225,7 +226,7 @@ export default function CotizacionPDF({
         <View style={styles.bottom}>
           <View style={styles.notesArea}>
             <Text style={styles.blackBar}>NOTAS ADICIONALES:</Text>
-            <Text style={styles.notesText}>{notas || ''}</Text>
+            <Text style={styles.notesText}>{notas && notas.trim() ? notas : NA}</Text>
           </View>
           {!hasLineas && (
             <View style={styles.totals}>

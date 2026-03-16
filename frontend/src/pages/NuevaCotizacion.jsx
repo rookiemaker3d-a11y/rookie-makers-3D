@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Droplets, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useCotizador, materialesFromAPI } from '../hooks/useCotizador'
 import StepperCotizacion from '../components/cotizacion/StepperCotizacion'
@@ -30,6 +30,7 @@ export default function NuevaCotizacion() {
   const [notas, setNotas] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [showCostosFilamento, setShowCostosFilamento] = useState(false)
 
   useEffect(() => {
     api('/materiales-filamento')
@@ -115,7 +116,48 @@ export default function NuevaCotizacion() {
           title="Nueva cotización"
           subtitle={`Paso ${paso} de ${TOTAL_PASOS}`}
         />
+        <button
+          type="button"
+          onClick={() => setShowCostosFilamento(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium"
+        >
+          <Droplets className="w-4 h-4" />
+          Ver costos de filamentos
+        </button>
       </div>
+
+      {/* Modal: tabla de costos de filamentos */}
+      {showCostosFilamento && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowCostosFilamento(false)}>
+          <div className="bg-[var(--theme-bg-card)] border rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col" style={{ borderColor: 'var(--theme-border)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <h3 className="text-lg font-semibold theme-text">Costos de filamentos (para cotización)</h3>
+              <button type="button" onClick={() => setShowCostosFilamento(false)} className="p-2 rounded-lg theme-text-muted hover:bg-white/[0.06]" aria-label="Cerrar">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-auto p-4">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b theme-text-muted" style={{ borderColor: 'var(--theme-border)' }}>
+                    <th className="p-2 font-medium">Material</th>
+                    <th className="p-2 font-medium text-right">Costo por kg (MXN)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {materiales.map((m) => (
+                    <tr key={m.id} className="border-b theme-text" style={{ borderColor: 'var(--theme-border)' }}>
+                      <td className="p-2">{m.nombre || 'N/A'}</td>
+                      <td className="p-2 text-right tabular-nums">${(m.costo_por_kg ?? 0).toFixed(0)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {materiales.length === 0 && <p className="theme-text-muted text-sm py-4">No hay materiales cargados. Configúralos en Inventario.</p>}
+            </div>
+          </div>
+        </div>
+      )}
 
       <StepperCotizacion
         pasoActual={paso}
@@ -183,9 +225,10 @@ export default function NuevaCotizacion() {
             notas={notas}
             vendedor={{
               codigo: user?.vendedor_codigo ?? 'V001',
-              nombre: user?.vendedor_nombre || user?.email || '—',
-              email: user?.email || '—',
-              telefono: user?.vendedor_telefono || '—',
+              nombre: user?.vendedor_nombre || user?.email,
+              email: user?.vendedor_correo || user?.email,
+              telefono: user?.vendedor_telefono,
+              rfc: user?.vendedor_rfc,
             }}
             transferencia={user?.vendedor_banco ? { banco: user.vendedor_banco, cuenta: user.vendedor_cuenta, clabe: user.vendedor_clabe, beneficiario: user.vendedor_nombre } : {}}
           />
