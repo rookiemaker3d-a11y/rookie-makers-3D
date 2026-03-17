@@ -79,12 +79,11 @@ async def get_cotizacion(
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
     if not _can_access_cotizacion(user, vendedor, c):
         raise HTTPException(status_code=403, detail="No tienes acceso a esta cotización")
-    has_archivo = await db.execute(
+    archivo_row = await db.execute(
         select(ArchivoCotizacion.id).where(ArchivoCotizacion.cotizacion_id == cotizacion_id).limit(1)
     )
-    return CotizacionEnEsperaResponse.model_validate(c).model_copy(
-        update={"has_archivo": has_archivo.scalar_one_or_none() is not None}
-    )
+    tiene_archivo = archivo_row.scalar_one_or_none() is not None
+    return CotizacionEnEsperaResponse.model_validate(c).model_copy(update={"has_archivo": tiene_archivo})
 
 
 @router.post("/{cotizacion_id}/archivo")
