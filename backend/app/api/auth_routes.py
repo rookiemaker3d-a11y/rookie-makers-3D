@@ -7,7 +7,7 @@ from sqlalchemy import select, func
 from app.database import get_db
 from app.auth import get_password_hash, create_access_token, create_mfa_pending_token, decode_mfa_pending_token, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
 from app.models import User, Vendedor
-from app.schemas import LoginRequest, Token, UserResponse, VendedorCreate, VendedorResponse, UserPasswordUpdate, VendedorVentasCreate
+from app.schemas import LoginRequest, Token, UserResponse, VendedorCreate, VendedorResponse, UserPasswordUpdate, VendedorVentasCreate, MiPerfilUpdate, CambiarContrasenaRequest
 from app.audit import log_audit
 from app.config import get_settings
 
@@ -108,6 +108,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             vendedor_cuenta = getattr(v, "cuenta", None) or None
             vendedor_clabe = getattr(v, "clabe", None) or None
             vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
+    display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -116,6 +117,7 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             "email": user.email,
             "role": user.role,
             "vendedor_id": user.vendedor_id,
+            "nombre": display_nombre,
             "vendedor_nombre": vendedor_nombre,
             "vendedor_correo": vendedor_correo,
             "vendedor_telefono": vendedor_telefono,
@@ -147,11 +149,13 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
             vendedor_cuenta = getattr(v, "cuenta", None) or None
             vendedor_clabe = getattr(v, "clabe", None) or None
             vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
+    display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
     return UserResponse(
         id=user.id,
         email=user.email,
         role=user.role,
         vendedor_id=user.vendedor_id,
+        nombre=display_nombre,
         vendedor_nombre=vendedor_nombre,
         vendedor_correo=vendedor_correo,
         vendedor_telefono=vendedor_telefono,
@@ -160,6 +164,85 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
         vendedor_clabe=vendedor_clabe,
         vendedor_tarjeta_ultimos4=vendedor_tarjeta_ultimos4,
     )
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    body: MiPerfilUpdate,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Actualiza el nombre del usuario actual. Vendedor: actualiza Vendedor.nombre; vendedor_ventas: actualiza User.nombre."""
+    nombre = (body.nombre or "").strip() or None
+    if nombre is not None:
+        if user.vendedor_id:
+            res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
+            v = res.scalar_one_or_none()
+            if v:
+                v.nombre = nombre
+        else:
+            user.nombre = nombre
+        await db.commit()
+        await db.refresh(user)
+    vendedor_nombre = None
+    vendedor_correo = None
+    vendedor_telefono = None
+    vendedor_banco = None
+    vendedor_cuenta = None
+    vendedor_clabe = None
+    vendedor_tarjeta_ultimos4 = None
+    if user.vendedor_id:
+        res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
+        v = res.scalar_one_or_none()
+        if v:
+            vendedor_nombre = v.nombre
+            vendedor_correo = v.correo
+            vendedor_telefono = getattr(v, "telefono", None) or None
+            vendedor_banco = getattr(v, "banco", None) or None
+            vendedor_cuenta = getattr(v, "cuenta", None) or None
+            vendedor_clabe = getattr(v, "clabe", None) or None
+            vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
+    display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        role=user.role,
+        vendedor_id=user.vendedor_id,
+        nombre=display_nombre,
+        vendedor_nombre=vendedor_nombre,
+        vendedor_correo=vendedor_correo,
+        vendedor_telefono=vendedor_telefono,
+        vendedor_banco=vendedor_banco,
+        vendedor_cuenta=vendedor_cuenta,
+        vendedor_clabe=vendedor_clabe,
+        vendedor_tarjeta_ultimos4=vendedor_tarjeta_ultimos4,
+    )
+
+
+@router.post("/cambiar-contrasena")
+async def cambiar_contrasena(
+    body: CambiarContrasenaRequest,
+    request: Request,
+    user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """El usuario actual cambia su contraseña. Requiere la actual; envía correo de confirmación al terminar."""
+    if not verify_password(body.current_password or "", user.password_hash):
+        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+    ok, msg = validate_password(body.new_password or "")
+    if not ok:
+        raise HTTPException(status_code=400, detail=msg)
+    user.password_hash = get_password_hash(body.new_password)
+    await log_audit(
+        db, "password_changed",
+        user_id=user.id,
+        ip=_client_ip(request),
+        details={"email": user.email, "by": "self"},
+    )
+    await db.commit()
+    from app.email_service import send_password_changed_notification
+    send_password_changed_notification(user.email)
+    return {"detail": "Contraseña actualizada. Se envió un correo de confirmación a tu email."}
 
 
 @router.patch("/users/{user_id}/password")
@@ -312,6 +395,7 @@ async def mfa_verify_login(
     vendedor_banco = None
     vendedor_cuenta = None
     vendedor_clabe = None
+    vendedor_tarjeta_ultimos4 = None
     if user.vendedor_id:
         res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
         v = res.scalar_one_or_none()
@@ -322,6 +406,8 @@ async def mfa_verify_login(
             vendedor_banco = getattr(v, "banco", None) or None
             vendedor_cuenta = getattr(v, "cuenta", None) or None
             vendedor_clabe = getattr(v, "clabe", None) or None
+            vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
+    display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -330,12 +416,14 @@ async def mfa_verify_login(
             "email": user.email,
             "role": user.role,
             "vendedor_id": user.vendedor_id,
+            "nombre": display_nombre,
             "vendedor_nombre": vendedor_nombre,
             "vendedor_correo": vendedor_correo,
             "vendedor_telefono": vendedor_telefono,
             "vendedor_banco": vendedor_banco,
             "vendedor_cuenta": vendedor_cuenta,
             "vendedor_clabe": vendedor_clabe,
+            "vendedor_tarjeta_ultimos4": vendedor_tarjeta_ultimos4,
         },
     }
 

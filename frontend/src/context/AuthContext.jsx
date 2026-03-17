@@ -111,8 +111,23 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
     return api(path, { method: 'POST', body: formData })
   }, [api])
 
+  const refreshUser = useCallback(async () => {
+    if (!user?.token) return
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${user.token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const next = { ...data, token: user.token }
+        setUser(next)
+        localStorage.setItem('user', JSON.stringify(data))
+      }
+    } catch (_) {}
+  }, [user?.token])
+
   return (
-    <AuthContext.Provider value={{ user, login, completeMfaLogin, logout, api, apiUpload }}>
+    <AuthContext.Provider value={{ user, login, completeMfaLogin, logout, api, apiUpload, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

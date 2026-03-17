@@ -11,6 +11,7 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False)  # "vendedor" | "administrador" | "vendedor_ventas"
     vendedor_id = Column(Integer, ForeignKey("vendedores.id"), nullable=True)  # solo para vendedores
+    nombre = Column(String(255), nullable=True)  # nombre para mostrar (vendedor_ventas; vendedores usan Vendedor.nombre)
     is_active = Column(Boolean, default=True)
     mfa_secret = Column(String(64), nullable=True)  # TOTP secret (base32)
     mfa_enabled = Column(Boolean, default=False)

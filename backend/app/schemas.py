@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     vendedor_id: Optional[int] = None
+    nombre: Optional[str] = None  # nombre para mostrar (vendedor_nombre o user.nombre o email)
     vendedor_nombre: Optional[str] = None
     vendedor_correo: Optional[str] = None
     vendedor_telefono: Optional[str] = None
@@ -31,6 +32,17 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class MiPerfilUpdate(BaseModel):
+    """Actualizar nombre del usuario actual. Vendedor actualiza Vendedor.nombre; vendedor_ventas actualiza User.nombre."""
+    nombre: Optional[str] = None
+
+
+class CambiarContrasenaRequest(BaseModel):
+    """Cambio de contraseña del usuario actual. Requiere la actual y envía correo de confirmación."""
+    current_password: str
+    new_password: str
 
 
 # ----- Vendedor -----
@@ -172,6 +184,7 @@ class CotizacionEnEsperaResponse(BaseModel):
     fecha: Optional[str] = None
     detalles: Optional[dict] = None
     created_at: Optional[str] = None
+    has_archivo: Optional[bool] = None
 
     class Config:
         from_attributes = True

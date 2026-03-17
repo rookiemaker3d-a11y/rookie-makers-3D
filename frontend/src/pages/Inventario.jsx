@@ -69,6 +69,7 @@ export default function Inventario() {
   const [formFilamento, setFormFilamento] = useState({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' })
   const [consumirGramos, setConsumirGramos] = useState({ id: null, gramos: '' })
   const [showCostosFilamento, setShowCostosFilamento] = useState(true)
+  const [submittingFilamento, setSubmittingFilamento] = useState(false)
   const fileInputRef = useRef(null)
 
   const isAdmin = user?.role === 'administrador'
@@ -204,8 +205,11 @@ export default function Inventario() {
     if (!formFilamento.nombre?.trim()) { setError('Nombre obligatorio'); return }
     setError('')
     setMsg('')
+    setSubmittingFilamento(true)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 90000)
     try {
-      await api('/inventario-filamento', {
+      const res = await api('/inventario-filamento', {
         method: 'POST',
         body: JSON.stringify({
           nombre: formFilamento.nombre.trim(),
@@ -215,16 +219,28 @@ export default function Inventario() {
           cantidad_gramos: Number(formFilamento.cantidad_gramos) || 0,
           foto_url: formFilamento.foto_url || null,
         }),
+        signal: controller.signal,
       })
+      clearTimeout(timeoutId)
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.detail || res.statusText)
+      }
       setMsg('Filamento agregado.')
       setFormFilamento({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' })
       setFormFilamentoOpen(false)
       loadStockFilamentos()
     } catch (err) {
-      const isNetwork = err?.message === 'Failed to fetch' || err?.name === 'TypeError'
-      setError(isNetwork
-        ? 'No se pudo conectar al servidor. ¿Está activo? (Render puede tardar ~1 min en despertar).'
-        : (err?.message || (err?.status === 403 ? 'Solo vendedores pueden agregar filamentos.' : 'Error al guardar.')))
+      clearTimeout(timeoutId)
+      const isAbort = err?.name === 'AbortError'
+      const isNetwork = isAbort || err?.message === 'Failed to fetch' || err?.name === 'TypeError'
+      setError(isAbort
+        ? 'El servidor tardó demasiado. Si Render estaba dormido, espera ~1 min y vuelve a intentar.'
+        : isNetwork
+          ? 'No se pudo conectar al servidor. ¿Está activo? (Render puede tardar ~1 min en despertar).'
+          : (err?.message || (err?.status === 403 ? 'Solo vendedores pueden agregar filamentos.' : 'Error al guardar.')))
+    } finally {
+      setSubmittingFilamento(false)
     }
   }
 
@@ -462,8 +478,10 @@ export default function Inventario() {
               )}
             </div>
             <div className="flex gap-2">
-              <button type="submit" className="px-4 py-2 rounded-lg btn-primary font-medium">Agregar</button>
-              <button type="button" onClick={() => setFormFilamentoOpen(false)} className="px-4 py-2 rounded-lg bg-slate-600 text-white">Cancelar</button>
+              <button type="submit" className="px-4 py-2 rounded-lg btn-primary font-medium disabled:opacity-70" disabled={submittingFilamento}>
+                {submittingFilamento ? 'Agregando… (puede tardar hasta 1 min si el servidor despierta)' : 'Agregar'}
+              </button>
+              <button type="button" onClick={() => setFormFilamentoOpen(false)} className="px-4 py-2 rounded-lg bg-slate-600 text-white" disabled={submittingFilamento}>Cancelar</button>
             </div>
           </form>
         </Card>

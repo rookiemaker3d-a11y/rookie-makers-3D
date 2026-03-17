@@ -17,6 +17,7 @@ import {
   Boxes,
   Palette,
   Shield,
+  Settings,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -29,6 +30,7 @@ const NAV = [
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/vendedores', label: 'Diseñadores', icon: UserCog, adminOnly: true },
+  { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/seguridad', label: 'Seguridad', icon: Shield },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },
   { to: '/editor-pagina', label: 'Editor página pública', icon: Palette, adminOnly: true },
@@ -42,6 +44,7 @@ const NAV_VENDEDOR_VENTAS = [
   { to: '/productos', label: 'Productos', icon: Package },
   { to: '/cotizacion/nueva', label: 'Nueva cotización', icon: Calculator },
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
+  { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
 ]
 
@@ -103,7 +106,7 @@ export default function Layout() {
             </Link>
             <span className="text-sm flex items-center gap-1.5" style={{ color: 'var(--theme-text-muted)' }}>
               <span className="w-2 h-2 rounded-full bg-emerald-500/80" aria-hidden />
-              {user?.email}
+              {user?.nombre ?? user?.email}
             </span>
             <span className="text-xs hidden sm:inline" style={{ color: 'var(--theme-text-dim)' }}>({user?.role})</span>
             <button

@@ -42,6 +42,19 @@ def send_email(to_email: str, subject: str, body_text: str, body_html: str | Non
         return False
 
 
+def send_password_changed_notification(to_email: str) -> bool:
+    """Envía correo informando que la contraseña fue cambiada (verificación por Gmail)."""
+    subject = "Contraseña actualizada - Rookie Makers 3D"
+    text = "Hola,\n\nTu contraseña de la app Rookie Makers 3D fue cambiada correctamente.\n\nSi no fuiste tú, contacta al administrador.\n\nSaludos,\nRookie Makers 3D"
+    html = """
+    <p>Hola,</p>
+    <p>Tu contraseña de la app <strong>Rookie Makers 3D</strong> fue cambiada correctamente.</p>
+    <p>Si no fuiste tú, contacta al administrador.</p>
+    <p>Saludos,<br/>Rookie Makers 3D</p>
+    """
+    return send_email(to_email, subject, text, html)
+
+
 def send_cotizacion_lista_notification(to_email: str, descripcion: str, total: float, app_url: str) -> bool:
     """Notificación: tu cotización está lista."""
     subject = "Tu cotización está lista - Rookie Makers 3D"

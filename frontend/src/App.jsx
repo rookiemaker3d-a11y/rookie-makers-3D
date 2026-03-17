@@ -19,6 +19,7 @@ import VideosPromocionales from './pages/VideosPromocionales'
 import Inventario from './pages/Inventario'
 import EditorPaginaPublica from './pages/EditorPaginaPublica'
 import Seguridad from './pages/Seguridad'
+import Configuracion from './pages/Configuracion'
 import Chatbot from './components/Chatbot'
 import './index.css'
 
@@ -39,6 +40,7 @@ function AppRoutes() {
         <Route path="vendedores" element={<AdminOnlyRoute><Vendedores /></AdminOnlyRoute>} />
         <Route path="videos-promocionales" element={<VideosPromocionales />} />
         <Route path="inventario" element={<Inventario />} />
+        <Route path="configuracion" element={<Configuracion />} />
         <Route path="seguridad" element={<Seguridad />} />
         <Route path="editor-pagina" element={<AdminOnlyRoute><EditorPaginaPublica /></AdminOnlyRoute>} />
         <Route path="analisis" element={<Analisis />} />
