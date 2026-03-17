@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, JSON, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, JSON, Boolean, LargeBinary
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -72,6 +72,17 @@ class CotizacionEnEspera(Base):
     costo_final = Column(Float, default=0)
     fecha = Column(String(20))
     detalles = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ArchivoCotizacion(Base):
+    """Archivo adjunto de una cotización en espera (STL, imagen, PDF). Se guarda en BD para persistencia."""
+    __tablename__ = "archivos_cotizacion"
+    id = Column(Integer, primary_key=True, index=True)
+    cotizacion_id = Column(Integer, ForeignKey("cotizaciones_en_espera.id", ondelete="CASCADE"), nullable=False)
+    nombre_original = Column(String(255), nullable=False)
+    content_type = Column(String(128), nullable=False)
+    content = Column(LargeBinary, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
