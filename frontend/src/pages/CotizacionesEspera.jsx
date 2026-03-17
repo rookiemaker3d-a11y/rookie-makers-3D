@@ -9,6 +9,8 @@ import {
   Truck,
   ChevronRight,
   Trash2,
+  FileDown,
+  X,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
@@ -38,6 +40,11 @@ export default function CotizacionesEspera() {
   const [updating, setUpdating] = useState(null)
   const [cotizarModal, setCotizarModal] = useState(null) // { id, descripcion, costo_base, costo_final }
   const [cotizarSaving, setCotizarSaving] = useState(false)
+  const [ordenAbierta, setOrdenAbierta] = useState(null)
+  const [ordenAbiertaData, setOrdenAbiertaData] = useState(null)
+  const [loadingOrden, setLoadingOrden] = useState(false)
+  const [panelCotizar, setPanelCotizar] = useState({ costo_base: 0, costo_final: 0 })
+  const [panelSaving, setPanelSaving] = useState(false)
 
   function load() {
     api('/cotizaciones-en-espera')
@@ -55,6 +62,58 @@ export default function CotizacionesEspera() {
     if (user?.role !== 'vendedor_ventas') return
     api('/cotizaciones-en-espera/marcar-vistas', { method: 'POST' }).catch(() => {})
   }, [api, user?.role])
+
+  useEffect(() => {
+    if (ordenAbierta == null) {
+      setOrdenAbiertaData(null)
+      return
+    }
+    setLoadingOrden(true)
+    api(`/cotizaciones-en-espera/${ordenAbierta}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setOrdenAbiertaData(data)
+        setPanelCotizar({ costo_base: data.costo_base ?? 0, costo_final: data.costo_final ?? 0 })
+      })
+      .catch(() => setOrdenAbiertaData(null))
+      .finally(() => setLoadingOrden(false))
+  }, [api, ordenAbierta])
+
+  const descargarArchivo = async (cotizacionId) => {
+    try {
+      const res = await api(`/cotizaciones-en-espera/${cotizacionId}/archivo`)
+      if (!res.ok) return
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = res.headers.get('Content-Disposition')?.split('filename="')?.[1]?.replace(/"/g, '') || `cotizacion_${cotizacionId}`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (_) {}
+  }
+
+  const marcarComoCotizadoDesdePanel = async () => {
+    if (!ordenAbiertaData) return
+    setPanelSaving(true)
+    try {
+      await api(`/cotizaciones-en-espera/${ordenAbiertaData.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          costo_base: Number(panelCotizar.costo_base) || 0,
+          costo_final: Number(panelCotizar.costo_final) || 0,
+          detalles: { estado_cotizacion_vendedor: 'cotizado', visto_por_vendedor: false },
+        }),
+      })
+      setOrdenAbierta(null)
+      setOrdenAbiertaData(null)
+      load()
+    } finally {
+      setPanelSaving(false)
+    }
+  }
 
   const getEstado = (c) => (c.detalles && c.detalles.estado) || 'espera'
   const getEstadoVendedor = (c) => (c.detalles && c.detalles.estado_cotizacion_vendedor) || 'pendiente'
@@ -180,6 +239,13 @@ export default function CotizacionesEspera() {
                       <AnexoFotosCard cotizacion={c} onSave={() => load()} api={api} setUpdating={setUpdating} />
                     )}
                     <div className="flex items-center justify-between gap-1 mt-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setOrdenAbierta(c.id)}
+                        className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 theme-text"
+                      >
+                        Ver orden
+                      </button>
                       {pendienteCotizar && (
                         <button
                           type="button"
@@ -218,6 +284,122 @@ export default function CotizacionesEspera() {
           )
         })}
       </div>
+
+      {ordenAbierta != null && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onClick={() => setOrdenAbierta(null)}>
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.2 }}
+            className="w-full max-w-md bg-[var(--theme-bg-card)] border-l shadow-xl overflow-y-auto"
+            style={{ borderColor: 'var(--theme-border)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 flex items-center justify-between border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <h3 className="text-lg font-semibold theme-text">Detalle de la orden</h3>
+              <button type="button" onClick={() => setOrdenAbierta(null)} className="p-2 rounded-lg hover:bg-white/10 theme-text" aria-label="Cerrar">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              {loadingOrden ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 theme-text-muted border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : ordenAbiertaData ? (
+                <>
+                  <div>
+                    <p className="theme-text-muted text-xs">Descripción</p>
+                    <p className="theme-text font-medium">{ordenAbiertaData.descripcion}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="theme-text-muted text-xs">Vendedor</p>
+                      <p className="theme-text">{ordenAbiertaData.vendedor}</p>
+                    </div>
+                    <div>
+                      <p className="theme-text-muted text-xs">Fecha</p>
+                      <p className="theme-text">{formatDate(ordenAbiertaData.created_at)}</p>
+                    </div>
+                  </div>
+                  {ordenAbiertaData.detalles && (
+                    <div className="space-y-1 text-sm">
+                      {ordenAbiertaData.detalles.folio && (
+                        <p className="theme-text"><span className="theme-text-muted">Folio:</span> {ordenAbiertaData.detalles.folio}</p>
+                      )}
+                      {ordenAbiertaData.detalles.cliente_nombre && (
+                        <p className="theme-text"><span className="theme-text-muted">Cliente:</span> {ordenAbiertaData.detalles.cliente_nombre}</p>
+                      )}
+                      {ordenAbiertaData.detalles.proyecto && (
+                        <p className="theme-text"><span className="theme-text-muted">Proyecto:</span> {ordenAbiertaData.detalles.proyecto}</p>
+                      )}
+                      {(ordenAbiertaData.detalles.envio != null || ordenAbiertaData.detalles.empaque != null) && (
+                        <p className="theme-text">
+                          <span className="theme-text-muted">Envío / Empaque:</span> ${Number(ordenAbiertaData.detalles.envio || 0).toFixed(2)} / ${Number(ordenAbiertaData.detalles.empaque || 0).toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {ordenAbiertaData.has_archivo && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => descargarArchivo(ordenAbiertaData.id)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 theme-text text-sm"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        Descargar archivo
+                      </button>
+                    </div>
+                  )}
+                  {isDesigner ? (
+                    <div className="space-y-3 pt-2 border-t" style={{ borderColor: 'var(--theme-border)' }}>
+                      <div>
+                        <label className="block theme-text-muted text-xs mb-1">Costo base (MXN)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={panelCotizar.costo_base}
+                          onChange={(e) => setPanelCotizar((p) => ({ ...p, costo_base: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.1] theme-text text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block theme-text-muted text-xs mb-1">Precio final al cliente (MXN)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={panelCotizar.costo_final}
+                          onChange={(e) => setPanelCotizar((p) => ({ ...p, costo_final: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-lg bg-white/[0.06] border border-white/[0.1] theme-text text-sm"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={marcarComoCotizadoDesdePanel}
+                        disabled={panelSaving}
+                        className="w-full px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium disabled:opacity-50"
+                      >
+                        {panelSaving ? 'Guardando...' : 'Marcar como cotizado'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t" style={{ borderColor: 'var(--theme-border)' }}>
+                      <p className="theme-text-muted text-xs">Total</p>
+                      <p className="theme-text text-lg font-semibold">${(ordenAbiertaData.costo_final ?? 0).toFixed(2)} MXN</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <p className="theme-text-muted text-sm">No se pudo cargar la orden.</p>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {cotizarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setCotizarModal(null)}>

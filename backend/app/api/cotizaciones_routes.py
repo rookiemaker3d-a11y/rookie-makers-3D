@@ -1,11 +1,12 @@
 from datetime import date, datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 
 from app.database import get_db
 from app.auth import require_user, get_vendedor_from_user
-from app.models import CotizacionEnEspera, Producto, Vendedor
+from app.models import CotizacionEnEspera, Producto, Vendedor, ArchivoCotizacion
 from app.schemas import CotizacionEnEsperaCreate, CotizacionEnEsperaResponse
 from app.config import get_settings
 from app.email_service import send_cotizacion_lista_notification
@@ -26,6 +27,16 @@ class CotizacionUpdate(BaseModel):
 router = APIRouter(prefix="/cotizaciones-en-espera", tags=["cotizaciones"])
 
 
+def _can_access_cotizacion(user, vendedor, c: CotizacionEnEspera) -> bool:
+    if user.role == "administrador":
+        return True
+    if user.role == "vendedor" and vendedor and c.vendedor == vendedor.nombre:
+        return True
+    if user.role == "vendedor_ventas" and c.vendedor == user.email:
+        return True
+    return False
+
+
 @router.get("", response_model=list[CotizacionEnEsperaResponse])
 async def list_cotizaciones(
     db: AsyncSession = Depends(get_db),
@@ -39,7 +50,100 @@ async def list_cotizaciones(
     elif user.role == "vendedor_ventas":
         q = q.where(CotizacionEnEspera.vendedor == user.email)
     result = await db.execute(q)
-    return result.scalars().all()
+    items = result.scalars().all()
+    # Quiénes tienen archivo adjunto
+    ids_with_file = set()
+    if items:
+        qa = select(ArchivoCotizacion.cotizacion_id).where(
+            ArchivoCotizacion.cotizacion_id.in_([c.id for c in items])
+        ).distinct()
+        ra = await db.execute(qa)
+        ids_with_file = {r[0] for r in ra.fetchall()}
+    return [
+        CotizacionEnEsperaResponse.model_validate(c).model_copy(update={"has_archivo": c.id in ids_with_file})
+        for c in items
+    ]
+
+
+@router.get("/{cotizacion_id}", response_model=CotizacionEnEsperaResponse)
+async def get_cotizacion(
+    cotizacion_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_user),
+    vendedor=Depends(get_vendedor_from_user),
+):
+    """Obtiene una cotización por ID. Mismos permisos que el listado."""
+    result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cotizacion_id))
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    if not _can_access_cotizacion(user, vendedor, c):
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta cotización")
+    has_archivo = await db.execute(
+        select(ArchivoCotizacion.id).where(ArchivoCotizacion.cotizacion_id == cotizacion_id).limit(1)
+    )
+    return CotizacionEnEsperaResponse.model_validate(c).model_copy(
+        update={"has_archivo": has_archivo.scalar_one_or_none() is not None}
+    )
+
+
+@router.post("/{cotizacion_id}/archivo")
+async def upload_archivo(
+    cotizacion_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_user),
+    vendedor=Depends(get_vendedor_from_user),
+):
+    """Sube o reemplaza el archivo adjunto de una cotización. Un archivo por cotización."""
+    result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cotizacion_id))
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    if not _can_access_cotizacion(user, vendedor, c):
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta cotización")
+    content = await file.read()
+    nombre_original = (file.filename or "archivo").strip() or "archivo"
+    content_type = (file.content_type or "application/octet-stream").strip() or "application/octet-stream"
+    await db.execute(delete(ArchivoCotizacion).where(ArchivoCotizacion.cotizacion_id == cotizacion_id))
+    archivo = ArchivoCotizacion(
+        cotizacion_id=cotizacion_id,
+        nombre_original=nombre_original,
+        content_type=content_type,
+        content=content,
+    )
+    db.add(archivo)
+    await db.commit()
+    return {"ok": True, "cotizacion_id": cotizacion_id}
+
+
+@router.get("/{cotizacion_id}/archivo")
+async def download_archivo(
+    cotizacion_id: int,
+    db: AsyncSession = Depends(get_db),
+    user=Depends(require_user),
+    vendedor=Depends(get_vendedor_from_user),
+):
+    """Descarga el archivo adjunto de una cotización."""
+    result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cotizacion_id))
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(status_code=404, detail="Cotización no encontrada")
+    if not _can_access_cotizacion(user, vendedor, c):
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta cotización")
+    ra = await db.execute(
+        select(ArchivoCotizacion).where(ArchivoCotizacion.cotizacion_id == cotizacion_id).limit(1)
+    )
+    archivo = ra.scalar_one_or_none()
+    if not archivo:
+        raise HTTPException(status_code=404, detail="No hay archivo adjunto")
+    return Response(
+        content=archivo.content,
+        media_type=archivo.content_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{archivo.nombre_original}"',
+        },
+    )
 
 
 @router.post("", response_model=CotizacionEnEsperaResponse)

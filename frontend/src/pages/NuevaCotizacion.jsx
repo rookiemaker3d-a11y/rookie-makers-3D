@@ -18,7 +18,7 @@ import { SectionHeader } from '../components/ui'
 const TOTAL_PASOS = 6
 
 export default function NuevaCotizacion() {
-  const { api, user } = useAuth()
+  const { api, apiUpload, user } = useAuth()
   const [materiales, setMateriales] = useState([])
   const [vendedores, setVendedores] = useState([])
   const [vendedorSeleccionadoId, setVendedorSeleccionadoId] = useState(null)
@@ -111,6 +111,17 @@ export default function NuevaCotizacion() {
         setSaveError(errData?.detail || res.statusText || 'Error al enviar la orden')
         return
       }
+      const data = await res.json()
+      const file = wizardData.proyecto?.file
+      if (file && data?.id != null) {
+        const formData = new FormData()
+        formData.append('file', file)
+        try {
+          await apiUpload(`/cotizaciones-en-espera/${data.id}/archivo`, formData)
+        } catch (_) {
+          // Orden ya creada; fallo en archivo no bloquea
+        }
+      }
       setOrdenEnviadaMsg('Orden enviada a Norberto. Aparece en su dashboard (Pipeline de pedidos). Verás "Recibido" cuando él la cotice.')
     } catch (e) {
       setSaveError(e?.message || 'Error al enviar la orden')
@@ -152,7 +163,7 @@ export default function NuevaCotizacion() {
         sub_total: lineas.length ? subTotal : (esOrdenVendedor ? 0 : undefined),
         total: totalFinal,
       }
-      await api('/cotizaciones-en-espera', {
+      const res = await api('/cotizaciones-en-espera', {
         method: 'POST',
         body: JSON.stringify({
           descripcion,
@@ -162,6 +173,22 @@ export default function NuevaCotizacion() {
           detalles,
         }),
       })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        setSaveError(errData?.detail || res.statusText || 'Error al guardar')
+        return false
+      }
+      const data = await res.json()
+      const file = wizardData.proyecto?.file
+      if (file && data?.id != null) {
+        const formData = new FormData()
+        formData.append('file', file)
+        try {
+          await apiUpload(`/cotizaciones-en-espera/${data.id}/archivo`, formData)
+        } catch (_) {
+          // Orden ya creada; fallo en archivo no bloquea
+        }
+      }
       return true
     } catch (e) {
       const msg = e?.message || (e?.status === 403 ? 'Solo vendedores pueden crear cotizaciones. Inicia sesión como vendedor.' : 'Error al guardar')

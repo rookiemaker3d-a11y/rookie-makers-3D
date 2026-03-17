@@ -87,10 +87,11 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
   const api = useCallback((path, options = {}) => {
     const token = user?.token
     const url = path.startsWith('http') ? path : `${API_BASE}/api${path.startsWith('/') ? path : `/${path}`}`
+    const isFormData = options.body instanceof FormData
     return fetch(url, {
       ...options,
       headers: {
-        'Content-Type': 'application/json',
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
@@ -106,8 +107,12 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
     })
   }, [user?.token])
 
+  const apiUpload = useCallback((path, formData) => {
+    return api(path, { method: 'POST', body: formData })
+  }, [api])
+
   return (
-    <AuthContext.Provider value={{ user, login, completeMfaLogin, logout, api }}>
+    <AuthContext.Provider value={{ user, login, completeMfaLogin, logout, api, apiUpload }}>
       {children}
     </AuthContext.Provider>
   )
