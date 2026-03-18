@@ -28,7 +28,7 @@ def _get_engine_and_session():
 
 VENDEDORES_INICIALES = [
     {"nombre": "Daniel Moreno Rodriguez", "correo": "rookiemaker3d@gmail.com", "telefono": "479-100-09-52", "banco": "BBVA BANCOMER", "cuenta": "1575249892"},
-    {"nombre": "Emanuel Fidel Ramirez Alamillo", "correo": "rookiemakersd@gmail.com", "telefono": "477-595-85-27", "banco": "Nu", "cuenta": "638180000157451360"},
+    {"nombre": "Emanuel Fidel Ramirez Alamillo", "correo": "emanuelalamillo@gmail.com", "telefono": "477-595-85-27", "banco": "Nu", "cuenta": "638180000157451360"},
     {"nombre": "Norberto Charbel Moreno Rodriguez", "correo": "norbertomoro4@gmail.com", "telefono": "472-148-89-13", "banco": "Mercado Pago", "cuenta": "W722969010092073360"},
 ]
 SERVICIOS_INICIALES = [
@@ -126,15 +126,44 @@ async def _run_seed(db):
                 user.role = "vendedor"
         await db.commit()
 
+        # Migración: Emanuel/Fidel cambió de correo
+        OLD_FIDEL_EMAIL = "rookiemakersd@gmail.com"
+        NEW_FIDEL_EMAIL = "emanuelalamillo@gmail.com"
+        FIDEL_PASSWORD = "Fidel123!ctr"
+
+        # Si existe un Vendedor con el correo viejo, migrarlo al nuevo
+        r_old_v = await db.execute(select(Vendedor).where(Vendedor.correo == OLD_FIDEL_EMAIL))
+        old_v = r_old_v.scalar_one_or_none()
+        if old_v:
+            old_v.correo = NEW_FIDEL_EMAIL
+            await db.commit()
+
+        # Si existe un User con el correo viejo, intentar migrarlo al nuevo o eliminar duplicado
+        r_old_u = await db.execute(select(User).where(User.email == OLD_FIDEL_EMAIL))
+        old_u = r_old_u.scalar_one_or_none()
+        if old_u:
+            r_new_u = await db.execute(select(User).where(User.email == NEW_FIDEL_EMAIL))
+            new_u = r_new_u.scalar_one_or_none()
+            if new_u:
+                # Ya existe el nuevo; eliminar el viejo para evitar duplicados
+                await db.delete(old_u)
+                await db.commit()
+            else:
+                old_u.email = NEW_FIDEL_EMAIL
+                await db.commit()
+
+        vendedores = (await db.execute(select(Vendedor))).scalars().all()
         for v in vendedores:
             if v.correo == "norbertomoro4@gmail.com":
                 continue
             r = await db.execute(select(User).where(User.email == v.correo))
             existing = r.scalar_one_or_none()
             if existing is None:
-                db.add(User(email=v.correo, password_hash=get_password_hash("vendedor123"), role="vendedor", vendedor_id=v.id, is_active=True))
+                pwd = FIDEL_PASSWORD if v.correo == NEW_FIDEL_EMAIL else "vendedor123"
+                db.add(User(email=v.correo, password_hash=get_password_hash(pwd), role="vendedor", vendedor_id=v.id, is_active=True))
             else:
-                existing.password_hash = get_password_hash("vendedor123")
+                pwd = FIDEL_PASSWORD if v.correo == NEW_FIDEL_EMAIL else "vendedor123"
+                existing.password_hash = get_password_hash(pwd)
                 existing.vendedor_id = v.id
                 existing.is_active = True
         await db.commit()
