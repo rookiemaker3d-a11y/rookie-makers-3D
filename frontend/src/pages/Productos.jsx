@@ -4,6 +4,15 @@ import { Card, SectionHeader } from '../components/ui'
 import { Plus, Trash2, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
 import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
 
+const PORCENTAJE_INVERSION_KEY = 'porcentajeInversion'
+const defaultPorcentajeInversion = () => {
+  try {
+    const v = Number(localStorage.getItem(PORCENTAJE_INVERSION_KEY))
+    if (!Number.isNaN(v) && v >= 0 && v <= 100) return v
+  } catch (_) {}
+  return 10
+}
+
 export default function Productos() {
   const { api, user } = useAuth()
   const [items, setItems] = useState([])
@@ -14,8 +23,15 @@ export default function Productos() {
   const [expandedId, setExpandedId] = useState(null)
   const [editProduct, setEditProduct] = useState(null)
   const [editForm, setEditForm] = useState(null)
+  const [porcentajeInversion, setPorcentajeInversion] = useState(defaultPorcentajeInversion)
 
   const isAdmin = user?.role === 'administrador'
+
+  const savePorcentajeInversion = (pct) => {
+    const n = Math.min(100, Math.max(0, Number(pct) || 0))
+    setPorcentajeInversion(n)
+    try { localStorage.setItem(PORCENTAJE_INVERSION_KEY, String(n)) } catch (_) {}
+  }
 
   function load() {
     api('/productos')
@@ -154,6 +170,8 @@ export default function Productos() {
     totalVenta += p.costo_final || 0
   })
   const ganancia = totalVenta - totalCosto
+  const inversion = ganancia * (porcentajeInversion / 100)
+  const gananciaQueQueda = ganancia - inversion
 
   if (loading) {
     return (
@@ -294,10 +312,28 @@ export default function Productos() {
           </tbody>
         </table>
       </Card>
-      <div className="flex flex-wrap gap-6 text-sm">
-        <span className="theme-text-muted">Total costo: <strong className="theme-text tabular-nums">${totalCosto.toFixed(2)}</strong></span>
-        <span className="theme-text-muted">Total venta: <strong className="theme-text tabular-nums">${totalVenta.toFixed(2)}</strong></span>
-        <span className={ganancia >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>Ganancia neta: <strong className="tabular-nums">${ganancia.toFixed(2)}</strong></span>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <span className="theme-text-muted">Total costo: <strong className="theme-text tabular-nums">${totalCosto.toFixed(2)}</strong></span>
+          <span className="theme-text-muted">Total venta: <strong className="theme-text tabular-nums">${totalVenta.toFixed(2)}</strong></span>
+          <span className={ganancia >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>Ganancia neta: <strong className="tabular-nums">${ganancia.toFixed(2)}</strong></span>
+          <label className="flex items-center gap-2 theme-text-muted">
+            % inversión
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={porcentajeInversion}
+              onChange={(e) => savePorcentajeInversion(e.target.value)}
+              className="w-16 px-2 py-1 rounded border theme-input text-sm"
+            />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <span className="theme-text-muted">Inversión ({porcentajeInversion}%): <strong className="theme-text tabular-nums">${inversion.toFixed(2)}</strong></span>
+          <span className={gananciaQueQueda >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>Ganancia que te queda: <strong className="tabular-nums">${gananciaQueQueda.toFixed(2)}</strong></span>
+        </div>
       </div>
 
       {importOpen && (

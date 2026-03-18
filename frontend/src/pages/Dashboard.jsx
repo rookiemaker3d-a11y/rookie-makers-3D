@@ -37,13 +37,29 @@ const QUICK_LINKS = [
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },
 ]
 
+const PORCENTAJE_INVERSION_KEY = 'porcentajeInversion'
+const defaultPorcentajeInversion = () => {
+  try {
+    const v = Number(localStorage.getItem(PORCENTAJE_INVERSION_KEY))
+    if (!Number.isNaN(v) && v >= 0 && v <= 100) return v
+  } catch (_) {}
+  return 10
+}
+
 export default function Dashboard() {
   const { api, user } = useAuth()
   const [totals, setTotals] = useState(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [porcentajeInversion, setPorcentajeInversion] = useState(defaultPorcentajeInversion)
 
   const quickLinks = QUICK_LINKS.filter((link) => link.to !== '/vendedores' || user?.role === 'administrador')
+
+  const savePorcentajeInversion = (pct) => {
+    const n = Math.min(100, Math.max(0, Number(pct) || 0))
+    setPorcentajeInversion(n)
+    try { localStorage.setItem(PORCENTAJE_INVERSION_KEY, String(n)) } catch (_) {}
+  }
 
   useEffect(() => {
     api('/dashboard/totals')
@@ -80,6 +96,8 @@ export default function Dashboard() {
   const totalVenta = totals?.total_venta ?? 0
   const gananciaNeta = totals?.ganancia_neta ?? 0
   const cantidadProductos = totals?.cantidad_productos ?? 0
+  const inversion = gananciaNeta * (porcentajeInversion / 100)
+  const gananciaQueQueda = gananciaNeta - inversion
 
   return (
     <motion.div
@@ -133,6 +151,40 @@ export default function Dashboard() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Al término de la venta: inversión y ganancia que te queda */}
+      <motion.div variants={item} className="rounded-xl border p-4 sm:p-5 theme-border theme-bg-card">
+        <h3 className="text-sm font-semibold theme-text-muted uppercase tracking-wider mb-3">Al término de la venta</h3>
+        <p className="text-sm theme-text-muted mb-4">Cuánto va a inversión y cuánto te queda de ganancia. Por defecto 10% a inversión; puedes subir el porcentaje aquí.</p>
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <label className="flex items-center gap-2">
+            <span className="text-sm theme-text-muted">% para inversión</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={porcentajeInversion}
+              onChange={(e) => savePorcentajeInversion(e.target.value)}
+              className="w-20 px-2 py-1.5 rounded-lg border theme-input text-sm"
+            />
+          </label>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+          <div className="p-3 rounded-lg bg-white/[0.04] border theme-border">
+            <span className="theme-text-muted block text-xs">Inversión ({porcentajeInversion}%)</span>
+            <span className="theme-text font-semibold tabular-nums">${inversion.toFixed(2)}</span>
+          </div>
+          <div className="p-3 rounded-lg bg-white/[0.04] border theme-border">
+            <span className="theme-text-muted block text-xs">Ganancia que te queda</span>
+            <span className={`font-semibold tabular-nums ${gananciaQueQueda >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>${gananciaQueQueda.toFixed(2)}</span>
+          </div>
+          <div className="p-3 rounded-lg bg-white/[0.04] border theme-border">
+            <span className="theme-text-muted block text-xs">Ganancia neta (total)</span>
+            <span className={`font-semibold tabular-nums ${gananciaNeta >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>${gananciaNeta.toFixed(2)}</span>
+          </div>
+        </div>
+      </motion.div>
 
       <motion.p variants={item} className="text-sm theme-text-muted">
         Productos autorizados: <span className="theme-text-secondary font-medium">{cantidadProductos}</span>

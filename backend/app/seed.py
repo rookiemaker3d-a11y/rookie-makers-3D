@@ -139,18 +139,24 @@ async def _run_seed(db):
                 existing.is_active = True
         await db.commit()
 
-        # Usuario de prueba con rol vendedor_ventas (solo ve Dashboard, Productos, Nueva cotización, Cotizaciones espera, Análisis)
-        r_prueba = await db.execute(select(User).where(User.email == "prueba@rookiemakers3d.com"))
-        if r_prueba.scalar_one_or_none() is None:
-            db.add(User(
-                email="prueba@rookiemakers3d.com",
-                password_hash=get_password_hash("Prueba123!."),
-                role="vendedor_ventas",
-                vendedor_id=None,
-                is_active=True,
-            ))
+        # Usuario de ejemplo con rol vendedor_ventas (solo ve Dashboard, Productos, Nueva cotización, Cotizaciones espera, Análisis)
+        r_new = await db.execute(select(User).where(User.email == "andrehoundsome019@gmail.com"))
+        if r_new.scalar_one_or_none() is None:
+            # Migrar el antiguo correo de prueba al nuevo si existía
+            r_old = await db.execute(select(User).where(User.email == "prueba@rookiemakers3d.com"))
+            old_user = r_old.scalar_one_or_none()
+            if old_user:
+                old_user.email = "andrehoundsome019@gmail.com"
+            else:
+                db.add(User(
+                    email="andrehoundsome019@gmail.com",
+                    password_hash=get_password_hash("Prueba123!."),
+                    role="vendedor_ventas",
+                    vendedor_id=None,
+                    is_active=True,
+                ))
             await db.commit()
-            print("Usuario de prueba (vendedor ventas): prueba@rookiemakers3d.com / Prueba123!.")
+            print("Usuario de ejemplo (vendedor ventas): andrehoundsome019@gmail.com / Prueba123!.")
 
         print("Seed completado. Único admin: norbertomoro4@gmail.com / admin123")
         print("Vendedores (diseñadores): correo del vendedor / vendedor123")

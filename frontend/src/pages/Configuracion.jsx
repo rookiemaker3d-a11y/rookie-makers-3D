@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { User, Lock } from 'lucide-react'
+import { User, Lock, Percent } from 'lucide-react'
+
+const PORCENTAJE_INVERSION_KEY = 'porcentajeInversion'
+const defaultPorcentajeInversion = () => {
+  try {
+    const v = Number(localStorage.getItem(PORCENTAJE_INVERSION_KEY))
+    if (!Number.isNaN(v) && v >= 0 && v <= 100) return v
+  } catch (_) {}
+  return 10
+}
 
 export default function Configuracion() {
   const { api, user, refreshUser } = useAuth()
@@ -17,6 +26,11 @@ export default function Configuracion() {
   const [savingPassword, setSavingPassword] = useState(false)
   const [msgPassword, setMsgPassword] = useState('')
   const [errPassword, setErrPassword] = useState('')
+  const [porcentajeInversion, setPorcentajeInversion] = useState(defaultPorcentajeInversion)
+
+  useEffect(() => {
+    setPorcentajeInversion(defaultPorcentajeInversion())
+  }, [])
 
   useEffect(() => {
     api('/auth/me')
@@ -29,6 +43,12 @@ export default function Configuracion() {
       .catch(() => setPerfil(null))
       .finally(() => setLoading(false))
   }, [api, refreshUser])
+
+  const savePorcentajeInversion = (pct) => {
+    const n = Math.min(100, Math.max(0, Number(pct) || 0))
+    setPorcentajeInversion(n)
+    try { localStorage.setItem(PORCENTAJE_INVERSION_KEY, String(n)) } catch (_) {}
+  }
 
   const handleSavePerfil = async (e) => {
     e.preventDefault()
@@ -140,6 +160,28 @@ export default function Configuracion() {
             {savingPerfil ? 'Guardando…' : 'Guardar datos'}
           </button>
         </form>
+      </Card>
+
+      <Card className="max-w-lg">
+        <div className="flex items-center gap-2 mb-4">
+          <Percent className="w-5 h-5 theme-text-muted" />
+          <h2 className="text-lg font-semibold theme-text">Porcentaje para inversión</h2>
+        </div>
+        <p className="text-sm theme-text-muted mb-4">Al término de la venta, este porcentaje de la ganancia neta se considera para inversión; el resto es ganancia que te queda. Por defecto 10%. Puedes subirlo desde aquí.</p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={porcentajeInversion}
+            onChange={(e) => savePorcentajeInversion(e.target.value)}
+            className="w-24 px-3 py-2 rounded-xl border theme-input"
+            style={{ borderColor: 'var(--theme-border)' }}
+          />
+          <span className="theme-text-muted">% a inversión</span>
+        </div>
+        <p className="text-xs theme-text-dim mt-2">Se aplica en Dashboard y Productos. El mismo valor se usa en toda la app.</p>
       </Card>
 
       <Card className="max-w-lg">
