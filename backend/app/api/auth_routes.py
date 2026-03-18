@@ -7,7 +7,7 @@ from sqlalchemy import select, func
 from app.database import get_db
 from app.auth import get_password_hash, create_access_token, create_mfa_pending_token, decode_mfa_pending_token, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
 from app.models import User, Vendedor
-from app.schemas import LoginRequest, Token, UserResponse, VendedorCreate, VendedorResponse, UserPasswordUpdate, VendedorVentasCreate, MiPerfilUpdate, CambiarContrasenaRequest
+from app.schemas import LoginRequest, Token, UserResponse, VendedorCreate, VendedorResponse, UserPasswordUpdate, VendedorVentasCreate, VendedorVentasUpdate, MiPerfilUpdate, CambiarContrasenaRequest
 from app.audit import log_audit
 from app.config import get_settings
 
@@ -149,6 +149,12 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
             vendedor_cuenta = getattr(v, "cuenta", None) or None
             vendedor_clabe = getattr(v, "clabe", None) or None
             vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
+    else:
+        # vendedor_ventas: perfil en User
+        vendedor_telefono = getattr(user, "telefono", None) or None
+        vendedor_banco = getattr(user, "banco", None) or None
+        vendedor_cuenta = getattr(user, "cuenta", None) or None
+        vendedor_clabe = getattr(user, "clabe", None) or None
     display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
     return UserResponse(
         id=user.id,
@@ -172,16 +178,27 @@ async def update_me(
     user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Actualiza el nombre del usuario actual. Vendedor: actualiza Vendedor.nombre; vendedor_ventas: actualiza User.nombre."""
-    nombre = (body.nombre or "").strip() or None
-    if nombre is not None:
-        if user.vendedor_id:
+    """Actualiza perfil del usuario actual. Vendedor: Vendedor; vendedor_ventas: User (nombre, telefono, banco, cuenta, clabe)."""
+    if user.vendedor_id:
+        if body.nombre is not None:
+            nombre = (body.nombre or "").strip() or None
             res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
             v = res.scalar_one_or_none()
             if v:
-                v.nombre = nombre
-        else:
-            user.nombre = nombre
+                v.nombre = nombre or v.nombre
+        await db.commit()
+    else:
+        # vendedor_ventas: actualizar User
+        if body.nombre is not None:
+            user.nombre = (body.nombre or "").strip() or None
+        if body.telefono is not None:
+            user.telefono = (body.telefono or "").strip() or None
+        if body.banco is not None:
+            user.banco = (body.banco or "").strip() or None
+        if body.cuenta is not None:
+            user.cuenta = (body.cuenta or "").strip() or None
+        if body.clabe is not None:
+            user.clabe = (body.clabe or "").strip() or None
         await db.commit()
         await db.refresh(user)
     vendedor_nombre = None
@@ -202,6 +219,11 @@ async def update_me(
             vendedor_cuenta = getattr(v, "cuenta", None) or None
             vendedor_clabe = getattr(v, "clabe", None) or None
             vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
+    else:
+        vendedor_telefono = getattr(user, "telefono", None) or None
+        vendedor_banco = getattr(user, "banco", None) or None
+        vendedor_cuenta = getattr(user, "cuenta", None) or None
+        vendedor_clabe = getattr(user, "clabe", None) or None
     display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
     return UserResponse(
         id=user.id,
@@ -280,7 +302,91 @@ async def list_usuarios_vendedor_ventas(
     """Solo administrador. Lista usuarios con rol vendedor_ventas (no están en la tabla diseñadores)."""
     r = await db.execute(select(User).where(User.role == "vendedor_ventas").order_by(User.id))
     users = r.scalars().all()
-    return [UserResponse(id=u.id, email=u.email, role=u.role, vendedor_id=u.vendedor_id) for u in users]
+    return [
+        UserResponse(
+            id=u.id,
+            email=u.email,
+            role=u.role,
+            vendedor_id=u.vendedor_id,
+            nombre=getattr(u, "nombre", None),
+            vendedor_telefono=getattr(u, "telefono", None),
+            vendedor_banco=getattr(u, "banco", None),
+            vendedor_cuenta=getattr(u, "cuenta", None),
+            vendedor_clabe=getattr(u, "clabe", None),
+        )
+        for u in users
+    ]
+
+
+@router.delete("/usuarios-vendedor-ventas/{user_id}")
+async def delete_usuario_vendedor_ventas(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Solo administrador. Elimina un usuario con rol vendedor_ventas."""
+    r = await db.execute(select(User).where(User.id == user_id, User.role == "vendedor_ventas"))
+    u = r.scalar_one_or_none()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario vendedor de ventas no encontrado")
+    email = u.email
+    await db.delete(u)
+    await db.commit()
+    await log_audit(db, "user_deleted", user_id=_admin.id, ip=_client_ip(request), details={"email": email, "role": "vendedor_ventas"})
+    return {"detail": "Usuario eliminado"}
+
+
+@router.patch("/usuarios-vendedor-ventas/{user_id}", response_model=UserResponse)
+async def update_usuario_vendedor_ventas(
+    user_id: int,
+    body: VendedorVentasUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Solo administrador. Actualiza email, contraseña, nombre, telefono, banco, cuenta, clabe de un vendedor_ventas."""
+    r = await db.execute(select(User).where(User.id == user_id, User.role == "vendedor_ventas"))
+    u = r.scalar_one_or_none()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario vendedor de ventas no encontrado")
+    if body.email is not None:
+        email = (body.email or "").strip().lower()
+        if not email:
+            raise HTTPException(status_code=400, detail="El correo no puede estar vacío")
+        ex = await db.execute(select(User).where(User.email == email, User.id != user_id))
+        if ex.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Ya existe otro usuario con ese correo")
+        u.email = email
+    if body.new_password is not None and (body.new_password or "").strip():
+        ok, msg = validate_password(body.new_password)
+        if not ok:
+            raise HTTPException(status_code=400, detail=msg)
+        u.password_hash = get_password_hash(body.new_password)
+    if body.nombre is not None:
+        u.nombre = (body.nombre or "").strip() or None
+    if body.telefono is not None:
+        u.telefono = (body.telefono or "").strip() or None
+    if body.banco is not None:
+        u.banco = (body.banco or "").strip() or None
+    if body.cuenta is not None:
+        u.cuenta = (body.cuenta or "").strip() or None
+    if body.clabe is not None:
+        u.clabe = (body.clabe or "").strip() or None
+    await db.commit()
+    await db.refresh(u)
+    await log_audit(db, "user_updated", user_id=_admin.id, ip=_client_ip(request), details={"target_user_id": user_id, "email": u.email})
+    return UserResponse(
+        id=u.id,
+        email=u.email,
+        role=u.role,
+        vendedor_id=u.vendedor_id,
+        nombre=u.nombre,
+        vendedor_telefono=getattr(u, "telefono", None),
+        vendedor_banco=getattr(u, "banco", None),
+        vendedor_cuenta=getattr(u, "cuenta", None),
+        vendedor_clabe=getattr(u, "clabe", None),
+    )
 
 
 @router.post("/desbloquear-cuenta")

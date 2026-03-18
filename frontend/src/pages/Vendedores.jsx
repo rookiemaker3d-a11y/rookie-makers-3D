@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Pencil, UserPlus } from 'lucide-react'
+import { Pencil, UserPlus, Trash2 } from 'lucide-react'
 
 export default function Vendedores() {
   const { api } = useAuth()
@@ -14,6 +14,9 @@ export default function Vendedores() {
   const [createForm, setCreateForm] = useState({ nombre: '', correo: '', telefono: '', banco: '', cuenta: '', clabe: '', password: '' })
   const [createVentasForm, setCreateVentasForm] = useState({ email: '', password: '' })
   const [vendedoresVentas, setVendedoresVentas] = useState([])
+  const [editVentasOpen, setEditVentasOpen] = useState(false)
+  const [editingVentas, setEditingVentas] = useState(null)
+  const [formVentas, setFormVentas] = useState({ email: '', new_password: '', nombre: '', telefono: '', banco: '', cuenta: '', clabe: '' })
   const [msg, setMsg] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -175,6 +178,81 @@ export default function Vendedores() {
     }
   }
 
+  const openEditVentas = (u) => {
+    setEditingVentas(u)
+    setFormVentas({
+      email: u.email || '',
+      new_password: '',
+      nombre: u.nombre ?? '',
+      telefono: u.vendedor_telefono ?? '',
+      banco: u.vendedor_banco ?? '',
+      cuenta: u.vendedor_cuenta ?? '',
+      clabe: u.vendedor_clabe ?? '',
+    })
+    setEditVentasOpen(true)
+    setMsg('')
+  }
+
+  const closeEditVentas = () => {
+    setEditVentasOpen(false)
+    setEditingVentas(null)
+    setFormVentas({ email: '', new_password: '', nombre: '', telefono: '', banco: '', cuenta: '', clabe: '' })
+  }
+
+  const saveEditVentas = async (e) => {
+    e.preventDefault()
+    if (!editingVentas) return
+    setSaving(true)
+    setMsg('')
+    try {
+      const payload = {
+        email: formVentas.email.trim() || undefined,
+        nombre: formVentas.nombre.trim() || undefined,
+        telefono: formVentas.telefono.trim() || undefined,
+        banco: formVentas.banco.trim() || undefined,
+        cuenta: formVentas.cuenta.trim() || undefined,
+        clabe: formVentas.clabe.trim() || undefined,
+      }
+      if (formVentas.new_password.trim()) payload.new_password = formVentas.new_password.trim()
+      const res = await api(`/auth/usuarios-vendedor-ventas/${editingVentas.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setMsg(data?.detail || 'Error al guardar')
+        return
+      }
+      setMsg('Vendedor de ventas actualizado.')
+      loadVendedoresVentas()
+      closeEditVentas()
+    } catch (err) {
+      setMsg(err?.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deleteVentas = async (u) => {
+    if (!window.confirm(`¿Eliminar al vendedor de ventas ${u.email}? Esta acción no se puede deshacer.`)) return
+    setSaving(true)
+    setMsg('')
+    try {
+      const res = await api(`/auth/usuarios-vendedor-ventas/${u.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setMsg(data?.detail || 'Error al eliminar')
+        return
+      }
+      setMsg('Usuario eliminado.')
+      loadVendedoresVentas()
+    } catch (err) {
+      setMsg(err?.message || 'Error al eliminar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) return <div className="p-8 theme-text-muted">Cargando...</div>
 
   return (
@@ -253,14 +331,41 @@ export default function Vendedores() {
           <thead>
             <tr className="border-b">
               <th className="p-3 theme-text-muted font-medium">ID</th>
+              <th className="p-3 theme-text-muted font-medium">Nombre</th>
               <th className="p-3 theme-text-muted font-medium">Correo</th>
+              <th className="p-3 theme-text-muted font-medium">Teléfono</th>
+              <th className="p-3 theme-text-muted font-medium">Banco / Cuenta</th>
+              <th className="p-3 theme-text-muted font-medium w-32">Acción</th>
             </tr>
           </thead>
           <tbody>
             {vendedoresVentas.map((u) => (
               <tr key={u.id} className="border-b hover:bg-[var(--theme-table-row-hover)]">
                 <td className="p-3 theme-text">{u.id}</td>
+                <td className="p-3 theme-text">{u.nombre || '—'}</td>
                 <td className="p-3 theme-text">{u.email}</td>
+                <td className="p-3 theme-text-muted">{u.vendedor_telefono || '—'}</td>
+                <td className="p-3 theme-text-muted">{[u.vendedor_banco, u.vendedor_cuenta].filter(Boolean).join(' — ') || '—'}</td>
+                <td className="p-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditVentas(u)}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg btn-primary text-sm"
+                    aria-label="Editar"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteVentas(u)}
+                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                    aria-label="Eliminar"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Eliminar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -281,6 +386,28 @@ export default function Vendedores() {
               <div className="flex gap-2 pt-2">
                 <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl btn-primary font-medium disabled:opacity-60">{saving ? 'Guardando...' : 'Crear'}</button>
                 <button type="button" onClick={() => setCreateVentasOpen(false)} className="px-4 py-2 rounded-xl btn-secondary">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {editVentasOpen && editingVentas && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="rounded-2xl border-2 theme-border theme-bg-card p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-lg font-bold theme-text mb-4">Editar vendedor de ventas</h2>
+            <p className="theme-text-muted text-sm mb-3">Puedes dejar en blanco los datos para que los complete el usuario en Configuración.</p>
+            {msg && <p className={`text-sm mb-3 ${msg.includes('Error') ? 'text-red-600' : 'text-emerald-600'}`}>{msg}</p>}
+            <form onSubmit={saveEditVentas} className="space-y-3">
+              <input type="email" placeholder="Correo *" value={formVentas.email} onChange={(e) => setFormVentas((f) => ({ ...f, email: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" required />
+              <input placeholder="Nombre" value={formVentas.nombre} onChange={(e) => setFormVentas((f) => ({ ...f, nombre: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input placeholder="Teléfono" value={formVentas.telefono} onChange={(e) => setFormVentas((f) => ({ ...f, telefono: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input placeholder="Banco" value={formVentas.banco} onChange={(e) => setFormVentas((f) => ({ ...f, banco: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input placeholder="Cuenta" value={formVentas.cuenta} onChange={(e) => setFormVentas((f) => ({ ...f, cuenta: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input placeholder="CLABE (18 dígitos)" value={formVentas.clabe} onChange={(e) => setFormVentas((f) => ({ ...f, clabe: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" />
+              <input type="password" placeholder="Nueva contraseña (dejar vacío para no cambiar)" value={formVentas.new_password} onChange={(e) => setFormVentas((f) => ({ ...f, new_password: e.target.value }))} className="theme-input w-full px-4 py-2.5 rounded-xl border" minLength={12} autoComplete="new-password" />
+              <div className="flex gap-2 pt-2">
+                <button type="submit" disabled={saving} className="px-4 py-2 rounded-xl btn-primary font-medium disabled:opacity-60">{saving ? 'Guardando...' : 'Guardar'}</button>
+                <button type="button" onClick={closeEditVentas} className="px-4 py-2 rounded-xl btn-secondary">Cancelar</button>
               </div>
             </form>
           </div>

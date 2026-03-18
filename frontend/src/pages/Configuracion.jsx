@@ -17,6 +17,10 @@ export default function Configuracion() {
   const [perfil, setPerfil] = useState(null)
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
+  const [telefono, setTelefono] = useState('')
+  const [banco, setBanco] = useState('')
+  const [cuenta, setCuenta] = useState('')
+  const [clabe, setClabe] = useState('')
   const [savingPerfil, setSavingPerfil] = useState(false)
   const [msgPerfil, setMsgPerfil] = useState('')
   const [errPerfil, setErrPerfil] = useState('')
@@ -38,6 +42,10 @@ export default function Configuracion() {
       .then((data) => {
         setPerfil(data)
         setNombre(data?.nombre ?? data?.email ?? '')
+        setTelefono(data?.vendedor_telefono ?? '')
+        setBanco(data?.vendedor_banco ?? '')
+        setCuenta(data?.vendedor_cuenta ?? '')
+        setClabe(data?.vendedor_clabe ?? '')
         refreshUser()
       })
       .catch(() => setPerfil(null))
@@ -56,9 +64,16 @@ export default function Configuracion() {
     setMsgPerfil('')
     setSavingPerfil(true)
     try {
+      const payload = { nombre: nombre.trim() || null }
+      if (user?.role === 'vendedor_ventas') {
+        payload.telefono = telefono.trim() || null
+        payload.banco = banco.trim() || null
+        payload.cuenta = cuenta.trim() || null
+        payload.clabe = clabe.trim() || null
+      }
       const res = await api('/auth/me', {
         method: 'PATCH',
-        body: JSON.stringify({ nombre: nombre.trim() || null }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -150,6 +165,55 @@ export default function Configuracion() {
             </p>
             <p className="text-xs theme-text-dim mt-1">El correo no se puede cambiar desde aquí. Contacta al administrador si lo necesitas.</p>
           </div>
+          {user?.role === 'vendedor_ventas' && (
+            <>
+              <div>
+                <label className="block text-sm font-medium theme-text-muted mb-1">Teléfono</label>
+                <input
+                  type="text"
+                  value={telefono}
+                  onChange={(e) => setTelefono(e.target.value)}
+                  placeholder="Teléfono de contacto"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
+                  style={{ borderColor: 'var(--theme-border)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium theme-text-muted mb-1">Banco</label>
+                <input
+                  type="text"
+                  value={banco}
+                  onChange={(e) => setBanco(e.target.value)}
+                  placeholder="Nombre del banco"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
+                  style={{ borderColor: 'var(--theme-border)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium theme-text-muted mb-1">Cuenta</label>
+                <input
+                  type="text"
+                  value={cuenta}
+                  onChange={(e) => setCuenta(e.target.value)}
+                  placeholder="Número de cuenta"
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
+                  style={{ borderColor: 'var(--theme-border)' }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium theme-text-muted mb-1">CLABE (18 dígitos)</label>
+                <input
+                  type="text"
+                  value={clabe}
+                  onChange={(e) => setClabe(e.target.value)}
+                  placeholder="CLABE interbancaria"
+                  maxLength={22}
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
+                  style={{ borderColor: 'var(--theme-border)' }}
+                />
+              </div>
+            </>
+          )}
           {errPerfil && <p className="text-sm text-red-400">{errPerfil}</p>}
           {msgPerfil && <p className="text-sm text-emerald-400">{msgPerfil}</p>}
           <button

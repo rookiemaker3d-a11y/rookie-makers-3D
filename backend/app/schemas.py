@@ -35,8 +35,12 @@ class UserResponse(BaseModel):
 
 
 class MiPerfilUpdate(BaseModel):
-    """Actualizar nombre del usuario actual. Vendedor actualiza Vendedor.nombre; vendedor_ventas actualiza User.nombre."""
+    """Actualizar perfil del usuario actual. Vendedor: Vendedor; vendedor_ventas: User (nombre, telefono, banco, cuenta, clabe)."""
     nombre: Optional[str] = None
+    telefono: Optional[str] = None
+    banco: Optional[str] = None
+    cuenta: Optional[str] = None
+    clabe: Optional[str] = None
 
 
 class CambiarContrasenaRequest(BaseModel):
@@ -92,6 +96,17 @@ class VendedorVentasCreate(BaseModel):
     """Solo admin. Crea usuario con rol vendedor_ventas (sin perfil en tabla diseñadores)."""
     email: str
     password: str
+
+
+class VendedorVentasUpdate(BaseModel):
+    """Solo admin. Actualiza usuario vendedor_ventas: email, contraseña, nombre, telefono, banco, cuenta, clabe."""
+    email: Optional[str] = None
+    new_password: Optional[str] = None
+    nombre: Optional[str] = None
+    telefono: Optional[str] = None
+    banco: Optional[str] = None
+    cuenta: Optional[str] = None
+    clabe: Optional[str] = None
 
 
 # ----- Cliente -----

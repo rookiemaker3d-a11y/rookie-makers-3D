@@ -102,6 +102,30 @@ def _migrate_add_user_nombre(sync_conn):
         pass  # columna ya existe
 
 
+def _migrate_add_user_vendedor_ventas_profile(sync_conn):
+    """Añade columnas de perfil (telefono, banco, cuenta, clabe) a users para vendedor_ventas."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS telefono VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS banco VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS cuenta VARCHAR(100)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS clabe VARCHAR(22)",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE users ADD COLUMN telefono VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN banco VARCHAR(255)",
+            "ALTER TABLE users ADD COLUMN cuenta VARCHAR(100)",
+            "ALTER TABLE users ADD COLUMN clabe VARCHAR(22)",
+        ]
+    for stmt in stmts:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass  # columna ya existe
+
+
 def _migrate_add_vendedor_tarjeta(sync_conn):
     """Añade columnas tarjeta_ultimos4 y tarjeta_enc a vendedores si no existen."""
     dialect = sync_conn.engine.dialect.name
@@ -129,3 +153,4 @@ async def init_db():
         await conn.run_sync(_migrate_add_vendedor_clabe)
         await conn.run_sync(_migrate_add_vendedor_tarjeta)
         await conn.run_sync(_migrate_add_user_nombre)
+        await conn.run_sync(_migrate_add_user_vendedor_ventas_profile)
