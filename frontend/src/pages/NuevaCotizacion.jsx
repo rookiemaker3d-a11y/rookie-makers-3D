@@ -131,6 +131,7 @@ export default function NuevaCotizacion() {
   }
   const lineas = wizardData.lineas || []
   const subTotal = lineas.reduce((s, l) => s + (Number(l.costo_final) || 0), 0)
+  const subTotalBase = lineas.reduce((s, l) => s + (Number(l.costo_base_total) || 0), 0)
   const descuento = Number(wizardData.descuento) || 0
   const envio = Number(wizardData.envio) || 0
   const empaque = Number(wizardData.empaque) || 0
@@ -157,6 +158,8 @@ export default function NuevaCotizacion() {
         estado: 'espera',
         orden_vendedor: esOrdenVendedor || undefined,
         lineas: lineas.length ? lineas : undefined,
+        modoProductos: lineas.length ? (wizardData?.modoProductos || 'unico') : undefined,
+        kitNombre: lineas.length ? (wizardData?.kitNombre || undefined) : undefined,
         descuento: lineas.length ? descuento : undefined,
         envio,
         empaque: empaque || undefined,
@@ -168,7 +171,7 @@ export default function NuevaCotizacion() {
         body: JSON.stringify({
           descripcion,
           cantidad: 1,
-          costo_base: lineas.length ? subTotal : (esOrdenVendedor ? 0 : (d.costoTotal ?? 0)),
+          costo_base: lineas.length ? subTotalBase : (esOrdenVendedor ? 0 : (d.costoTotal ?? 0)),
           costo_final: totalFinal,
           detalles,
         }),

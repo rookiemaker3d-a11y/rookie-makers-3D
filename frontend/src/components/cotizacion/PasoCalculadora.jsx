@@ -9,23 +9,28 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
   if (!cotizador) return null
   const lineas = wizardData.lineas || []
   const proyectoNombre = wizardData.proyecto?.nombre || 'Producto'
+  const nombreProductoDraft = (wizardData?.productoNombreDraft ?? proyectoNombre).toString()
   const descuento = Number(wizardData.descuento) || 0
   const round2 = (n) => Math.round((n ?? 0) * 100) / 100
   const addProduct = () => {
     const d = cotizador.desglose
+    const costoBaseUnit = Number(d.costoTotal) || 0
     const costoUnit = Number(d.precioCliente) || 0
     const cantidad = 1
     const id = `P${String(lineas.length + 1).padStart(3, '0')}`
+    const nombreProducto = (nombreProductoDraft || proyectoNombre).trim() || proyectoNombre
     setWizardData((prev) => ({
       ...prev,
       lineas: [
         ...(prev.lineas || []),
         {
           id_producto: id,
-          nombre_producto: proyectoNombre,
+          nombre_producto: nombreProducto,
           descripcion: 'Impresión',
+          costo_base_unitario: round2(costoBaseUnit),
           costo_unitario: costoUnit,
           cantidad,
+          costo_base_total: round2(costoBaseUnit * cantidad),
           costo_final: round2(costoUnit * cantidad),
         },
       ],
@@ -81,6 +86,21 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
       className="flex flex-col lg:flex-row gap-6"
     >
       <div className="flex-1 space-y-6 min-w-0">
+        <Card>
+          <div className="border-b border-white/[0.08] pb-3 mb-3">
+            <h3 className="text-sm font-semibold theme-text">Nombre del producto</h3>
+            <p className="theme-text-dim text-xs mt-0.5">Puedes cotizar varias piezas con nombres distintos</p>
+          </div>
+          <div className="pt-2">
+            <input
+              value={nombreProductoDraft}
+              onChange={(e) => setWizardData((prev) => ({ ...prev, productoNombreDraft: e.target.value }))}
+              placeholder="Ej. Separador de pilas"
+              className={inputClass}
+            />
+            <p className="theme-text-dim text-xs mt-1">Tip: el nombre del Paso 2 se usa como sugerencia, pero aquí lo puedes cambiar por cada producto.</p>
+          </div>
+        </Card>
         {/* A — Material */}
         <Card>
           <div className="border-b border-white/[0.08] pb-3 mb-3">

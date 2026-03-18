@@ -10,6 +10,8 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
   const d = desglose || {}
   const hasLineas = Array.isArray(lineas) && lineas.length > 0
   const soloOrdenVendedor = isVendedorVentas && !hasLineas
+  const modoProductos = wizardData?.modoProductos || 'unico'
+  const kitNombre = wizardData?.kitNombre || ''
 
   const setDescuento = (v) => setWizardData((prev) => ({ ...prev, descuento: Number(v) || 0 }))
   const setEnvio = (v) => setWizardData((prev) => ({ ...prev, envio: Number(v) || 0 }))
@@ -70,6 +72,40 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
           </div>
         ) : hasLineas ? (
           <>
+            <div className="mt-4 p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+              <p className="theme-text-muted text-xs mb-2">¿Cómo se autoriza esta cotización en Productos?</p>
+              <div className="flex flex-wrap gap-3 items-center">
+                <label className="flex items-center gap-2 text-sm theme-text-secondary cursor-pointer">
+                  <input
+                    type="radio"
+                    name="modoProductos"
+                    checked={modoProductos === 'unico'}
+                    onChange={() => setWizardData((prev) => ({ ...prev, modoProductos: 'unico' }))}
+                  />
+                  Producto(s) único(s) (uno por partida)
+                </label>
+                <label className="flex items-center gap-2 text-sm theme-text-secondary cursor-pointer">
+                  <input
+                    type="radio"
+                    name="modoProductos"
+                    checked={modoProductos === 'kit'}
+                    onChange={() => setWizardData((prev) => ({ ...prev, modoProductos: 'kit' }))}
+                  />
+                  Producto grupal (Kit)
+                </label>
+              </div>
+              {modoProductos === 'kit' && (
+                <div className="mt-2">
+                  <label className="block theme-text-muted text-sm mb-1">Nombre del kit</label>
+                  <input
+                    value={kitNombre}
+                    onChange={(e) => setWizardData((prev) => ({ ...prev, kitNombre: e.target.value }))}
+                    placeholder="Ej. Kit separadores de pilas"
+                    className="w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim text-sm"
+                  />
+                </div>
+              )}
+            </div>
             <div className="overflow-x-auto mt-4">
               <table className="w-full text-sm border-collapse">
                 <thead>
@@ -80,17 +116,89 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
                     <th className="text-right py-2 px-2 font-medium">Costo</th>
                     <th className="text-right py-2 px-2 font-medium">Cantidad</th>
                     <th className="text-right py-2 px-2 font-medium">Costo final</th>
+                    <th className="text-right py-2 px-2 font-medium w-24">Editar</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lineas.map((l, i) => (
                     <tr key={i} className="border-b border-white/[0.06]">
                       <td className="py-2 px-2 theme-text-secondary">{l.id_producto}</td>
-                      <td className="py-2 px-2 theme-text">{l.nombre_producto}</td>
-                      <td className="py-2 px-2 theme-text-muted">{l.descripcion || '—'}</td>
-                      <td className="py-2 px-2 text-right theme-text tabular-nums">${(l.costo_unitario ?? 0).toFixed(2)}</td>
-                      <td className="py-2 px-2 text-right theme-text tabular-nums">{l.cantidad ?? 1}</td>
+                      <td className="py-2 px-2 theme-text">
+                        <input
+                          value={l.nombre_producto || ''}
+                          onChange={(e) => setWizardData((prev) => ({
+                            ...prev,
+                            lineas: (prev.lineas || []).map((x, idx) => idx === i ? { ...x, nombre_producto: e.target.value } : x),
+                          }))}
+                          className="w-full px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-sm"
+                        />
+                      </td>
+                      <td className="py-2 px-2 theme-text-muted">
+                        <input
+                          value={l.descripcion || ''}
+                          onChange={(e) => setWizardData((prev) => ({
+                            ...prev,
+                            lineas: (prev.lineas || []).map((x, idx) => idx === i ? { ...x, descripcion: e.target.value } : x),
+                          }))}
+                          className="w-full px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text-muted text-sm"
+                        />
+                      </td>
+                      <td className="py-2 px-2 text-right theme-text tabular-nums">
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={Number(l.costo_unitario ?? 0)}
+                          onChange={(e) => {
+                            const v = Number(e.target.value) || 0
+                            setWizardData((prev) => ({
+                              ...prev,
+                              lineas: (prev.lineas || []).map((x, idx) => {
+                                if (idx !== i) return x
+                                const cant = Number(x.cantidad ?? 1) || 1
+                                return { ...x, costo_unitario: v, costo_final: Math.round(v * cant * 100) / 100 }
+                              }),
+                            }))
+                          }}
+                          className="w-28 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums text-sm"
+                        />
+                      </td>
+                      <td className="py-2 px-2 text-right theme-text tabular-nums">
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          value={Number(l.cantidad ?? 1)}
+                          onChange={(e) => {
+                            const cant = Math.max(1, Number(e.target.value) || 1)
+                            setWizardData((prev) => ({
+                              ...prev,
+                              lineas: (prev.lineas || []).map((x, idx) => {
+                                if (idx !== i) return x
+                                const cu = Number(x.costo_unitario ?? 0) || 0
+                                const cb = Number(x.costo_base_unitario ?? 0) || 0
+                                return {
+                                  ...x,
+                                  cantidad: cant,
+                                  costo_final: Math.round(cu * cant * 100) / 100,
+                                  costo_base_total: Math.round(cb * cant * 100) / 100,
+                                }
+                              }),
+                            }))
+                          }}
+                          className="w-20 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums text-sm"
+                        />
+                      </td>
                       <td className="py-2 px-2 text-right theme-text tabular-nums">${(l.costo_final ?? 0).toFixed(2)}</td>
+                      <td className="py-2 px-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setWizardData((prev) => ({ ...prev, lineas: (prev.lineas || []).filter((_, idx) => idx !== i) }))}
+                          className="px-2 py-1 rounded bg-red-600/20 text-red-300 hover:bg-red-600/30 text-xs"
+                        >
+                          Borrar
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

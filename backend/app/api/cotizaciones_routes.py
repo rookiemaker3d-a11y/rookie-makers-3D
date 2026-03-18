@@ -183,16 +183,55 @@ async def autorizar_venta(
         result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cid))
         c = result.scalar_one_or_none()
         if c:
-            p = Producto(
-                descripcion=c.descripcion,
-                costo_base=c.costo_base,
-                costo_final=c.costo_final,
-                cantidad=c.cantidad,
-                vendedor=c.vendedor,
-                detalles=c.detalles or {},
-            )
-            db.add(p)
-            await db.delete(c)
+            d = c.detalles or {}
+            lineas = d.get("lineas") if isinstance(d, dict) else None
+            modo = (d.get("modoProductos") or "unico") if isinstance(d, dict) else "unico"
+            kit_nombre = (d.get("kitNombre") or "").strip() if isinstance(d, dict) else ""
+
+            # Si la cotización trae múltiples partidas (Nueva cotización), decidir si se autoriza como kit o por partida
+            if isinstance(lineas, list) and len(lineas) > 0:
+                if modo == "kit":
+                    nombre = kit_nombre or c.descripcion
+                    p = Producto(
+                        descripcion=f"KIT: {nombre}",
+                        costo_base=c.costo_base,
+                        costo_final=c.costo_final,
+                        cantidad=1,
+                        vendedor=c.vendedor,
+                        detalles={**d, "tipo_producto": "kit"},
+                    )
+                    db.add(p)
+                else:
+                    # Un producto por partida
+                    for l in lineas:
+                        if not isinstance(l, dict):
+                            continue
+                        nombre_prod = (l.get("nombre_producto") or c.descripcion or "Producto").strip()
+                        cant = float(l.get("cantidad") or 1)
+                        costo_base_total = float(l.get("costo_base_total") or l.get("costo_final") or 0)
+                        costo_final = float(l.get("costo_final") or 0)
+                        p = Producto(
+                            descripcion=nombre_prod,
+                            costo_base=costo_base_total,
+                            costo_final=costo_final,
+                            cantidad=cant,
+                            vendedor=c.vendedor,
+                            detalles={**d, "tipo_producto": "unico", "linea": l},
+                        )
+                        db.add(p)
+                await db.delete(c)
+            else:
+                # Cotización simple (una sola pieza)
+                p = Producto(
+                    descripcion=c.descripcion,
+                    costo_base=c.costo_base,
+                    costo_final=c.costo_final,
+                    cantidad=c.cantidad,
+                    vendedor=c.vendedor,
+                    detalles=d,
+                )
+                db.add(p)
+                await db.delete(c)
     return {"ok": True, "count": len(ids)}
 
 
