@@ -299,7 +299,6 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
           </div>
         </Card>
       </div>
-      )}
 
       {/* E — Resumen sticky */}
       <div className="lg:w-80 shrink-0">
