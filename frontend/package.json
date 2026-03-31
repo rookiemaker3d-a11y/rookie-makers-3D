@@ -18,6 +18,8 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.2.2",
     "@react-pdf/renderer": "^4.3.2",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "buffer": "^6.0.3",
     "framer-motion": "^12.35.1",
     "lucide-react": "^0.577.0",

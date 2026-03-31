@@ -29,7 +29,7 @@ export function materialesFromAPI(apiList) {
   return apiList.map((m) => ({
     id: m.id_externo || String(m.id),
     nombre: m.nombre,
-    costoPorKg: m.costo_por_kg ?? 500,
+    costoPorKg: m.costo_por_kg ?? 300,
   }))
 }
 
@@ -81,8 +81,11 @@ export function useCotizador(initialConfig = {}) {
   }, [materialEspecial, materialEspecialCosto, gramos, material])
 
   const costoTiempoMaquina = useMemo(() => {
-    return round2(horasMaquina * config.costoHoraMaquina)
-  }, [horasMaquina, config.costoHoraMaquina])
+    const calibracionMin = Number(config.calibracionMin ?? 0) || 0
+    const horasCalibracion = (horasMaquina > 0 && calibracionMin > 0) ? (calibracionMin / 60) : 0
+    const horasEfectivas = (Number(horasMaquina) || 0) + horasCalibracion
+    return round2(horasEfectivas * config.costoHoraMaquina)
+  }, [horasMaquina, config.costoHoraMaquina, config.calibracionMin])
 
   const costoDisenoYArchivo = useMemo(() => {
     let total = 0

@@ -82,7 +82,19 @@ export default function PasoPDF({
         prevUrlRef.current = null
       }
     }
-  }, [folio, subTotal, descuento, envio, empaque, totalFinal, lineas?.length, wizardData?.cliente?.id, wizardData?.proyecto?.nombre, notas])
+  }, [
+    folio,
+    subTotal,
+    descuento,
+    envio,
+    empaque,
+    totalFinal,
+    JSON.stringify(lineas || []),
+    wizardData?.cliente?.id,
+    wizardData?.proyecto?.nombre,
+    wizardData?.proyecto?.categoria,
+    notas,
+  ])
 
   const handleDownload = async () => {
     setDownloading(true)

@@ -34,6 +34,17 @@ class Settings(BaseSettings):
     email_from: str = ""  # Opcional; si está vacío se usa smtp_user
     app_base_url: str = "http://localhost:5173"  # URL del frontend para el enlace en el correo
 
+    # WhatsApp Cloud API (Meta) — webhook y envío de mensajes
+    whatsapp_phone_number_id: str = ""
+    whatsapp_access_token: str = ""
+    whatsapp_verify_token: str = ""
+    whatsapp_app_secret: str = ""  # opcional: verificación X-Hub-Signature-256
+    whatsapp_graph_version: str = "v22.0"
+
+    # Ollama (contenedor Docker: http://ollama:11434)
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_model: str = "llama3.2"
+
     # Constantes de negocio (igual que calculator_window.py)
     margen_ganancia: float = 0.50
     costo_filamento_base: float = 500.0  # MXN/kg

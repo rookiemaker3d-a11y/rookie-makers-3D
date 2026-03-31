@@ -19,9 +19,20 @@ from app.auth import get_password_hash
 def _get_engine_and_session():
     url = os.environ.get("DATABASE_URL", "").strip()
     if url and "postgresql" in url:
+        from urllib.parse import urlparse
         if not url.startswith("postgresql+asyncpg"):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
-        engine = create_async_engine(url, echo=False, connect_args={"ssl": True})
+        # En Docker local el Postgres del contenedor (`db`) normalmente NO acepta "SSL upgrade".
+        # En ese caso, regresamos (None, None) para que el seed caiga a `init_db()` y
+        # use el engine de `app.database` (ya tiene la lógica correcta para local).
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+        is_local_pg = host in ("db", "localhost", "127.0.0.1")
+        if is_local_pg:
+            return None, None
+
+        connect_args = {"ssl": True}
+        engine = create_async_engine(url, echo=False, connect_args=connect_args)
         session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
         return engine, session_factory
     return None, None

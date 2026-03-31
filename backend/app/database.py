@@ -1,4 +1,5 @@
 import ssl
+import os
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -33,10 +34,24 @@ if "postgresql" in _db_url and "?" in _db_url:
 # Render PostgreSQL puede usar certificado que falla verificación (CERTIFICATE_VERIFY_FAILED / self-signed)
 _connect_args = {}
 if "postgresql" in _db_url:
-    _ssl_ctx = ssl.create_default_context()
-    _ssl_ctx.check_hostname = False
-    _ssl_ctx.verify_mode = ssl.CERT_NONE
-    _connect_args["ssl"] = _ssl_ctx
+    # En Docker local con docker-compose, el host suele ser `db` y el Postgres del contenedor
+    # normalmente NO acepta "SSL upgrade". Para evitar el error:
+    #   "PostgreSQL server at 'db:5432' rejected SSL upgrade"
+    # forzamos SSL solo si NO estamos conectando a un host local o si se solicita explícitamente.
+    parsed = urlparse(_db_url)
+    hostname = (parsed.hostname or "").lower()
+    force_ssl = (os.environ.get("DB_FORCE_SSL", "") or "").strip().lower() in ("1", "true", "yes", "force")
+    is_local_pg = hostname in ("localhost", "127.0.0.1", "db")
+
+    # Importante: en Docker local el Postgres del contenedor típicamente NO acepta SSL.
+    # Si dejamos connect_args vacío, asyncpg puede intentar "SSL upgrade" y falla.
+    _connect_args["ssl"] = False
+
+    if force_ssl or not is_local_pg:
+        _ssl_ctx = ssl.create_default_context()
+        _ssl_ctx.check_hostname = False
+        _ssl_ctx.verify_mode = ssl.CERT_NONE
+        _connect_args["ssl"] = _ssl_ctx
 
 engine = create_async_engine(_db_url, echo=False, connect_args=_connect_args)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

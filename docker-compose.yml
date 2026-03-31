@@ -1,0 +1,107 @@
+# Rookie Makers 3D - Producción en VPS (Hostinger, DigitalOcean, etc.)
+# Uso: docker compose --env-file .env up -d
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rookie
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cambiar-en-produccion}
+      POSTGRES_DB: rookie_erp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rookie -d rookie_erp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      ollama: { condition: service_started }
+    environment:
+      DATABASE_URL: postgresql+asyncpg://rookie:${POSTGRES_PASSWORD:-cambiar-en-produccion}@db:5432/rookie_erp
+      SECRET_KEY: ${SECRET_KEY:-cambiar-secret-en-produccion}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # Notificaciones por correo (Gmail SMTP)
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
+      # Variables reservadas para integración WhatsApp/API (fase 1)
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_ALERT_TO: ${WHATSAPP_ALERT_TO:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+    volumes:
+      # Persistir archivos subidos (cotizaciones, etc.) en el servidor
+      - backend_uploads:/app/uploads
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+  # n8n self-hosted (sin mensualidad SaaS)
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-cambiar-en-produccion-32-chars-minimo}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/Mexico_City}
+      # BD de n8n en PostgreSQL (contenedor db compartido)
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: rookie_erp
+      DB_POSTGRESDB_USER: rookie
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-cambiar-en-produccion}
+      # Auth básica para panel n8n (recomendado)
+      N8N_BASIC_AUTH_ACTIVE: ${N8N_BASIC_AUTH_ACTIVE:-true}
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-cambiar-n8n-password}
+      N8N_SECURE_COOKIE: ${N8N_SECURE_COOKIE:-false}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    ports:
+      - "5678:5678"
+
+  # Ollama self-hosted (modelos locales)
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    # Si quieres exponerlo fuera del VPS, cambia por "11434:11434"
+    ports:
+      - "127.0.0.1:11434:11434"
+
+volumes:
+  postgres_data:
+  backend_uploads:
+  n8n_data:
+  ollama_data:

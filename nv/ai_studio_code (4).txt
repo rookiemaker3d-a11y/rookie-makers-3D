@@ -1,0 +1,43 @@
+import QuoteModule from "@/components/ui/QuoteModule";
+import MakerBot from "@/components/ui/MakerBot";
+import { JetBrains_Mono } from "next/font/google";
+
+const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono" });
+
+export default function Home() {
+  return (
+    <main className={`${jetbrains.variable} bg-background min-h-screen text-white selection:bg-precision selection:text-black`}>
+      {/* Navegación Glashmorphism */}
+      <nav className="sticky top-0 z-[90] h-20 flex items-center px-10 bg-background/50 backdrop-blur-xl border-b border-white/5">
+        <div className="text-xl font-black tracking-tighter text-precision">ROOKIEMAKERS<span className="text-white">3D</span></div>
+      </nav>
+
+      {/* Hero Section Simplificada */}
+      <section className="py-24 text-center">
+        <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6 bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent">
+          CORTA EL<br />LÍMITE.
+        </h1>
+        <p className="font-mono text-precision/60 tracking-[0.5em] text-xs uppercase">Industrial Manufacturing 2.0</p>
+      </section>
+
+      {/* Módulo Principal */}
+      <QuoteModule />
+
+      {/* Bento Grid Visual (Diseño) */}
+      <section className="max-w-6xl mx-auto py-24 px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 h-80 bg-industrial-900 rounded-[2.5rem] border border-white/5 overflow-hidden group">
+            <div className="p-10 h-full flex flex-col justify-end">
+                <span className="text-action font-mono text-xs">// ART_TECH</span>
+                <h2 className="text-4xl font-bold">Prototipado rápido</h2>
+            </div>
+        </div>
+        <div className="h-80 bg-precision/5 border border-precision/20 rounded-[2.5rem] p-10 flex flex-col justify-between">
+            <div className="w-12 h-12 bg-precision rounded-full" />
+            <p className="font-mono text-xs text-precision uppercase">Envío mundial 24/48h</p>
+        </div>
+      </section>
+
+      <MakerBot />
+    </main>
+  );
+}

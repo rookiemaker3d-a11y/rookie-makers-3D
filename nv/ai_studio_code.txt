@@ -1,0 +1,17 @@
+rookiemakers-v2/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/
+│   │   ├── 3d/
+│   │   │   ├── HeroNozzle.tsx
+│   │   │   └── STLViewer.tsx
+│   │   ├── ui/
+│   │   │   ├── BentoGrid.tsx
+│   │   │   ├── MakerBot.tsx
+│   │   │   └── QuoteModule.tsx
+│   ├── store/
+│   │   └── useQuoteStore.ts
+├── tailwind.config.ts
+└── package.json

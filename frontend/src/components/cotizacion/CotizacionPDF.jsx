@@ -120,11 +120,22 @@ export default function CotizacionPDF({
   expira.setDate(expira.getDate() + (diasValidez || 7))
 
   const hasLineas = Array.isArray(lineas) && lineas.length > 0
-  const subTotal = hasLineas ? (Number(subTotalProp) || 0) : (Number(d.material) || 0) + (Number(d.tiempoMaquina) || 0) + (Number(d.disenoArchivo) || 0) + (Number(d.extras) || 0)
   const descuento = hasLineas ? (Number(descuentoProp) || 0) : 0
-  const envio = hasLineas ? (Number(envioProp) || 0) : (Number(envioProp) || 0)
+  const envio = Number(envioProp) || 0
   const empaque = Number(empaqueProp) || 0
-  const total = Number(totalFinalProp) || (hasLineas ? subTotal - descuento + envio + empaque : (Number(d.precioCliente) || 0) + envio + empaque)
+  const precioCliente = Number(d.precioCliente) || 0
+  const total = Number(totalFinalProp) || (hasLineas ? (Number(subTotalProp) || 0) - descuento + envio + empaque : precioCliente - descuento + envio + empaque)
+  const subTotal = hasLineas ? (Number(subTotalProp) || 0) : (precioCliente || total)
+  const partidas = hasLineas
+    ? lineas
+    : [{
+      id_producto: 'P001',
+      nombre_producto: (proyecto?.nombre || 'Producto'),
+      descripcion: 'Impresión',
+      costo_unitario: subTotal,
+      cantidad: 1,
+      costo_final: subTotal,
+    }]
 
   const v = vendedor
   const t = transferencia
@@ -183,6 +194,15 @@ export default function CotizacionPDF({
           </View>
         </View>
 
+        {/* PROYECTO */}
+        <View style={{ marginBottom: 10 }}>
+          <Text style={styles.sectionHead}>PROYECTO:</Text>
+          <View style={styles.infoBlock}>
+            <Text><Text style={styles.infoB}>{proyecto?.nombre || NA}</Text></Text>
+            {proyecto?.categoria && <Text>{proyecto.categoria}</Text>}
+          </View>
+        </View>
+
         {/* DATOS DE TRANSFERENCIA */}
         <View style={styles.bankWrap}>
           <Text style={styles.blackBar}>DATOS DE TRANSFERENCIA</Text>
@@ -206,33 +226,22 @@ export default function CotizacionPDF({
               <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>CANTIDAD</Text>
               <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO FINAL</Text>
             </View>
-            {hasLineas ? (
-              lineas.map((l, i) => (
-                <View key={i} style={styles.tableRow}>
-                  <Text style={styles.tableCell}>{l.id_producto || NA}</Text>
-                  <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || NA}</Text>
-                  <Text style={[styles.tableCell, { flex: 1.5 }]}>{l.descripcion || NA}</Text>
-                  <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_unitario ?? 0).toFixed(2)}</Text>
-                  <Text style={[styles.tableCell, styles.tableRight]}>{l.cantidad ?? 1}</Text>
-                  <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_final ?? 0).toFixed(2)}</Text>
-                </View>
-              ))
-            ) : (
-              <View style={styles.tableRow}>
-                <Text style={styles.tableCell}>—</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>Sin partidas</Text>
-                <Text style={[styles.tableCell, { flex: 1.5 }]}>—</Text>
-                <Text style={[styles.tableCell, styles.tableRight]}>$0.00</Text>
-                <Text style={[styles.tableCell, styles.tableRight]}>0</Text>
-                <Text style={[styles.tableCell, styles.tableRight]}>$0.00</Text>
+            {partidas.map((l, i) => (
+              <View key={i} style={styles.tableRow}>
+                <Text style={styles.tableCell}>{l.id_producto || NA}</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || NA}</Text>
+                <Text style={[styles.tableCell, { flex: 1.5 }]}>{l.descripcion || NA}</Text>
+                <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_unitario ?? 0).toFixed(2)}</Text>
+                <Text style={[styles.tableCell, styles.tableRight]}>{l.cantidad ?? 1}</Text>
+                <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_final ?? 0).toFixed(2)}</Text>
               </View>
-            )}
+            ))}
           </View>
           <View style={styles.totalsBlock}>
             <View style={styles.totalRow}><Text style={styles.totalLbl}>SUB TOTAL</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
-            <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>
+            {(descuento > 0) && <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>}
             {empaque > 0 && <View style={styles.totalRow}><Text style={styles.totalLbl}>EMPAQUE</Text><Text style={styles.totalVal}>${empaque.toFixed(2)}</Text></View>}
-            <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVIO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>
+            {(envio > 0) && <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVIO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>}
             <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
           </View>
         </View>

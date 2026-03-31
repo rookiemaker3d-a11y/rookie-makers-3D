@@ -1,6 +1,6 @@
 // Misma base que el backend (calculator_window / cost_calculator)
 const MARGEN = 0.5
-const COSTO_FILAMENTO_KG = 500
+const COSTO_FILAMENTO_KG = 300
 const COSTO_ENERGIA = 4.5
 const COSTO_LIMPIEZA = 25
 const COSTO_DISENO = 50
