@@ -257,6 +257,9 @@ class InventarioItemBase(BaseModel):
     descripcion: Optional[str] = None
     cantidad: float = 0
     unidad: str = "pza"
+    costo_unitario: float = 0
+    foto_url: Optional[str] = None
+    color_hex: Optional[str] = None
 
 
 class InventarioItemCreate(InventarioItemBase):
@@ -268,6 +271,9 @@ class InventarioItemUpdate(BaseModel):
     descripcion: Optional[str] = None
     cantidad: Optional[float] = None
     unidad: Optional[str] = None
+    costo_unitario: Optional[float] = None
+    foto_url: Optional[str] = None
+    color_hex: Optional[str] = None
 
 
 class InventarioItemResponse(InventarioItemBase):

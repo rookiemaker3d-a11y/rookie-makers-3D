@@ -30,6 +30,8 @@ export default function NuevaCotizacion() {
     descuento: 0,
     envio: 0,
     empaque: 0,
+    regalia_markup_pct: 20,
+    regalia_vendedor_pct: 20,
   })
   const [notas, setNotas] = useState('')
   const [saving, setSaving] = useState(false)
@@ -130,8 +132,41 @@ export default function NuevaCotizacion() {
     }
   }
   const lineas = wizardData.lineas || []
-  const subTotal = lineas.reduce((s, l) => s + (Number(l.costo_final) || 0), 0)
-  const subTotalBase = lineas.reduce((s, l) => s + (Number(l.costo_base_total) || 0), 0)
+  const materialesExtra = Array.isArray(wizardData.materiales_extra) ? wizardData.materiales_extra : []
+  const lineasMateriales = materialesExtra.map((m, idx) => ({
+    id_producto: `I${String(idx + 1).padStart(3, '0')}`,
+    nombre_producto: m.nombre || 'Material',
+    descripcion: `${Number(m.cantidad ?? 0)} ${(m.unidad || '').trim()}`.trim() || 'Material',
+    costo_unitario: Number(m.costo_unitario ?? 0) || 0,
+    cantidad: Number(m.cantidad ?? 0) || 0,
+    costo_final: Number(m.costo_total ?? 0) || 0,
+    costo_base_unitario: 0,
+    costo_base_total: 0,
+  }))
+  const subTotalLineas = lineas.reduce((s, l) => s + (Number(l.costo_final) || 0), 0)
+  const subTotalMateriales = materialesExtra.reduce((s, m) => s + (Number(m.costo_total) || 0), 0)
+  const subTotalBase = subTotalLineas + subTotalMateriales
+  const regaliaMarkupPct = Number(wizardData.regalia_markup_pct) || 0
+  const regaliaVendedorPct = Number(wizardData.regalia_vendedor_pct) || 0
+  const regaliaMarkupMonto = Math.round((subTotalBase * (regaliaMarkupPct / 100)) * 100) / 100
+  const regaliaVendedorMonto = Math.round((subTotalBase * (regaliaVendedorPct / 100)) * 100) / 100
+
+  const lineasParaCotizacion = [
+    ...lineas,
+    ...lineasMateriales,
+    ...(regaliaMarkupMonto > 0 ? [{
+      id_producto: 'R001',
+      nombre_producto: 'Regalías',
+      descripcion: `Markup ${regaliaMarkupPct}%`,
+      costo_unitario: regaliaMarkupMonto,
+      cantidad: 1,
+      costo_final: regaliaMarkupMonto,
+      costo_base_unitario: 0,
+      costo_base_total: 0,
+    }] : []),
+  ]
+  const subTotal = subTotalBase + regaliaMarkupMonto
+  const subTotalBaseCost = lineas.reduce((s, l) => s + (Number(l.costo_base_total) || 0), 0)
   const descuento = Number(wizardData.descuento) || 0
   const envio = Number(wizardData.envio) || 0
   const empaque = Number(wizardData.empaque) || 0
@@ -157,13 +192,18 @@ export default function NuevaCotizacion() {
         notas,
         estado: 'espera',
         orden_vendedor: esOrdenVendedor || undefined,
-        lineas: lineas.length ? lineas : undefined,
+        lineas: lineasParaCotizacion.length ? lineasParaCotizacion : undefined,
+        materiales_extra: materialesExtra.length ? materialesExtra : undefined,
+        regalia_markup_pct: regaliaMarkupPct || undefined,
+        regalia_markup_monto: regaliaMarkupMonto || undefined,
+        regalia_vendedor_pct: regaliaVendedorPct || undefined,
+        regalia_vendedor_monto: regaliaVendedorMonto || undefined,
         modoProductos: lineas.length ? (wizardData?.modoProductos || 'unico') : undefined,
         kitNombre: lineas.length ? (wizardData?.kitNombre || undefined) : undefined,
         descuento: lineas.length ? descuento : undefined,
         envio,
         empaque: empaque || undefined,
-        sub_total: lineas.length ? subTotal : (esOrdenVendedor ? 0 : undefined),
+        sub_total: lineasParaCotizacion.length ? subTotal : (esOrdenVendedor ? 0 : undefined),
         total: totalFinal,
       }
       const res = await api('/cotizaciones-en-espera', {
@@ -171,7 +211,7 @@ export default function NuevaCotizacion() {
         body: JSON.stringify({
           descripcion,
           cantidad: 1,
-          costo_base: lineas.length ? subTotalBase : (esOrdenVendedor ? 0 : (d.costoTotal ?? 0)),
+              costo_base: lineas.length ? subTotalBaseCost : (esOrdenVendedor ? 0 : (d.costoTotal ?? 0)),
           costo_final: totalFinal,
           detalles,
         }),
@@ -308,6 +348,7 @@ export default function NuevaCotizacion() {
             wizardData={wizardData}
             setWizardData={setWizardData}
             onNext={() => setPaso(4)}
+            api={api}
           />
         )}
         {paso === 4 && (
@@ -316,7 +357,7 @@ export default function NuevaCotizacion() {
             wizardData={wizardData}
             setWizardData={setWizardData}
             desglose={cotizador?.desglose ?? {}}
-            lineas={lineas}
+            lineas={lineasParaCotizacion}
             subTotal={subTotal}
             descuento={descuento}
             envio={envio}
@@ -334,7 +375,7 @@ export default function NuevaCotizacion() {
             folio={folio}
             wizardData={wizardData}
             desglose={isVendedorVentas && !lineas.length ? null : (cotizador?.desglose ?? null)}
-            lineas={lineas}
+            lineas={lineasParaCotizacion}
             subTotal={subTotal}
             descuento={descuento}
             envio={envio}

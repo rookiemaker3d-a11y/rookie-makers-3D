@@ -139,6 +139,9 @@ class InventarioItem(Base):
     descripcion = Column(Text)
     cantidad = Column(Float, default=0)
     unidad = Column(String(50), default="pza")
+    costo_unitario = Column(Float, default=0)  # MXN por unidad (pza/m/kg/etc.) para usar en cotización
+    foto_url = Column(Text, nullable=True)  # data URL o URL (ej. foto del filamento/accesorio)
+    color_hex = Column(String(20), nullable=True)  # detectado desde foto (hex)
     vendedor_id = Column(Integer, ForeignKey("vendedores.id"), nullable=True)  # quien lo subió; null = admin
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

@@ -161,6 +161,28 @@ def _migrate_add_vendedor_tarjeta(sync_conn):
             pass  # columna ya existe
 
 
+def _migrate_add_inventario_item_media(sync_conn):
+    """Añade columnas foto_url y color_hex a inventario si no existen."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE inventario ADD COLUMN IF NOT EXISTS foto_url TEXT",
+            "ALTER TABLE inventario ADD COLUMN IF NOT EXISTS color_hex VARCHAR(20)",
+            "ALTER TABLE inventario ADD COLUMN IF NOT EXISTS costo_unitario FLOAT DEFAULT 0",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE inventario ADD COLUMN foto_url TEXT",
+            "ALTER TABLE inventario ADD COLUMN color_hex VARCHAR(20)",
+            "ALTER TABLE inventario ADD COLUMN costo_unitario FLOAT DEFAULT 0",
+        ]
+    for stmt in stmts:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass  # columna ya existe
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -169,3 +191,4 @@ async def init_db():
         await conn.run_sync(_migrate_add_vendedor_tarjeta)
         await conn.run_sync(_migrate_add_user_nombre)
         await conn.run_sync(_migrate_add_user_vendedor_ventas_profile)
+        await conn.run_sync(_migrate_add_inventario_item_media)

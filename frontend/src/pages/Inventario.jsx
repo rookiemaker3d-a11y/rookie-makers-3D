@@ -60,7 +60,7 @@ export default function Inventario() {
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza' })
+  const [form, setForm] = useState({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza', costo_unitario: 0, foto_url: '', color_hex: '' })
   const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
   const [editingCostoId, setEditingCostoId] = useState(null)
@@ -135,6 +135,9 @@ export default function Inventario() {
             descripcion: form.descripcion?.trim() || null,
             cantidad: Number(form.cantidad) || 0,
             unidad: form.unidad || 'pza',
+            costo_unitario: Number(form.costo_unitario) || 0,
+            foto_url: form.foto_url || null,
+            color_hex: form.color_hex || null,
           }),
         })
         setMsg('Ítem actualizado.')
@@ -146,11 +149,14 @@ export default function Inventario() {
             descripcion: form.descripcion?.trim() || null,
             cantidad: Number(form.cantidad) || 0,
             unidad: form.unidad || 'pza',
+            costo_unitario: Number(form.costo_unitario) || 0,
+            foto_url: form.foto_url || null,
+            color_hex: form.color_hex || null,
           }),
         })
         setMsg('Ítem agregado.')
       }
-      setForm({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza' })
+      setForm({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza', costo_unitario: 0, foto_url: '', color_hex: '' })
       setEditingId(null)
       setFormOpen(false)
       load()
@@ -176,6 +182,9 @@ export default function Inventario() {
       descripcion: item.descripcion || '',
       cantidad: item.cantidad ?? 0,
       unidad: item.unidad || 'pza',
+      costo_unitario: item.costo_unitario ?? 0,
+      foto_url: item.foto_url || '',
+      color_hex: item.color_hex || '',
     })
     setEditingId(item.id)
     setFormOpen(true)
@@ -184,7 +193,20 @@ export default function Inventario() {
   const cancelForm = () => {
     setFormOpen(false)
     setEditingId(null)
-    setForm({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza' })
+    setForm({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza', costo_unitario: 0, foto_url: '', color_hex: '' })
+  }
+
+  const onItemPhotoChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      setForm((f) => ({ ...f, foto_url: dataUrl }))
+      const hex = await getDominantColorFromFile(file)
+      if (hex) setForm((f) => ({ ...f, color_hex: hex }))
+    } catch {
+      setError('Error al procesar la imagen.')
+    }
   }
 
   const onFilamentoPhotoChange = async (e) => {
@@ -565,7 +587,7 @@ export default function Inventario() {
         }
         action={
           <button
-            onClick={() => { setFormOpen(true); setEditingId(null); setForm({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza' }); }}
+            onClick={() => { setFormOpen(true); setEditingId(null); setForm({ nombre: '', descripcion: '', cantidad: 0, unidad: 'pza', costo_unitario: 0, foto_url: '', color_hex: '' }); }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg btn-primary hover:opacity-95 text-sm font-medium transition shadow-sm"
           >
             <Plus className="w-4 h-4" />
@@ -611,6 +633,35 @@ export default function Inventario() {
                 <option value="rollo">rollo</option>
                 <option value="caja">caja</option>
               </select>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="Costo unitario (MXN)"
+                value={form.costo_unitario}
+                onChange={(e) => setForm((f) => ({ ...f, costo_unitario: e.target.value }))}
+                className="theme-input w-56 px-3 py-2 rounded-lg border"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="theme-text-muted text-sm">Foto (opcional)</label>
+              <input type="file" accept="image/*" onChange={onItemPhotoChange} className="theme-input px-3 py-2 rounded-lg border" />
+              <div className="flex items-center gap-3 flex-wrap">
+                {form.foto_url ? (
+                  <img src={form.foto_url} alt="Preview" className="w-20 h-20 rounded border object-cover" style={{ borderColor: 'var(--theme-border)' }} />
+                ) : (
+                  <span className="theme-text-muted text-xs">Sin foto</span>
+                )}
+                {form.color_hex ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="w-8 h-8 rounded border" style={{ backgroundColor: form.color_hex, borderColor: 'var(--theme-border)' }} title={form.color_hex} />
+                    <span className="theme-text-muted text-xs">{form.color_hex}</span>
+                  </span>
+                ) : (
+                  <span className="theme-text-muted text-xs">Color: —</span>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <button type="submit" className="px-4 py-2 rounded-lg btn-primary font-medium">
@@ -628,8 +679,11 @@ export default function Inventario() {
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b" style={{ borderColor: 'var(--theme-border)' }}>
+              <th className="p-3 theme-text-muted font-medium">Foto</th>
+              <th className="p-3 theme-text-muted font-medium">Color</th>
               <th className="p-3 theme-text-muted font-medium">Nombre</th>
               <th className="p-3 theme-text-muted font-medium">Descripción</th>
+              <th className="p-3 theme-text-muted font-medium">Costo (MXN)</th>
               <th className="p-3 theme-text-muted font-medium">Cantidad</th>
               <th className="p-3 theme-text-muted font-medium">Unidad</th>
               {isAdmin && <th className="p-3 theme-text-muted font-medium">Vendedor ID</th>}
@@ -639,8 +693,26 @@ export default function Inventario() {
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-b hover:bg-[var(--theme-table-row-hover)]" style={{ borderColor: 'var(--theme-border)' }}>
+                <td className="p-3">
+                  {item.foto_url ? (
+                    <img src={item.foto_url} alt={item.nombre} className="w-12 h-12 rounded border object-cover" style={{ borderColor: 'var(--theme-border)' }} />
+                  ) : (
+                    <span className="theme-text-muted">—</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  {item.color_hex ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="w-6 h-6 rounded border shrink-0" style={{ backgroundColor: item.color_hex, borderColor: 'var(--theme-border)' }} title={item.color_hex} />
+                      <span className="theme-text-muted text-xs">{item.color_hex}</span>
+                    </span>
+                  ) : (
+                    <span className="theme-text-muted">—</span>
+                  )}
+                </td>
                 <td className="p-3 theme-text font-medium">{item.nombre}</td>
                 <td className="p-3 theme-text-muted">{item.descripcion || '—'}</td>
+                <td className="p-3 theme-text tabular-nums">${Number(item.costo_unitario ?? 0).toFixed(2)}</td>
                 <td className="p-3 theme-text tabular-nums">{item.cantidad}</td>
                 <td className="p-3 theme-text-muted">{item.unidad || 'pza'}</td>
                 {isAdmin && <td className="p-3 theme-text-muted">{item.vendedor_id ?? '—'}</td>}

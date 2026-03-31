@@ -1,11 +1,12 @@
 import { motion } from 'framer-motion'
 import { Plus, ArrowRight } from 'lucide-react'
 import { Card } from '../ui'
+import { useEffect, useMemo, useState } from 'react'
 
 const inputClass =
   'w-full px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]'
 
-export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardData, onNext, soloResumen = false }) {
+export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardData, onNext, soloResumen = false, api }) {
   if (!cotizador) return null
   const lineas = wizardData.lineas || []
   const proyectoNombre = wizardData.proyecto?.nombre || 'Producto'
@@ -76,6 +77,56 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
     anticipoMonto,
     desglose,
   } = cotizador
+
+  // ─── Inventario extra (tira LED, focos, etc.) ──────────────────────────────
+  const [inventario, setInventario] = useState([])
+  const [invSelId, setInvSelId] = useState('')
+  const [invQty, setInvQty] = useState('')
+
+  useEffect(() => {
+    if (!api || soloResumen) return
+    api('/inventario')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setInventario(Array.isArray(data) ? data : []))
+      .catch(() => setInventario([]))
+  }, [api, soloResumen])
+
+  const invById = useMemo(() => {
+    const map = new Map()
+    inventario.forEach((it) => map.set(String(it.id), it))
+    return map
+  }, [inventario])
+
+  const materialesExtra = Array.isArray(wizardData.materiales_extra) ? wizardData.materiales_extra : []
+  const addInventarioExtra = () => {
+    const it = invById.get(String(invSelId))
+    const qty = Number(invQty)
+    if (!it || !Number.isFinite(qty) || qty <= 0) return
+    const unitCost = Number(it.costo_unitario ?? 0) || 0
+    const costoTotal = round2(unitCost * qty)
+    setWizardData((prev) => ({
+      ...prev,
+      materiales_extra: [
+        ...(Array.isArray(prev.materiales_extra) ? prev.materiales_extra : []),
+        {
+          inventario_id: it.id,
+          nombre: it.nombre,
+          unidad: it.unidad || 'pza',
+          cantidad: qty,
+          costo_unitario: unitCost,
+          costo_total: costoTotal,
+        },
+      ],
+    }))
+    setInvQty('')
+  }
+
+  const removeInventarioExtra = (idx) => {
+    setWizardData((prev) => ({
+      ...prev,
+      materiales_extra: (Array.isArray(prev.materiales_extra) ? prev.materiales_extra : []).filter((_, i) => i !== idx),
+    }))
+  }
 
   return (
     <motion.div
@@ -155,6 +206,78 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
             )}
           </div>
         </Card>
+
+        {/* Inventario (consumibles) */}
+        {!soloResumen && (
+          <Card>
+            <div className="border-b border-white/[0.08] pb-3 mb-3">
+              <h3 className="text-sm font-semibold theme-text">Materiales / consumibles (Inventario)</h3>
+              <p className="theme-text-dim text-xs mt-0.5">Ej. tira LED (m), plástico para tira LED (m), focos, socket. Se suman al total.</p>
+            </div>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="flex-1 min-w-[220px]">
+                <label className="block theme-text-muted text-xs mb-1">Ítem</label>
+                <select value={invSelId} onChange={(e) => setInvSelId(e.target.value)} className={`${inputClass} theme-input`}>
+                  <option value="">Selecciona…</option>
+                  {inventario.map((it) => (
+                    <option key={it.id} value={String(it.id)}>
+                      {it.nombre} — ${Number(it.costo_unitario ?? 0).toFixed(2)}/{it.unidad || 'pza'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-40">
+                <label className="block theme-text-muted text-xs mb-1">Cantidad</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={invQty}
+                  onChange={(e) => setInvQty(e.target.value)}
+                  placeholder={invById.get(String(invSelId))?.unidad === 'm' ? 'metros' : 'pzas'}
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={addInventarioExtra}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar
+              </button>
+            </div>
+
+            {materialesExtra.length > 0 && (
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="bg-black/40 theme-text">
+                      <th className="text-left py-2 px-2 font-medium">Ítem</th>
+                      <th className="text-right py-2 px-2 font-medium">Costo</th>
+                      <th className="text-right py-2 px-2 font-medium">Cantidad</th>
+                      <th className="text-right py-2 px-2 font-medium">Total</th>
+                      <th className="text-right py-2 px-2 font-medium w-20"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {materialesExtra.map((m, i) => (
+                      <tr key={i} className="border-b border-white/[0.06]">
+                        <td className="py-2 px-2 theme-text">{m.nombre}</td>
+                        <td className="py-2 px-2 text-right theme-text tabular-nums">${Number(m.costo_unitario ?? 0).toFixed(2)}</td>
+                        <td className="py-2 px-2 text-right theme-text tabular-nums">{Number(m.cantidad ?? 0)} {m.unidad || ''}</td>
+                        <td className="py-2 px-2 text-right theme-text tabular-nums">${Number(m.costo_total ?? 0).toFixed(2)}</td>
+                        <td className="py-2 px-2 text-right">
+                          <button type="button" onClick={() => removeInventarioExtra(i)} className="px-2 py-1 rounded bg-red-600/20 text-red-300 hover:bg-red-600/30 text-xs">Quitar</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* B — Tiempo máquina */}
         <Card>

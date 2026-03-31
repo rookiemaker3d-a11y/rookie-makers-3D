@@ -12,6 +12,10 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
   const soloOrdenVendedor = isVendedorVentas && !hasLineas
   const modoProductos = wizardData?.modoProductos || 'unico'
   const kitNombre = wizardData?.kitNombre || ''
+  const regaliaMarkupPct = Number(wizardData?.regalia_markup_pct) || 0
+  const regaliaVendedorPct = Number(wizardData?.regalia_vendedor_pct) || 0
+  const setRegaliaMarkupPct = (v) => setWizardData((prev) => ({ ...prev, regalia_markup_pct: Math.max(0, Number(v) || 0) }))
+  const setRegaliaVendedorPct = (v) => setWizardData((prev) => ({ ...prev, regalia_vendedor_pct: Math.max(0, Number(v) || 0) }))
 
   const setDescuento = (v) => setWizardData((prev) => ({ ...prev, descuento: Number(v) || 0 }))
   const setEnvio = (v) => setWizardData((prev) => ({ ...prev, envio: Number(v) || 0 }))
@@ -206,6 +210,14 @@ export default function PasoPreview({ wizardData, setWizardData, desglose, linea
             </div>
             <div className="flex flex-wrap gap-6 mt-4 justify-end items-start">
               <div className="space-y-1 text-sm text-right">
+                <div className="flex justify-between gap-8 items-center">
+                  <span className="theme-text-muted">Regalías (markup %)</span>
+                  <input type="number" min={0} step={1} value={regaliaMarkupPct} onChange={(e) => setRegaliaMarkupPct(e.target.value)} className="w-24 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
+                </div>
+                <div className="flex justify-between gap-8 items-center">
+                  <span className="theme-text-muted">Regalías (pago vendedor %)</span>
+                  <input type="number" min={0} step={1} value={regaliaVendedorPct} onChange={(e) => setRegaliaVendedorPct(e.target.value)} className="w-24 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
+                </div>
                 <div className="flex justify-between gap-8"><span className="theme-text-muted">Sub total</span><span className="tabular-nums theme-text">${subTotal.toFixed(2)}</span></div>
                 <div className="flex justify-between gap-8 items-center">
                   <span className="theme-text-muted">Descuento</span>
