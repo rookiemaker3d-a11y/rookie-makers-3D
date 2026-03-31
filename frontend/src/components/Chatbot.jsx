@@ -46,45 +46,53 @@ export default function Chatbot() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-900/40 flex items-center justify-center text-2xl transition"
+        className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg shadow-cyan-500/30 flex items-center justify-center text-2xl transition"
         aria-label="Abrir chat"
       >
         💬
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-40 w-full max-w-sm rounded-2xl bg-slate-800 border border-slate-600 shadow-2xl flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-600 flex items-center gap-2 bg-slate-800">
+        <div className="fixed bottom-24 right-6 z-40 w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-2 bg-slate-50">
             <div className="relative w-8 h-8 shrink-0">
               <img src="/logo.png" alt="Logo" className="absolute inset-0 w-full h-full rounded-full object-cover bg-cyan-600" onError={(e) => { e.target.style.display = 'none'; }} />
               <div className="absolute inset-0 w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">R</div>
             </div>
-            <span className="font-semibold text-white">Rookie Makers 3D</span>
-            <a href={WHATSAPP_CHAT} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-cyan-400 text-xs ml-auto font-medium">472 148 8913</a>
-            <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-white p-1 rounded">✕</button>
+            <span className="font-semibold text-slate-900">Rookie Makers 3D</span>
+            <a href={WHATSAPP_CHAT} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-cyan-700 text-xs ml-auto font-medium">472 148 8913</a>
+            <button type="button" onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-900 p-1 rounded">✕</button>
           </div>
-          <div className="h-80 overflow-y-auto p-3 space-y-2 bg-slate-900/50">
+          <div className="h-80 overflow-y-auto p-3 space-y-2 bg-white">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'bg-cyan-600 text-white' : 'bg-slate-700 text-slate-200'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${m.role === 'user' ? 'bg-cyan-500 text-white' : 'bg-slate-100 text-slate-900'}`}>
                   {m.text}
                 </div>
               </div>
             ))}
             <div ref={bottomRef} />
           </div>
-          <div className="p-2 border-t border-slate-600 flex gap-2">
+          <div className="p-2 border-t border-slate-200 flex gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && send()}
               placeholder="Escribe aquí..."
-              className="flex-1 px-3 py-2 rounded-xl bg-slate-700 border border-slate-600 text-white text-sm placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm placeholder-slate-400 focus:ring-2 focus:ring-cyan-300 focus:border-transparent"
             />
-            <button type="button" onClick={send} className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-medium">
+            <button type="button" onClick={send} className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white text-sm font-medium">
               Enviar
             </button>
+          </div>
+          <div className="px-3 pb-3 flex gap-2">
+            <a href={WHATSAPP_CHAT} target="_blank" rel="noopener noreferrer" className="flex-1 text-center px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-semibold">
+              WhatsApp
+            </a>
+            <a href="/cotizador" className="flex-1 text-center px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">
+              Cotizar
+            </a>
           </div>
         </div>
       )}

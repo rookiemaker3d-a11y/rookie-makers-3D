@@ -122,7 +122,8 @@ export default function Proyectos() {
   const cta = landing.cta || DEFAULT_LANDING.cta
   const footer = landing.footer || DEFAULT_LANDING.footer
   const navContent = landing.nav || DEFAULT_LANDING.nav
-  const isGreen = landing.theme === 'green'
+  // Preferencia: landing clara/pastel por defecto (más legible que la variante oscura)
+  const isGreen = true
 
   const whatsappUrl = (cta.whatsappText && cta.whatsappText.trim()) ? cta.whatsappText : WHATSAPP_CHAT
 
@@ -141,16 +142,15 @@ export default function Proyectos() {
 
   return (
     <div className={`lp ${isGreen ? 'lp--green' : ''}`} style={{ backgroundColor: bg }}>
-      {/* Grid overlay estilo "industrial" (NV) */}
-      {!isGreen && (
-        <div
-          className="pointer-events-none fixed inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: `linear-gradient(rgba(79,142,247,0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(79,142,247,0.45) 1px, transparent 1px)`,
-            backgroundSize: '56px 56px',
-          }}
-        />
-      )}
+      {/* Overlay suave pastel (mejor legibilidad) */}
+      <div
+        className="pointer-events-none fixed inset-0 opacity-[0.22]"
+        style={{
+          backgroundImage: `radial-gradient(circle at 10% 10%, rgba(59,130,246,0.16), transparent 45%),
+radial-gradient(circle at 85% 20%, rgba(16,185,129,0.14), transparent 50%),
+radial-gradient(circle at 20% 85%, rgba(236,72,153,0.12), transparent 55%)`,
+        }}
+      />
       <header className={`lp-header ${navScrolled ? 'lp-header--scrolled' : ''}`}>
         <div className="lp-header-inner">
           <Link to="/proyectos" className="lp-logo flex items-center gap-2">
@@ -178,10 +178,10 @@ export default function Proyectos() {
           <div className="lp-hero-content">
             <p className="lp-hero-label">{hero.tag || ''}</p>
             <h1 className="lp-hero-title" style={{ fontSize: `${titlePx}px` }}>
-              {hero.titleLine1 || 'CORTA EL'}
+              {hero.titleLine1 || 'Del Bit'}
               <br />
-              <span className="lp-accent">{hero.titleAccent || hero.titleLine2 || 'LÍMITE.'}</span>
-              <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.45}px` }}>{hero.tagline || 'Industrial Manufacturing'}</span>
+              <span className="lp-accent">{hero.titleAccent || hero.titleLine2 || 'al Átomo'}</span>
+              <span className="lp-hero-tagline" style={{ fontSize: `${titlePx * 0.50}px` }}>{hero.tagline || 'Precisión que transforma ideas en realidad'}</span>
             </h1>
             <p className="lp-hero-desc" style={{ fontSize: `${subtitlePx}px` }}>
               {hero.description || ''}
@@ -195,72 +195,82 @@ export default function Proyectos() {
 
         {/* Quick quote teaser (mezcla NV + tu cotizador) */}
         <section className="max-w-6xl mx-auto px-4 -mt-10 sm:-mt-14 relative z-10">
-          <div className="rounded-3xl border bg-black/40 backdrop-blur-xl p-5 sm:p-7"
-            style={{ borderColor: 'rgba(255,255,255,0.10)' }}
+          <div
+            className="rounded-3xl border backdrop-blur-xl p-6 sm:p-8 shadow-sm"
+            style={{
+              borderColor: 'rgba(15, 23, 42, 0.10)',
+              background: 'rgba(255,255,255,0.78)',
+            }}
           >
             <div className="flex flex-col lg:flex-row gap-6 lg:items-end lg:justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.35em] theme-text-muted">Sistema de cotización rápido</p>
-                <h2 className="text-2xl sm:text-3xl font-bold theme-text mt-2">Estimación instantánea (teaser)</h2>
-                <p className="theme-text-dim text-sm mt-1">Para cotización completa usa el cotizador con tu proyecto y PDF.</p>
+                <p className="text-xs uppercase tracking-[0.35em]" style={{ color: '#334155' }}>Cotización rápida</p>
+                <h2 className="text-3xl sm:text-4xl font-extrabold mt-2" style={{ color: '#0f172a' }}>Estimación instantánea</h2>
+                <p className="text-base mt-2" style={{ color: '#334155' }}>Para cotización exacta, entra al ERP o mándanos WhatsApp.</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-[0.35em] theme-text-muted">Estimado</p>
-                <div className="text-4xl sm:text-5xl font-bold theme-text tabular-nums">${(quickResult.total ?? 0).toFixed(2)}</div>
-                <p className="text-xs theme-text-dim">MXN · cantidad incluida</p>
+                <p className="text-xs uppercase tracking-[0.35em]" style={{ color: '#334155' }}>Estimado</p>
+                <div className="text-5xl sm:text-6xl font-extrabold tabular-nums" style={{ color: '#0f172a' }}>${(quickResult.total ?? 0).toFixed(2)}</div>
+                <p className="text-sm" style={{ color: '#475569' }}>MXN · cantidad incluida</p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mt-5">
-              <div className="rounded-2xl border p-3 bg-white/[0.03]" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-                <label className="block text-[10px] uppercase tracking-widest theme-text-muted mb-1">Material</label>
+              <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(15,23,42,0.10)', background: 'rgba(248,250,252,0.9)' }}>
+                <label className="block text-xs uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Material</label>
                 <select
                   value={quickQuote.material}
                   onChange={(e) => setQuickQuote((q) => ({ ...q, material: e.target.value }))}
-                  className="theme-input w-full px-3 py-2 rounded-xl border text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border text-base"
+                  style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fff', color: '#0f172a' }}
                 >
                   <option value="PLA">PLA</option>
                   <option value="PETG">PETG</option>
                   <option value="RESINA">RESINA</option>
                 </select>
               </div>
-              <div className="rounded-2xl border p-3 bg-white/[0.03]" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-                <label className="block text-[10px] uppercase tracking-widest theme-text-muted mb-1">Tiempo impresión</label>
+              <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(15,23,42,0.10)', background: 'rgba(248,250,252,0.9)' }}>
+                <label className="block text-xs uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Tiempo impresión</label>
                 <div className="flex gap-2">
                   <input type="number" min={0} step={1} value={quickQuote.horas}
                     onChange={(e) => setQuickQuote((q) => ({ ...q, horas: e.target.value }))}
-                    className="theme-input w-full px-3 py-2 rounded-xl border text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border text-base"
+                    style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fff', color: '#0f172a' }}
                     placeholder="hrs"
                   />
                   <input type="number" min={0} step={1} value={quickQuote.minutos}
                     onChange={(e) => setQuickQuote((q) => ({ ...q, minutos: e.target.value }))}
-                    className="theme-input w-full px-3 py-2 rounded-xl border text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border text-base"
+                    style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fff', color: '#0f172a' }}
                     placeholder="min"
                   />
                 </div>
               </div>
-              <div className="rounded-2xl border p-3 bg-white/[0.03]" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-                <label className="block text-[10px] uppercase tracking-widest theme-text-muted mb-1">Filamento</label>
+              <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(15,23,42,0.10)', background: 'rgba(248,250,252,0.9)' }}>
+                <label className="block text-xs uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Filamento</label>
                 <div className="flex gap-2">
                   <input type="number" min={0} step="any" value={quickQuote.gramos}
                     onChange={(e) => setQuickQuote((q) => ({ ...q, gramos: e.target.value }))}
-                    className="theme-input w-full px-3 py-2 rounded-xl border text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border text-base"
+                    style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fff', color: '#0f172a' }}
                     placeholder="gramos"
                   />
                   <input type="number" min={1} step={1} value={quickQuote.cantidad}
                     onChange={(e) => setQuickQuote((q) => ({ ...q, cantidad: e.target.value }))}
-                    className="theme-input w-28 px-3 py-2 rounded-xl border text-sm"
+                    className="w-28 px-3 py-2.5 rounded-xl border text-base"
+                    style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fff', color: '#0f172a' }}
                     placeholder="qty"
                   />
                 </div>
               </div>
-              <div className="rounded-2xl border p-3 bg-white/[0.03]" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-                <label className="block text-[10px] uppercase tracking-widest theme-text-muted mb-1">Calidad / Tamaño</label>
+              <div className="rounded-2xl border p-4" style={{ borderColor: 'rgba(15,23,42,0.10)', background: 'rgba(248,250,252,0.9)' }}>
+                <label className="block text-xs uppercase tracking-widest mb-1" style={{ color: '#475569' }}>Calidad / Tamaño</label>
                 <div className="flex gap-2">
                   <select
                     value={quickQuote.calidad}
                     onChange={(e) => setQuickQuote((q) => ({ ...q, calidad: e.target.value }))}
-                    className="theme-input w-full px-3 py-2 rounded-xl border text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border text-base"
+                    style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fff', color: '#0f172a' }}
                   >
                     <option value="baja">Baja</option>
                     <option value="media">Media</option>
@@ -269,7 +279,8 @@ export default function Proyectos() {
                   <select
                     value={quickQuote.tamano}
                     onChange={(e) => setQuickQuote((q) => ({ ...q, tamano: e.target.value }))}
-                    className="theme-input w-full px-3 py-2 rounded-xl border text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border text-base"
+                    style={{ borderColor: 'rgba(15,23,42,0.12)', background: '#fff', color: '#0f172a' }}
                   >
                     <option value="pequeno">Pequeño</option>
                     <option value="mediano">Mediano</option>
