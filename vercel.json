@@ -1,15 +1,15 @@
 {
+  "version": 2,
   "installCommand": "cd Content-Hub && npx --yes pnpm@9 install --ignore-scripts && cd ../frontend && npm install",
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
-  "framework": null,
   "redirects": [
     { "source": "/proyectos", "destination": "/content-hub/index.html", "permanent": true },
     { "source": "/proyectos/", "destination": "/content-hub/index.html", "permanent": true }
   ],
-  "rewrites": [
-    { "source": "/content-hub", "destination": "/content-hub/index.html" },
-    { "source": "/content-hub/", "destination": "/content-hub/index.html" },
-    { "source": "/((?!assets/|content-hub/).*)", "destination": "/index.html" }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "http://187.124.234.72/api/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
