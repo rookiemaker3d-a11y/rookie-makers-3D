@@ -16,3 +16,13 @@ backend/EJECUTAR-SEED.bat
 # Debug
 npm-debug.log*
 .DS_Store
+
+# Archivos enormes (rompen git push / GitHub 100MB límite)
+Content-Hub.zip
+*.zip
+# Respaldo guardado de Instagram (no subir)
+imagenes/Instagram_files/
+imagenes/Instagram.html
+# Vídeos pesados en carpeta de fotos (ej. 300MB+)
+imagenes/**/*.mp4
+imagenes/**/*.mov

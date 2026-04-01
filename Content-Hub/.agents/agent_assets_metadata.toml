@@ -1,0 +1,56 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Wgd5Ftx5i8kAJbo8O_yNB"
+uri = "file://artifacts/rookie-makers-3d/public/images/hero-nozzle.png"
+type = "image"
+title = "3D printer nozzle macro"
+
+[[generated]]
+id = "TecK3gjQQL6cWAas4O7Dv"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-1.png"
+type = "image"
+title = "3D printed gear"
+
+[[generated]]
+id = "92q6nc3Hcb4ZGc-uOQpwE"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-2.png"
+type = "image"
+title = "Architecture model"
+
+[[generated]]
+id = "jjtAVPhdfE3kzhEYJEFxE"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-3.png"
+type = "image"
+title = "Character figurine"
+
+[[generated]]
+id = "YljQ2smcbZyCySA8h9FRA"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-4.png"
+type = "image"
+title = "Industrial enclosure"
+
+[[generated]]
+id = "uvSIgciJGgxm2fJKXZKnu"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-5.png"
+type = "image"
+title = "Geometric lattice"
+
+[[generated]]
+id = "VxCQB2wppApYxUxAFed0t"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-6.png"
+type = "image"
+title = "Artistic vase"
+
+[[generated]]
+id = "fPN6Kyx7ur0GQVPSs6Fe8"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-7.png"
+type = "image"
+title = "Robotic arm part"
+
+[[generated]]
+id = "xx7m7j7fGcKZ-KMcvRY2q"
+uri = "file://artifacts/rookie-makers-3d/public/images/project-8.png"
+type = "image"
+title = "Tabletop miniature"

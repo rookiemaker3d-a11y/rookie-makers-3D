@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { REDES, PROYECTOS, VIDEOS as VIDEOS_FALLBACK } from '../data/redes'
+import { GALERIA_TRABAJOS, urlGaleriaTrabajo } from '../data/galeriaLocal'
 import { calcularCosto } from '../utils/cotizador'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
@@ -65,6 +66,7 @@ export default function Proyectos() {
   const [landing, setLanding] = useState(DEFAULT_LANDING)
   const [navScrolled, setNavScrolled] = useState(false)
   const [filamentosColores, setFilamentosColores] = useState([])
+  const [galeriaLightbox, setGaleriaLightbox] = useState(null)
   const [quickQuote, setQuickQuote] = useState({
     material: 'PLA',
     calidad: 'media',
@@ -166,6 +168,9 @@ radial-gradient(circle at 20% 85%, rgba(236,72,153,0.12), transparent 55%)`,
             ))}
           </nav>
           <div className="lp-header-actions">
+            <a href="/content-hub/index.html" className="lp-nav-link hidden sm:inline">
+              Sitio Replit
+            </a>
             <Link to="/cotizador" className="lp-btn lp-btn-primary">{navContent.ctaText || 'Cotizar'}</Link>
             <Link to="/login" className="lp-nav-link">Entrar</Link>
           </div>
@@ -382,6 +387,30 @@ radial-gradient(circle at 20% 85%, rgba(236,72,153,0.12), transparent 55%)`,
             <a href="#contacto" className="lp-link">Ver todos los proyectos →</a>
           </div>
 
+          <h3 className="lp-subsection-title">Piezas realizadas</h3>
+          <p className="lp-section-desc mb-4 max-w-2xl">Galería con los mismos nombres de carpeta que en tu directorio <code className="text-sm opacity-80">imagenes/</code>.</p>
+          <div className="lp-grid">
+            {GALERIA_TRABAJOS.map((t) => {
+              const urls = t.imagenes.map((f) => urlGaleriaTrabajo(t.carpeta, f))
+              return (
+                <button
+                  key={t.carpeta}
+                  type="button"
+                  className="lp-card lp-card--link text-left w-full cursor-pointer border-0 p-0 font-inherit"
+                  onClick={() => setGaleriaLightbox({ titulo: t.titulo, urls, i: 0 })}
+                >
+                  <div className="lp-card-media">
+                    <img src={urls[0]} alt={t.titulo} loading="lazy" decoding="async" />
+                  </div>
+                  <div className="lp-card-body">
+                    <span className="lp-card-meta">{t.imagenes.length} fotos · ampliar</span>
+                    <h4 className="lp-card-title">{t.titulo}</h4>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
           <h3 className="lp-subsection-title">Videos</h3>
           <div className="lp-grid">
             {videos.map((v) => (
@@ -455,6 +484,64 @@ radial-gradient(circle at 20% 85%, rgba(236,72,153,0.12), transparent 55%)`,
       <div className="lp-float-cta">
         <Link to="/cotizador" className="lp-btn lp-btn-primary">Cotizar Pieza</Link>
       </div>
+
+      {galeriaLightbox && (
+        <div
+          className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-4"
+          style={{ background: 'rgba(15,23,42,0.88)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={galeriaLightbox.titulo}
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 z-10 rounded-full px-4 py-2 text-sm font-semibold text-white bg-white/10 hover:bg-white/20"
+            onClick={() => setGaleriaLightbox(null)}
+          >
+            Cerrar
+          </button>
+          <p className="text-white text-center text-sm font-medium mb-3 max-w-lg">{galeriaLightbox.titulo}</p>
+          <div className="relative max-w-4xl w-full max-h-[70vh] flex items-center justify-center">
+            <img
+              src={galeriaLightbox.urls[galeriaLightbox.i]}
+              alt=""
+              className="max-h-[70vh] max-w-full object-contain rounded-lg shadow-2xl"
+            />
+          </div>
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              type="button"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-white/10 hover:bg-white/20 disabled:opacity-40"
+              disabled={galeriaLightbox.i <= 0}
+              onClick={() => setGaleriaLightbox((lb) => (lb ? { ...lb, i: Math.max(0, lb.i - 1) } : null))}
+            >
+              Anterior
+            </button>
+            <span className="text-white/80 text-sm">
+              {galeriaLightbox.i + 1} / {galeriaLightbox.urls.length}
+            </span>
+            <button
+              type="button"
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-white bg-white/10 hover:bg-white/20 disabled:opacity-40"
+              disabled={galeriaLightbox.i >= galeriaLightbox.urls.length - 1}
+              onClick={() =>
+                setGaleriaLightbox((lb) =>
+                  lb ? { ...lb, i: Math.min(lb.urls.length - 1, lb.i + 1) } : null
+                )
+              }
+            >
+              Siguiente
+            </button>
+          </div>
+          <button
+            type="button"
+            className="mt-6 text-white/70 text-sm underline hover:text-white"
+            onClick={() => setGaleriaLightbox(null)}
+          >
+            Cerrar galería
+          </button>
+        </div>
+      )}
 
       <style>{`
         .lp { --lp-bg: #050508; --lp-surface: #0d0d12; --lp-muted: rgba(232,232,240,0.6); --lp-accent: #00e5ff; --lp-gold: #c9a96e; color: #e8e8f0; min-height: 100vh; }

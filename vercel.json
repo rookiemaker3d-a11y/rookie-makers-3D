@@ -1,7 +1,15 @@
 {
-  "installCommand": "cd frontend && npm install",
+  "installCommand": "cd Content-Hub && npx --yes pnpm@9 install --ignore-scripts && cd ../frontend && npm install",
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "framework": null,
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "redirects": [
+    { "source": "/proyectos", "destination": "/content-hub/index.html", "permanent": true },
+    { "source": "/proyectos/", "destination": "/content-hub/index.html", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/content-hub", "destination": "/content-hub/index.html" },
+    { "source": "/content-hub/", "destination": "/content-hub/index.html" },
+    { "source": "/((?!assets/|content-hub/).*)", "destination": "/index.html" }
+  ]
 }

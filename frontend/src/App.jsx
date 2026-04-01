@@ -13,7 +13,6 @@ import NuevaCotizacion from './pages/NuevaCotizacion'
 import Analisis from './pages/Analisis'
 import Clientes from './pages/Clientes'
 import Vendedores from './pages/Vendedores'
-import Proyectos from './pages/Proyectos'
 import Cotizador from './pages/Cotizador'
 import VideosPromocionales from './pages/VideosPromocionales'
 import Inventario from './pages/Inventario'
@@ -21,6 +20,7 @@ import EditorPaginaPublica from './pages/EditorPaginaPublica'
 import Seguridad from './pages/Seguridad'
 import Configuracion from './pages/Configuracion'
 import Chatbot from './components/Chatbot'
+import ContentHubFullReload from './components/ContentHubFullReload'
 import './index.css'
 
 function AppRoutes() {
@@ -28,8 +28,10 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/proyectos" element={<Proyectos />} />
+      {/* Tu web hecha en Replit = build de Content-Hub/artifacts/rookie-makers-3d → /content-hub/ */}
+      <Route path="/proyectos" element={<ContentHubFullReload />} />
       <Route path="/cotizador" element={<Cotizador />} />
+      <Route path="/content-hub/*" element={<ContentHubFullReload />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="cotizacion/nueva" element={<NuevaCotizacion />} />
