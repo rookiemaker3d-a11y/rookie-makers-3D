@@ -15,12 +15,12 @@ import {
   Sun,
   Moon,
   Boxes,
-  Palette,
   Shield,
   Settings,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { publicPath } from '../utils/publicPath'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -33,9 +33,8 @@ const NAV = [
   { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/seguridad', label: 'Seguridad', icon: Shield },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },
-  { to: '/editor-pagina', label: 'Editor página pública', icon: Palette, adminOnly: true },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
-  { to: '/proyectos', label: 'Proyectos / Redes', icon: Globe },
+  { href: '/', label: 'Web pública', icon: Globe, external: true },
 ]
 
 /** Menú reducido para rol vendedor_ventas: solo Dashboard, Productos, Nueva cotización, Cotizaciones espera, Análisis (solo sus datos). */
@@ -77,7 +76,7 @@ export default function Layout() {
               <span className="theme-text font-semibold text-lg">Rookie Makers 3D</span>
             ) : (
               <img
-                src="/logos/logo-cotizacion.png"
+                src={publicPath('logos/logo-cotizacion.png')}
                 alt="Rookie Makers 3D"
                 className="h-8 w-auto object-contain max-w-[180px]"
                 onError={() => setLogoError(true)}
@@ -128,33 +127,49 @@ export default function Layout() {
       >
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-2">
           <ul className="flex flex-wrap items-center gap-1">
-            {(user?.role === 'vendedor_ventas' ? NAV_VENDEDOR_VENTAS : NAV.filter((item) => !item.adminOnly || user?.role === 'administrador')).map(({ to, label, icon: Icon }) => {
-              const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
+            {(user?.role === 'vendedor_ventas' ? NAV_VENDEDOR_VENTAS : NAV.filter((item) => !item.adminOnly || user?.role === 'administrador')).map((item) => {
+              const { to, href, label, icon: Icon, external } = item
+              const isActive =
+                to != null &&
+                (location.pathname === to || (to !== '/' && location.pathname.startsWith(to)))
+              const linkClass = `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
+                isActive ? 'shadow-[0_2px_12px_rgba(var(--theme-accent),0.15)]' : ''
+              }`
+              const linkStyle = isActive
+                ? { background: 'var(--theme-bg-card-hover)', color: 'var(--theme-text)', border: '1px solid var(--theme-border-hover)' }
+                : { color: 'var(--theme-text-muted)' }
+              const hoverProps = {
+                onMouseEnter: (e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'var(--theme-bg-card)'
+                    e.currentTarget.style.color = 'var(--theme-text)'
+                  }
+                },
+                onMouseLeave: (e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = ''
+                    e.currentTarget.style.color = 'var(--theme-text-muted)'
+                  }
+                },
+              }
+              if (external && href) {
+                return (
+                  <li key={href}>
+                    <a
+                      href={href}
+                      className={linkClass}
+                      style={linkStyle}
+                      {...hoverProps}
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      {label}
+                    </a>
+                  </li>
+                )
+              }
               return (
                 <li key={to}>
-                  <Link
-                    to={to}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                      isActive ? 'shadow-[0_2px_12px_rgba(var(--theme-accent),0.15)]' : ''
-                    }`}
-                    style={
-                      isActive
-                        ? { background: 'var(--theme-bg-card-hover)', color: 'var(--theme-text)', border: '1px solid var(--theme-border-hover)' }
-                        : { color: 'var(--theme-text-muted)' }
-                    }
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = 'var(--theme-bg-card)'
-                        e.currentTarget.style.color = 'var(--theme-text)'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.background = ''
-                        e.currentTarget.style.color = 'var(--theme-text-muted)'
-                      }
-                    }}
-                  >
+                  <Link to={to} className={linkClass} style={linkStyle} {...hoverProps}>
                     <Icon className="w-4 h-4 shrink-0" />
                     {label}
                   </Link>

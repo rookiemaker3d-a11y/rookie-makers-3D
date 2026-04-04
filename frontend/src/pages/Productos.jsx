@@ -4,6 +4,30 @@ import { Card, SectionHeader } from '../components/ui'
 import { Plus, Trash2, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
 import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
 
+function resumenMaterialLineas(det) {
+  const lineas = Array.isArray(det?.lineas) ? det.lineas : []
+  const productLines = lineas.filter((l) => String(l.id_producto || '').startsWith('P'))
+  if (!productLines.length) {
+    const parts = [det?.tipo_material, det?.color_producto].filter(Boolean)
+    return {
+      materialColor: parts.length ? parts.join(' · ') : '—',
+      gramos: det?.gramos != null ? det.gramos : '—',
+      horas: det?.horasMaquina != null ? det.horasMaquina : '—',
+    }
+  }
+  const chunks = productLines.map((l) => [l.tipo_material, l.color_producto].filter(Boolean).join(' · ')).filter(Boolean)
+  const materialColor = [...new Set(chunks)].join('; ') || '—'
+  const gramos = productLines.reduce((s, l) => s + (Number(l.gramos_estimados) || 0), 0)
+  const horas = productLines.reduce((s, l) => s + (Number(l.horas_impresion) || 0), 0)
+  const gOut = gramos > 0 ? gramos : (det?.gramos ?? null)
+  const hOut = horas > 0 ? horas : (det?.horasMaquina ?? null)
+  return {
+    materialColor,
+    gramos: gOut != null ? gOut : '—',
+    horas: hOut != null ? hOut : '—',
+  }
+}
+
 const PORCENTAJE_INVERSION_KEY = 'porcentajeInversion'
 const defaultPorcentajeInversion = () => {
   try {
@@ -204,6 +228,9 @@ export default function Productos() {
               <th className="p-3 theme-text-muted font-medium w-8"></th>
               <th className="p-3 theme-text-muted font-medium">ID</th>
               <th className="p-3 theme-text-muted font-medium">Descripción</th>
+              <th className="p-3 theme-text-muted font-medium min-w-[140px]">Material / color</th>
+              <th className="p-3 theme-text-muted font-medium">Gramos</th>
+              <th className="p-3 theme-text-muted font-medium">Horas imp.</th>
               <th className="p-3 theme-text-muted font-medium">Costo prod.</th>
               <th className="p-3 theme-text-muted font-medium">Costo final</th>
               <th className="p-3 theme-text-muted font-medium">Ganancia</th>
@@ -214,6 +241,7 @@ export default function Productos() {
             {items.map((p) => {
               const gan = (p.costo_final || 0) - (p.costo_base || 0)
               const det = p.detalles || {}
+              const res = resumenMaterialLineas(det)
               const isExpanded = expandedId === p.id
               return (
                 <Fragment key={p.id}>
@@ -230,6 +258,9 @@ export default function Productos() {
                     </td>
                     <td className="p-3 theme-text tabular-nums">{p.id}</td>
                     <td className="p-3 theme-text">{p.descripcion}</td>
+                    <td className="p-3 theme-text text-xs max-w-[200px]" title={res.materialColor}>{res.materialColor}</td>
+                    <td className="p-3 theme-text tabular-nums text-xs">{typeof res.gramos === 'number' ? `${res.gramos} g` : res.gramos}</td>
+                    <td className="p-3 theme-text tabular-nums text-xs">{typeof res.horas === 'number' ? `${res.horas} h` : res.horas}</td>
                     <td className="p-3 theme-text tabular-nums">${(p.costo_base || 0).toFixed(2)}</td>
                     <td className="p-3 theme-text tabular-nums">${(p.costo_final || 0).toFixed(2)}</td>
                     <td className="p-3 text-emerald-600 font-medium tabular-nums">${gan.toFixed(2)}</td>
@@ -253,7 +284,7 @@ export default function Productos() {
                   </tr>
                   {isExpanded && (
                     <tr key={`${p.id}-analisis`}>
-                      <td colSpan={isAdmin ? 7 : 6} className="p-0 bg-white/[0.02]">
+                      <td colSpan={isAdmin ? 10 : 9} className="p-0 bg-white/[0.02]">
                         <div className="p-4 border-t border-white/[0.06]">
                           <h4 className="text-xs font-semibold theme-text-muted uppercase tracking-wide mb-3">Análisis de costos</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-sm">

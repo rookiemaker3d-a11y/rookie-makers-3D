@@ -93,7 +93,7 @@ export default function VideosPromocionales() {
     <div className="p-6 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold theme-text mb-2">Videos promocionales</h1>
       <p className="theme-text-muted text-sm mb-6">
-        Estos videos se muestran en la página pública de Proyectos.
+        Estos videos pueden enlazarse desde la web pública (inicio del dominio).
         {isAdmin
           ? ' Puedes agregar videos (quedan aprobados), aprobar solicitudes de vendedores, editar o eliminar.'
           : ' Puedes enviar una solicitud con enlace e información; el administrador debe aprobarla para que se publique.'}

@@ -1,0 +1,12 @@
+# Contexto docker compose (raíz repo) para imagen frontend
+.git
+**/.git
+**/.env
+**/.env.*
+**/node_modules
+backend
+nv
+imagenes
+*.zip
+**/*.mp4
+**/*.mov

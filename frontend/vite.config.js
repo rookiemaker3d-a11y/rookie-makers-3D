@@ -3,38 +3,11 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    {
-      name: 'proyectos-to-content-hub',
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          const u = req.url?.split('?')[0] ?? ''
-          if (u === '/proyectos' || u === '/proyectos/') {
-            res.statusCode = 302
-            res.setHeader('Location', '/content-hub/index.html')
-            res.end()
-            return
-          }
-          next()
-        })
-      },
-    },
-    {
-      name: 'content-hub-index',
-      configureServer(server) {
-        server.middlewares.use((req, _res, next) => {
-          const u = req.url?.split('?')[0] ?? ''
-          if (u === '/content-hub' || u === '/content-hub/') req.url = '/content-hub/index.html'
-          next()
-        })
-      },
-    },
-  ],
+export default defineConfig(({ command }) => ({
+  // En producción el ERP vive bajo /app/; la web pública va en / (landing-dist).
+  base: command === 'build' ? '/app/' : '/',
+  plugins: [react(), tailwindcss()],
   build: {
-    // Evitar warning en Vercel: chunk > 2000 kB (el bundle con recharts es grande)
     chunkSizeWarningLimit: 3000,
     rollupOptions: {
       output: {
@@ -49,4 +22,4 @@ export default defineConfig({
     port: 5173,
     proxy: { '/api': { target: 'http://127.0.0.1:8001', changeOrigin: true } },
   },
-})
+}))

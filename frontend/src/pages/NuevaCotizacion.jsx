@@ -14,6 +14,7 @@ import { folio as genFolio } from '../components/cotizacion/PasoPreview'
 import PasoPDF from '../components/cotizacion/PasoPDF'
 import PasoConfirmacion from '../components/cotizacion/PasoConfirmacion'
 import { SectionHeader } from '../components/ui'
+import { buildLineasParaPDF, sumLineasFinal } from '../utils/cotizacionPdfLines'
 
 const TOTAL_PASOS = 6
 
@@ -176,6 +177,20 @@ export default function NuevaCotizacion() {
     if (!isAdmin) return null
     return vendedores.find((v) => v?.id === vendedorSeleccionadoId) || null
   }, [isAdmin, vendedores, vendedorSeleccionadoId])
+
+  const productLinesOnly = useMemo(
+    () => lineas.filter((l) => String(l?.id_producto || '').startsWith('P')),
+    [lineas],
+  )
+  const lineasParaPDF = useMemo(
+    () => buildLineasParaPDF(productLinesOnly, regaliaMarkupMonto + regaliaVendedorMonto),
+    [productLinesOnly, regaliaMarkupMonto, regaliaVendedorMonto],
+  )
+  const subTotalPDF = useMemo(() => sumLineasFinal(lineasParaPDF), [lineasParaPDF])
+  const totalFinalPDF = useMemo(() => {
+    if (lineasParaPDF.length > 0) return subTotalPDF - descuento + envio + empaque
+    return totalFinal
+  }, [lineasParaPDF.length, subTotalPDF, descuento, envio, empaque, totalFinal])
 
   const handleConfirm = async () => {
     setSaveError('')
@@ -367,6 +382,10 @@ export default function NuevaCotizacion() {
             setNotas={setNotas}
             onMasProductos={isVendedorVentas ? undefined : () => setPaso(3)}
             isVendedorVentas={isVendedorVentas}
+            isAdmin={isAdmin}
+            vendedores={vendedores}
+            vendedorSeleccionadoId={vendedorSeleccionadoId}
+            onChangeVendedorSeleccionadoId={setVendedorSeleccionadoId}
           />
         )}
         {paso === 5 && (
@@ -376,15 +395,15 @@ export default function NuevaCotizacion() {
             wizardData={wizardData}
             desglose={isVendedorVentas && !lineas.length ? null : (cotizador?.desglose ?? null)}
             lineas={lineasParaCotizacion}
+            lineasPDF={lineasParaPDF.length > 0 ? lineasParaPDF : undefined}
+            subTotalPDF={lineasParaPDF.length > 0 ? subTotalPDF : undefined}
+            totalFinalPDF={lineasParaPDF.length > 0 ? totalFinalPDF : undefined}
             subTotal={subTotal}
             descuento={descuento}
             envio={envio}
             empaque={empaque}
             totalFinal={totalFinal}
             notas={notas}
-            vendedores={isAdmin ? vendedores : undefined}
-            vendedorSeleccionadoId={isAdmin ? vendedorSeleccionadoId : undefined}
-            onChangeVendedorSeleccionadoId={isAdmin ? setVendedorSeleccionadoId : undefined}
             vendedor={
               isAdmin
                 ? {

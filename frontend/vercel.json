@@ -1,16 +1,14 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "redirects": [
-    { "source": "/proyectos", "destination": "/content-hub/index.html", "permanent": true },
-    { "source": "/proyectos/", "destination": "/content-hub/index.html", "permanent": true }
-  ],
+  "outputDirectory": "deploy-dist",
+  "framework": null,
   "rewrites": [
-    { "source": "/content-hub", "destination": "/content-hub/index.html" },
-    { "source": "/content-hub/", "destination": "/content-hub/index.html" },
-    { "source": "/content-hub/:path*", "destination": "/content-hub/:path*" },
+    { "source": "/app", "destination": "/app/index.html" },
+    { "source": "/app/", "destination": "/app/index.html" },
+    { "source": "/app/:path*", "destination": "/app/:path*" },
     { "source": "/api/:path*", "destination": "http://187.124.234.72/api/:path*" },
-    { "source": "/((?!api/|assets/|content-hub/|logos/).*)", "destination": "/index.html" }
+    { "source": "/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/logos/:path*", "destination": "/logos/:path*" },
+    { "source": "/((?!app/).*)", "destination": "/index.html" }
   ]
 }

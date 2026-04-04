@@ -175,6 +175,11 @@ export default function Login() {
           </button>
         </form>
         )}
+        <p className="text-center mt-6" style={{ color: 'var(--theme-text-muted)' }}>
+          <a href="/" className="text-sm underline hover:opacity-90">
+            Volver a la web pública
+          </a>
+        </p>
       </motion.div>
     </div>
   )

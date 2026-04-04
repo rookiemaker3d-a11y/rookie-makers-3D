@@ -29,7 +29,7 @@ export default class ErrorBoundary extends Component {
             Recarga la página o intenta ir al login.
           </p>
           <a
-            href="/login"
+            href={`${import.meta.env.BASE_URL}login`}
             style={{
               padding: '10px 20px',
               background: 'var(--theme-bg-card)',

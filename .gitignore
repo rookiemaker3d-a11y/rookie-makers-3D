@@ -26,3 +26,7 @@ imagenes/Instagram.html
 # Vídeos pesados en carpeta de fotos (ej. 300MB+)
 imagenes/**/*.mp4
 imagenes/**/*.mov
+
+# Build web pública + paquete despliegue (Vercel)
+frontend/landing-dist/
+frontend/deploy-dist/

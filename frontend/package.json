@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build:content-hub": "node scripts/build-content-hub.mjs",
-    "build": "node scripts/build-content-hub.mjs && vite build",
+    "build:landing": "node scripts/build-landing.mjs",
+    "build": "node scripts/build-landing.mjs && vite build && node scripts/assemble-deploy-dist.mjs && node scripts/verify-deploy-dist.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

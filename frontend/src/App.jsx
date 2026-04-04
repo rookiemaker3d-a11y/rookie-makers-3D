@@ -16,22 +16,19 @@ import Vendedores from './pages/Vendedores'
 import Cotizador from './pages/Cotizador'
 import VideosPromocionales from './pages/VideosPromocionales'
 import Inventario from './pages/Inventario'
-import EditorPaginaPublica from './pages/EditorPaginaPublica'
 import Seguridad from './pages/Seguridad'
 import Configuracion from './pages/Configuracion'
 import Chatbot from './components/Chatbot'
-import ContentHubFullReload from './components/ContentHubFullReload'
 import './index.css'
+
+const routerBasename = import.meta.env.BASE_URL.replace(/\/$/, '') || undefined
 
 function AppRoutes() {
   const { user } = useAuth()
   return (
     <Routes>
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
-      {/* Tu web hecha en Replit = build de Content-Hub/artifacts/rookie-makers-3d → /content-hub/ */}
-      <Route path="/proyectos" element={<ContentHubFullReload />} />
       <Route path="/cotizador" element={<Cotizador />} />
-      <Route path="/content-hub/*" element={<ContentHubFullReload />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="cotizacion/nueva" element={<NuevaCotizacion />} />
@@ -44,7 +41,6 @@ function AppRoutes() {
         <Route path="inventario" element={<Inventario />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="seguridad" element={<Seguridad />} />
-        <Route path="editor-pagina" element={<AdminOnlyRoute><EditorPaginaPublica /></AdminOnlyRoute>} />
         <Route path="analisis" element={<Analisis />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -54,7 +50,7 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <AuthProvider>
         <ThemeProvider>
           <AppRoutes />

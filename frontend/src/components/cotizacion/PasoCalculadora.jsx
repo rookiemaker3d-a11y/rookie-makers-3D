@@ -13,6 +13,11 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
   const nombreProductoDraft = (wizardData?.productoNombreDraft ?? proyectoNombre).toString()
   const descuento = Number(wizardData.descuento) || 0
   const round2 = (n) => Math.round((n ?? 0) * 100) / 100
+  const colorPreset = wizardData?.producto_color_preset || ''
+  const colorOtro = wizardData?.producto_color_otro || ''
+  const colorProductoStr =
+    colorPreset === 'otro' ? String(colorOtro).trim() : String(colorPreset || '').trim()
+
   const addProduct = () => {
     const d = cotizador.desglose
     const costoBaseUnit = Number(d.costoTotal) || 0
@@ -20,6 +25,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
     const cantidad = 1
     const id = `P${String(lineas.length + 1).padStart(3, '0')}`
     const nombreProducto = (nombreProductoDraft || proyectoNombre).trim() || proyectoNombre
+    const tipoMat = material?.nombre || MATERIALES.find((m) => m.id === materialId)?.nombre || ''
     setWizardData((prev) => ({
       ...prev,
       lineas: [
@@ -28,6 +34,10 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
           id_producto: id,
           nombre_producto: nombreProducto,
           descripcion: 'Impresión',
+          tipo_material: tipoMat,
+          color_producto: colorProductoStr,
+          horas_impresion: round2(Number(horasMaquina) || 0),
+          gramos_estimados: Number(gramos) || 0,
           costo_base_unitario: round2(costoBaseUnit),
           costo_unitario: costoUnit,
           cantidad,
@@ -150,6 +160,46 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               className={inputClass}
             />
             <p className="theme-text-dim text-xs mt-1">Tip: el nombre del Paso 2 se usa como sugerencia, pero aquí lo puedes cambiar por cada producto.</p>
+          </div>
+        </Card>
+        <Card>
+          <div className="border-b border-white/[0.08] pb-3 mb-3">
+            <h3 className="text-sm font-semibold theme-text">Color del producto (sale en PDF)</h3>
+            <p className="theme-text-dim text-xs mt-0.5">Elige un tono o escribe uno personalizado antes de «Añadir producto».</p>
+          </div>
+          <div className="flex flex-wrap gap-3 items-end pt-2">
+            <div className="flex-1 min-w-[160px]">
+              <label className="block theme-text-muted text-xs mb-1">Color</label>
+              <select
+                value={colorPreset}
+                onChange={(e) => setWizardData((prev) => ({ ...prev, producto_color_preset: e.target.value }))}
+                className={`${inputClass} theme-input`}
+              >
+                <option value="">(Sin especificar)</option>
+                <option value="Negro">Negro</option>
+                <option value="Blanco">Blanco</option>
+                <option value="Gris">Gris</option>
+                <option value="Rojo">Rojo</option>
+                <option value="Azul">Azul</option>
+                <option value="Verde">Verde</option>
+                <option value="Amarillo">Amarillo</option>
+                <option value="Naranja">Naranja</option>
+                <option value="Morado">Morado</option>
+                <option value="Transparente">Transparente</option>
+                <option value="otro">Otro (texto)</option>
+              </select>
+            </div>
+            {colorPreset === 'otro' && (
+              <div className="flex-1 min-w-[200px]">
+                <label className="block theme-text-muted text-xs mb-1">Describe el color</label>
+                <input
+                  value={colorOtro}
+                  onChange={(e) => setWizardData((prev) => ({ ...prev, producto_color_otro: e.target.value }))}
+                  placeholder="Ej. Azul petróleo RAL 5003"
+                  className={inputClass}
+                />
+              </div>
+            )}
           </div>
         </Card>
         {/* A — Material */}

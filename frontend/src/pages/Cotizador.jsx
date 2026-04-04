@@ -33,9 +33,9 @@ export default function Cotizador() {
     <div className="min-h-screen bg-neutral-50 text-neutral-900">
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/proyectos" className="text-xl font-bold text-neutral-900 hover:text-neutral-600 transition">
+          <a href="/" className="text-xl font-bold text-neutral-900 hover:text-neutral-600 transition">
             Rookie Makers 3D
-          </Link>
+          </a>
           <Link to="/login" className="text-neutral-600 hover:text-neutral-900 text-sm font-medium">
             Entrar al sistema
           </Link>

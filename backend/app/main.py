@@ -23,6 +23,7 @@ from app.api.inventario_filamento_routes import router as inventario_filamento_r
 from app.api.materiales_filamento_routes import router as materiales_filamento_router
 from app.api.pagina_publica_routes import router as pagina_publica_router
 from app.api.whatsapp_routes import router as whatsapp_router
+from app.api.asistente_routes import router as asistente_router
 
 settings = get_settings()
 
@@ -73,6 +74,7 @@ app.include_router(inventario_filamento_router, prefix="/api")
 app.include_router(materiales_filamento_router, prefix="/api")
 app.include_router(pagina_publica_router, prefix="/api")
 app.include_router(whatsapp_router, prefix="/api")
+app.include_router(asistente_router, prefix="/api")
 
 
 @app.get("/")

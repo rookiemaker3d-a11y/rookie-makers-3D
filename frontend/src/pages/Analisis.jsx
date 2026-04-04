@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { TrendingUp, Package, DollarSign, Calculator, ChevronDown, ChevronUp } from 'lucide-react'
+import { TrendingUp, Package, DollarSign, Calculator, ChevronDown, ChevronUp, Layers } from 'lucide-react'
 import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
 
 const COLORS = ['#4f8ef7', '#22c55e', '#eab308', '#f97316', '#ec4899']
@@ -71,7 +71,7 @@ export default function Analisis() {
         setCotizaciones(c || [])
       })
       .finally(() => setLoading(false))
-  }, [api])
+  }, [api, isAdmin])
 
   /** Rango [inicio, fin] en ISO para el periodo elegido (fin = hoy). */
   const getDateRange = (p) => {
@@ -129,6 +129,49 @@ export default function Analisis() {
   const aprobadas = cotizacionesFiltradas.filter((c) => (c.detalles?.estado || '') === 'aprobado').length
   const conversion = cotizacionesFiltradas.length > 0 ? (aprobadas / cotizacionesFiltradas.length) * 100 : 0
   const montoEspera = enEspera.reduce((s, c) => s + (c.costo_final || 0), 0)
+
+  const { materialGramosPorTipo, horasImpresionVentas } = (() => {
+    const porTipo = {}
+    let horas = 0
+    productosFiltrados.forEach((p) => {
+      const det = p.detalles || {}
+      const lineas = Array.isArray(det.lineas) ? det.lineas : []
+      const productLines = lineas.filter((ln) => String(ln.id_producto || '').startsWith('P'))
+      if (productLines.length) {
+        productLines.forEach((ln) => {
+          const tipo = (ln.tipo_material || 'Sin tipo').trim() || 'Sin tipo'
+          porTipo[tipo] = (porTipo[tipo] || 0) + (Number(ln.gramos_estimados) || 0)
+          horas += Number(ln.horas_impresion) || 0
+        })
+      } else {
+        const tipo = (det.tipo_material || 'Sin clasificar').trim() || 'Sin clasificar'
+        const g = Number(det.gramos) || 0
+        if (g > 0) porTipo[tipo] = (porTipo[tipo] || 0) + g
+        horas += Number(det.horasMaquina) || 0
+      }
+    })
+    return { materialGramosPorTipo: porTipo, horasImpresionVentas: horas }
+  })()
+
+  const extrasCotPeriodo = (() => {
+    let envio = 0
+    let empaque = 0
+    let markup = 0
+    let vendedorMonto = 0
+    let materialesExtra = 0
+    cotizacionesFiltradas.forEach((c) => {
+      const d = c.detalles || {}
+      envio += Number(d.envio) || 0
+      empaque += Number(d.empaque) || 0
+      markup += Number(d.regalia_markup_monto) || 0
+      vendedorMonto += Number(d.regalia_vendedor_monto) || 0
+      ;(Array.isArray(d.materiales_extra) ? d.materiales_extra : []).forEach((x) => {
+        materialesExtra += Number(x.costo_total) || 0
+      })
+    })
+    const totalExtras = envio + empaque + markup + vendedorMonto + materialesExtra
+    return { envio, empaque, markup, vendedorMonto, materialesExtra, totalExtras }
+  })()
 
   return (
     <motion.div
@@ -239,6 +282,69 @@ export default function Analisis() {
             <div className="flex justify-between">
               <span className="theme-text-muted">Ganancia neta</span>
               <span className={`${ganancia >= 0 ? 'text-emerald-500' : 'text-red-500'} tabular-nums`}>${ganancia.toFixed(2)}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <Layers className="w-4 h-4 text-cyan-500" />
+            <h3 className="text-sm font-semibold theme-text">Material por tipo (ventas del periodo)</h3>
+          </div>
+          <p className="theme-text-muted text-xs mb-3">Suma de gramos estimados por tipo (PLA, PETG, etc.) según las líneas de producto guardadas.</p>
+          {Object.keys(materialGramosPorTipo).length === 0 ? (
+            <p className="theme-text-dim text-sm">Sin datos de tipo de material en productos del periodo.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {Object.entries(materialGramosPorTipo)
+                .sort((a, b) => b[1] - a[1])
+                .map(([tipo, g]) => (
+                  <li key={tipo} className="flex justify-between gap-2">
+                    <span className="theme-text-muted">{tipo}</span>
+                    <span className="theme-text tabular-nums">{Math.round(g)} g</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+          <div className="mt-4 pt-3 border-t space-y-1 text-sm" style={{ borderColor: 'var(--theme-border)' }}>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Horas de impresión (sumadas)</span>
+              <span className="theme-text tabular-nums">{horasImpresionVentas.toFixed(2)} h</span>
+            </div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <Package className="w-4 h-4 text-amber-500" />
+            <h3 className="text-sm font-semibold theme-text">Extras en cotizaciones (periodo)</h3>
+          </div>
+          <p className="theme-text-muted text-xs mb-3">Envío, empaque, regalías (markup / vendedor) y materiales extra de inventario registrados en cotizaciones del rango. El PDF al cliente puede mostrar solo productos; aquí ves el desglose interno.</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Envío</span>
+              <span className="theme-text tabular-nums">${extrasCotPeriodo.envio.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Empaque</span>
+              <span className="theme-text tabular-nums">${extrasCotPeriodo.empaque.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Markup (regalía empresa)</span>
+              <span className="theme-text tabular-nums">${extrasCotPeriodo.markup.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Regalía / pago vendedor</span>
+              <span className="theme-text tabular-nums">${extrasCotPeriodo.vendedorMonto.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Materiales extra (inventario)</span>
+              <span className="theme-text tabular-nums">${extrasCotPeriodo.materialesExtra.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t font-medium" style={{ borderColor: 'var(--theme-border)' }}>
+              <span className="theme-text">Total extras en cotizaciones</span>
+              <span className="theme-text tabular-nums">${extrasCotPeriodo.totalExtras.toFixed(2)}</span>
             </div>
           </div>
         </Card>

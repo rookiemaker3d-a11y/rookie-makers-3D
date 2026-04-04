@@ -70,6 +70,7 @@ export default function Inventario() {
   const [consumirGramos, setConsumirGramos] = useState({ id: null, gramos: '' })
   const [showCostosFilamento, setShowCostosFilamento] = useState(true)
   const [submittingFilamento, setSubmittingFilamento] = useState(false)
+  const [filamentoBajoMsg, setFilamentoBajoMsg] = useState('')
   const fileInputRef = useRef(null)
 
   const isAdmin = user?.role === 'administrador'
@@ -103,6 +104,21 @@ export default function Inventario() {
   useEffect(() => {
     load()
   }, [api])
+
+  const notificarFilamentoBajo = async () => {
+    setFilamentoBajoMsg('')
+    try {
+      const r = await api('/asistente/notificar-filamento-bajo', { method: 'POST' })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setFilamentoBajoMsg(data.mensaje || data.detail || 'No autorizado o error.')
+        return
+      }
+      setFilamentoBajoMsg(data.mensaje || (data.enviado ? 'Correo enviado.' : 'Listo.'))
+    } catch {
+      setFilamentoBajoMsg('No se pudo enviar. Revisa conexión y SMTP en el servidor.')
+    }
+  }
 
   const saveCostoFilamento = async (id) => {
     const val = Number(costoTemp)
@@ -431,18 +447,31 @@ export default function Inventario() {
         title="Stock de filamentos"
         subtitle="Filamentos disponibles (nombre, color, gramos). El color se detecta automáticamente de la foto. Norberto y Daniel comparten este listado; Fidel ve solo el suyo."
         action={
-          (user?.role === 'vendedor' || user?.role === 'administrador') && (
-            <button
-              type="button"
-              onClick={() => { setFormFilamentoOpen(true); setFormFilamento({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' }); }}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg btn-primary hover:opacity-95 text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Agregar filamento
-            </button>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={notificarFilamentoBajo}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium theme-text hover:bg-white/[0.06]"
+                style={{ borderColor: 'var(--theme-border)' }}
+              >
+                Correo: filamento bajo
+              </button>
+            )}
+            {(user?.role === 'vendedor' || user?.role === 'administrador') && (
+              <button
+                type="button"
+                onClick={() => { setFormFilamentoOpen(true); setFormFilamento({ nombre: '', tipo: 'PLA', color_hex: '', color_nombre: '', cantidad_gramos: 0, foto_url: '' }); }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg btn-primary hover:opacity-95 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Agregar filamento
+              </button>
+            )}
+          </div>
         }
       />
+      {filamentoBajoMsg && <p className="text-sm theme-text-muted px-1 -mt-4 mb-2">{filamentoBajoMsg}</p>}
       {formFilamentoOpen && (
         <Card>
           <form onSubmit={submitFilamento} className="p-4 space-y-3">

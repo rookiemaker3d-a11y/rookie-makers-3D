@@ -12,6 +12,9 @@ export default function PasoPDF({
   wizardData,
   desglose,
   lineas = [],
+  lineasPDF,
+  subTotalPDF,
+  totalFinalPDF,
   subTotal = 0,
   descuento = 0,
   envio = 0,
@@ -20,33 +23,20 @@ export default function PasoPDF({
   notas,
   vendedor,
   transferencia,
-  vendedores,
-  vendedorSeleccionadoId,
-  onChangeVendedorSeleccionadoId,
 }) {
   const [downloading, setDownloading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(null)
   const prevUrlRef = useRef(null)
 
-  const logoUrl = typeof window !== 'undefined' ? `${window.location.origin}/logos/logo-cotizacion.png` : ''
-  const doc = (
-    <CotizacionPDF
-      folio={folio}
-      cliente={wizardData?.cliente}
-      proyecto={wizardData?.proyecto}
-      desglose={desglose}
-      lineas={lineas}
-      subTotal={subTotal}
-      descuento={descuento}
-      envio={envio}
-      empaque={empaque}
-      totalFinal={totalFinal}
-      notas={notas}
-      vendedor={vendedor}
-      transferencia={transferencia}
-      logoUrl={logoUrl}
-    />
-  )
+  const docLineas = Array.isArray(lineasPDF) && lineasPDF.length > 0 ? lineasPDF : lineas
+  const pdfSoloProductos = Array.isArray(lineasPDF) && lineasPDF.length > 0
+  const docSubTotal = pdfSoloProductos ? (Number(subTotalPDF) || 0) : subTotal
+  const docTotalFinal = pdfSoloProductos ? (Number(totalFinalPDF) || totalFinal) : totalFinal
+
+  const logoUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${import.meta.env.BASE_URL}logos/logo-cotizacion.png`
+      : ''
 
   useEffect(() => {
     let cancelled = false
@@ -56,12 +46,12 @@ export default function PasoPDF({
         cliente={wizardData?.cliente}
         proyecto={wizardData?.proyecto}
         desglose={desglose}
-        lineas={lineas}
-        subTotal={subTotal}
+        lineas={docLineas}
+        subTotal={docSubTotal}
         descuento={descuento}
         envio={envio}
         empaque={empaque}
-        totalFinal={totalFinal}
+        totalFinal={docTotalFinal}
         notas={notas}
         vendedor={vendedor}
         transferencia={transferencia}
@@ -84,22 +74,44 @@ export default function PasoPDF({
     }
   }, [
     folio,
-    subTotal,
+    docSubTotal,
     descuento,
     envio,
     empaque,
-    totalFinal,
-    JSON.stringify(lineas || []),
+    docTotalFinal,
+    JSON.stringify(docLineas || []),
     wizardData?.cliente?.id,
     wizardData?.proyecto?.nombre,
     wizardData?.proyecto?.categoria,
     notas,
+    vendedor?.nombre,
+    vendedor?.email,
+    transferencia?.banco,
+    transferencia?.clabe,
+    logoUrl,
   ])
 
   const handleDownload = async () => {
     setDownloading(true)
     try {
-      const blob = await pdf(doc).toBlob()
+      const blob = await pdf(
+        <CotizacionPDF
+          folio={folio}
+          cliente={wizardData?.cliente}
+          proyecto={wizardData?.proyecto}
+          desglose={desglose}
+          lineas={docLineas}
+          subTotal={docSubTotal}
+          descuento={descuento}
+          envio={envio}
+          empaque={empaque}
+          totalFinal={docTotalFinal}
+          notas={notas}
+          vendedor={vendedor}
+          transferencia={transferencia}
+          logoUrl={logoUrl}
+        />,
+      ).toBlob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -111,9 +123,9 @@ export default function PasoPDF({
     }
   }
 
-  const totalParaWhatsApp = (Array.isArray(lineas) && lineas.length > 0) ? totalFinal : (desglose?.precioCliente ?? totalFinal)
+  const totalParaWhatsApp = docLineas?.length > 0 ? docTotalFinal : (desglose?.precioCliente ?? docTotalFinal)
   const whatsappText = encodeURIComponent(
-    `Hola, te envío la cotización ${folio} por un total de $${(totalParaWhatsApp ?? 0).toFixed(2)} MXN.${(Array.isArray(lineas) && lineas.length === 0) ? ` Anticipo: $${(desglose?.anticipoMonto ?? 0).toFixed(2)}.` : ''}`
+    `Hola, te envío la cotización ${folio} por un total de $${(totalParaWhatsApp ?? 0).toFixed(2)} MXN.${(!docLineas?.length) ? ` Anticipo: $${(desglose?.anticipoMonto ?? 0).toFixed(2)}.` : ''}`
   )
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUM}?text=${whatsappText}`
 
@@ -123,35 +135,14 @@ export default function PasoPDF({
       animate={{ opacity: 1, x: 0 }}
       className="space-y-6"
     >
-      {Array.isArray(vendedores) && vendedores.length > 0 && typeof onChangeVendedorSeleccionadoId === 'function' && (
-        <Card>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold theme-text">Perfil de vendedor para la cotización</h3>
-              <p className="theme-text-muted text-sm mt-0.5">Selecciona el vendedor cuyos datos (banco/cuenta/clabe/beneficiario) aparecerán en el PDF.</p>
-            </div>
-            <select
-              value={vendedorSeleccionadoId ?? ''}
-              onChange={(e) => onChangeVendedorSeleccionadoId(Number(e.target.value) || null)}
-              className="theme-input px-3 py-2 rounded-xl border"
-            >
-              {vendedores.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.nombre} — {v.correo}
-                </option>
-              ))}
-            </select>
-          </div>
-        </Card>
-      )}
-
-      {/* Vista previa del PDF */}
       <Card>
         <div className="flex items-center gap-2 mb-3">
           <FileText className="w-5 h-5 text-cyan-500" />
           <h3 className="text-lg font-semibold theme-text">Vista previa del PDF</h3>
         </div>
-        <p className="theme-text-muted text-sm mb-3">Así se verá la cotización al descargarla. Datos del vendedor y cuenta se importan del perfil seleccionado.</p>
+        <p className="theme-text-muted text-sm mb-3">
+          El perfil de vendedor y la cuenta se eligieron en el paso anterior (Vista previa). La tabla del cliente solo muestra productos; regalías y materiales extra van integrados en el precio de cada pieza.
+        </p>
         <div className="rounded-lg border overflow-hidden bg-white" style={{ minHeight: 420, borderColor: 'var(--theme-border)' }}>
           {previewUrl ? (
             <iframe src={previewUrl} title="Vista previa cotización" className="w-full h-[420px]" />
