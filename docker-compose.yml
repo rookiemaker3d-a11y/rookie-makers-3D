@@ -70,7 +70,8 @@ services:
       N8N_HOST: ${N8N_HOST:-localhost}
       N8N_PORT: 5678
       N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
-      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      # Puerto público del host = N8N_HOST_PORT (5678 suele estar ocupado en el VPS). Ajusta WEBHOOK_URL en .env a http://TU_IP:15678/
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:15678/}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-cambiar-en-produccion-32-chars-minimo}
       GENERIC_TIMEZONE: ${GENERIC_TIMEZONE:-America/Mexico_City}
       # BD de n8n en PostgreSQL (contenedor db compartido)
@@ -87,8 +88,9 @@ services:
       N8N_SECURE_COOKIE: ${N8N_SECURE_COOKIE:-false}
     volumes:
       - n8n_data:/home/node/.n8n
+    # Host 15678 → contenedor 5678 (evita choque con otro n8n/servicio en 5678). Cambia con N8N_HOST_PORT en .env
     ports:
-      - "5678:5678"
+      - "${N8N_HOST_PORT:-15678}:5678"
 
   # Ollama self-hosted (modelos locales). El backend usa http://ollama:11434 dentro de la red Docker.
   # No publicamos 11434 en el host: en muchos VPS ya hay Ollama nativo u otro servicio en 127.0.0.1:11434 y Docker falla al levantar.
