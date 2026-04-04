@@ -57,8 +57,10 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    # El puerto 80 del host suele estar ocupado (nginx de Hostinger, otro sitio). Acceso: http://TU_IP:8080  y  /app/  /api/
+    # Si liberas el 80 y quieres usarlo: FRONTEND_HOST_PORT=80 en .env  (y en Vercel apunta /api al mismo host:puerto)
     ports:
-      - "80:80"
+      - "${FRONTEND_HOST_PORT:-8080}:80"
 
   # n8n self-hosted (sin mensualidad SaaS)
   n8n:
