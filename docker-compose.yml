@@ -90,15 +90,14 @@ services:
     ports:
       - "5678:5678"
 
-  # Ollama self-hosted (modelos locales)
+  # Ollama self-hosted (modelos locales). El backend usa http://ollama:11434 dentro de la red Docker.
+  # No publicamos 11434 en el host: en muchos VPS ya hay Ollama nativo u otro servicio en 127.0.0.1:11434 y Docker falla al levantar.
+  # Para usar la API desde el host: docker compose exec ollama ollama list  ;  o añade bajo ollama:  ports: ["127.0.0.1:11435:11434"]
   ollama:
     image: ollama/ollama:latest
     restart: unless-stopped
     volumes:
       - ollama_data:/root/.ollama
-    # Si quieres exponerlo fuera del VPS, cambia por "11434:11434"
-    ports:
-      - "127.0.0.1:11434:11434"
 
 volumes:
   postgres_data:
