@@ -4,9 +4,11 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/deploy-dist",
   "rewrites": [
+    { "source": "/app/assets/:path*", "destination": "/app/assets/:path*" },
+    { "source": "/app/logos/:path*", "destination": "/app/logos/:path*" },
     { "source": "/app", "destination": "/app/index.html" },
     { "source": "/app/", "destination": "/app/index.html" },
-    { "source": "/app/:path*", "destination": "/app/:path*" },
+    { "source": "/app/:path*", "destination": "/app/index.html" },
     { "source": "/api/:path*", "destination": "http://187.124.234.72:8080/api/:path*" },
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/logos/:path*", "destination": "/logos/:path*" },
