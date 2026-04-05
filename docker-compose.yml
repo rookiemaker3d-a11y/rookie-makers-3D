@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
     depends_on:
       db: { condition: service_healthy }
-      ollama: { condition: service_started }
+    # Ollama es opcional (IA); el ERP y el login no dependen de él. Arranca ollama aparte si lo necesitas.
     environment:
       DATABASE_URL: postgresql+asyncpg://rookie:${POSTGRES_PASSWORD:-cambiar-en-produccion}@db:5432/rookie_erp
       SECRET_KEY: ${SECRET_KEY:-cambiar-secret-en-produccion}
@@ -49,6 +49,9 @@ services:
       - backend_uploads:/app/uploads
     expose:
       - "8000"
+    # Localhost: Vite (npm run dev) proxy a la API. Si 8002 esta ocupado, define BACKEND_HOST_PORT en .env
+    ports:
+      - "127.0.0.1:${BACKEND_HOST_PORT:-8002}:8000"
 
   frontend:
     build:

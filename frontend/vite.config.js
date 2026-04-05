@@ -20,6 +20,6 @@ export default defineConfig(({ command }) => ({
   },
   server: {
     port: 5173,
-    proxy: { '/api': { target: 'http://127.0.0.1:8001', changeOrigin: true } },
+    proxy: { '/api': { target: 'http://127.0.0.1:8002', changeOrigin: true } },
   },
 }))
