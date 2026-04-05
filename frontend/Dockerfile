@@ -1,5 +1,9 @@
-# Contexto: raíz del repo (docker-compose). Paginaweb/Content-Hub para build de la web en /.
+# Contexto: raíz del repo (docker-compose). Paginaweb/Content-Hub para la landing en /.
+# ALLOW_MINIMAL_LANDING=1 si el clone no trae Content-Hub (submódulo vacío): landing mínima + ERP.
+ARG ALLOW_MINIMAL_LANDING=1
 FROM node:20-alpine AS builder
+ARG ALLOW_MINIMAL_LANDING=1
+ENV ALLOW_MINIMAL_LANDING=${ALLOW_MINIMAL_LANDING}
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
 RUN npm ci

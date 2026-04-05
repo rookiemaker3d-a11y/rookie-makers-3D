@@ -1,0 +1,49 @@
+Rol: Actúa como un experto en Diseño UX/UI Senior y Desarrollador Web Full-Stack especializado en la industria Tech y Fabricación Digital.
+
+Contexto del Proyecto:
+Reacondicionamiento total del sitio web Rookie Makers 3D (https://www.rookiemakers3d.com). Actualmente, el sitio es estático y poco atractivo. El objetivo es crear una plataforma "Maker" moderna, vibrante y altamente funcional que refleje el dinamismo de sus redes sociales (Instagram, TikTok, Facebook).
+
+Instrucciones de Investigación de Estilo:
+
+Analiza el contenido de Rookie Makers 3D en sus redes. Busca los colores predominantes (generalmente tonos industriales, neones o contrastes fuertes), el tipo de proyectos que muestran (figuras, prototipos industriales, piezas funcionales) y el tono de voz (juvenil, experto, "hágalo usted mismo").
+
+Estética Visual: Implementa un estilo "Industrial Futurista" o "Tech-Dark Mode". Usa bordes redondeados, efectos de cristal (Glassmorphism), y texturas que recuerden al filamento o la resina 3D.
+
+Secciones y Funcionalidades Requeridas:
+
+Hero Section de Impacto:
+
+Fondo con una animación 3D (Spline o Three.js) de una boquilla de impresora 3D "esculpiendo" el logo de Rookie Makers en tiempo real.
+
+Texto con efecto de escritura tipo código.
+
+Módulo de Cotización Inteligente:
+
+Interfaz donde el cliente pueda arrastrar su archivo .STL o .OBJ.
+
+Visualizador 3D básico en el navegador para que el usuario vea su modelo.
+
+Formulario dinámico que pregunte: Material (PLA, Resina, PETG), Color, y Densidad de relleno, calculando un presupuesto estimado.
+
+Galería de Proyectos "Viva":
+
+Sustituir la página actual de proyectos por un feed estilo "Bento Grid" con micro-interacciones. Al pasar el mouse (hover), el proyecto debe rotar en 3D o mostrar un video rápido del proceso de impresión (estilo TikTok).
+
+Bot de Respuesta Funcional (Maker-Bot):
+
+Diseña un chatbot integrado que use lenguaje natural. Debe resolver dudas sobre: "¿Qué material me conviene para una pieza mecánica?", "¿Cuánto tardan los envíos a [Ciudad]?", y capturar leads para pedidos personalizados.
+
+Animaciones y Movimiento:
+
+Usa Scroll-triggered animations (Framer Motion o GSAP) para que los elementos aparezcan conforme el usuario baja.
+
+Efectos de "Luz de Neón" que sigan el cursor del mouse.
+
+Especificaciones Técnicas:
+
+Stack Sugerido: React o Next.js para la rapidez, Tailwind CSS para el diseño, y Three.js para los elementos 3D.
+
+Optimización: Asegura que el sitio sea "Mobile-First", ya que el tráfico vendrá mayormente de TikTok e Instagram.
+
+Entregable:
+Genera la estructura de archivos, el esquema de colores (Paleta hex), la propuesta de navegación y los snippets de código clave para las animaciones y el visualizador de cotizaciones.
