@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Play } from "lucide-react";
+import { ExternalLink, Play, Images } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook } from "react-icons/si";
+import { ALL_PORTFOLIO_IMAGES } from "@/data/portfolio";
 
 const INSTAGRAM_URL = "https://www.instagram.com/rookiemakers3d";
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61553700448358";
@@ -279,6 +280,38 @@ export function SocialFeed() {
           <p className="text-center text-sm text-muted-foreground font-mono mt-8 max-w-xl mx-auto">
             Haz click en cualquier red para ver nuestro contenido mas reciente de impresion 3D, time-lapses y proyectos especiales.
           </p>
+        </motion.div>
+
+        {/* Galería de fotos (mismo set que arriba; aquí todas visibles — luego puedes mezclar videos) */}
+        <motion.div
+          className="mt-20"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.05 }}
+        >
+          <h3 className="text-xl font-bold font-sans text-foreground mb-2 flex items-center gap-3">
+            <Images className="text-primary w-5 h-5" />
+            Fotos de proyectos
+          </h3>
+          <p className="text-sm text-muted-foreground font-mono mb-6 max-w-2xl">
+            Todas las referencias fotográficas de nuestros trabajos. Más adelante aquí podrán ir videos embebidos junto a esta galería.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+            {ALL_PORTFOLIO_IMAGES.map(({ src, alt }) => (
+              <div
+                key={src}
+                className="aspect-square rounded-lg overflow-hidden border border-white/10 bg-muted/20 group"
+              >
+                <img
+                  src={src}
+                  alt={alt}
+                  loading="lazy"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>

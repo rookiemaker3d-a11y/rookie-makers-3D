@@ -17,6 +17,7 @@ import {
   Boxes,
   Shield,
   Settings,
+  FileEdit,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -33,6 +34,7 @@ const NAV = [
   { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/seguridad', label: 'Seguridad', icon: Shield },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },
+  { to: '/pagina-publica', label: 'Página pública (costos)', icon: FileEdit, adminOnly: true },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
   { href: '/', label: 'Web pública', icon: Globe, external: true },
 ]

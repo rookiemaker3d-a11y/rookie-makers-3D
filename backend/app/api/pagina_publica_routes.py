@@ -67,6 +67,14 @@ DEFAULT_LANDING = {
         ],
         "ctaText": "Cotizar",
     },
+    # Alineado con costos típicos del ERP (Inventario → filamentos); editable en ERP → Página pública
+    "calculatorMaterials": [
+        {"id": "pla_plus", "name": "PLA+", "costoPorKg": 330, "type": "FDM"},
+        {"id": "petg", "name": "PETG", "costoPorKg": 420, "type": "FDM"},
+        {"id": "abs", "name": "ABS", "costoPorKg": 380, "type": "FDM"},
+        {"id": "resina_std", "name": "Resina standard", "costoPorKg": 900, "type": "SLA"},
+        {"id": "resina_pro", "name": "Resina premium", "costoPorKg": 1100, "type": "SLA"},
+    ],
 }
 
 

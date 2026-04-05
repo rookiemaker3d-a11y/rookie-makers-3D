@@ -55,7 +55,7 @@ export function Footer() {
           <ul className="flex flex-wrap gap-4 md:gap-6 text-xs font-mono text-muted-foreground">
             <li><a href="#services" className="hover:text-primary transition-colors">Servicios</a></li>
             <li><a href="#calculator" className="hover:text-primary transition-colors">Cotizador</a></li>
-            <li><a href="#proyectos" className="hover:text-primary transition-colors">Proyectos</a></li>
+            <li><a href="#galeria" className="hover:text-primary transition-colors">Proyectos</a></li>
             <li><a href="#redes" className="hover:text-primary transition-colors">Redes Sociales</a></li>
             <li><a href="#contact" className="hover:text-primary transition-colors">Contacto</a></li>
             <li>

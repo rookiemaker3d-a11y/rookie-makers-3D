@@ -17,7 +17,7 @@ export function Navbar() {
   const links = [
     { label: "Servicios", href: "#services" },
     { label: "Cotizar", href: "#calculator" },
-    { label: "Proyectos", href: "#gallery" },
+    { label: "Proyectos", href: "#galeria" },
     { label: "Redes", href: "#redes" },
     { label: "Contacto", href: "#contact" },
   ];

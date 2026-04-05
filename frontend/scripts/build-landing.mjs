@@ -62,4 +62,12 @@ if (!hasContentHub) {
 run('npx', ['--yes', 'pnpm@9', 'install', '--ignore-scripts'], contentHubRoot)
 run('npx', ['vite', 'build', '--config', 'vite.root-landing.config.ts'], artifact)
 
+// Vite con outDir fuera del proyecto a veces no copia todo `public/`; forzar galería.
+const portfolioSrc = path.join(artifact, 'public', 'portfolio')
+const portfolioDest = path.join(landingDist, 'portfolio')
+if (fs.existsSync(portfolioSrc)) {
+  fs.mkdirSync(portfolioDest, { recursive: true })
+  fs.cpSync(portfolioSrc, portfolioDest, { recursive: true })
+}
+
 console.log('landing → frontend/landing-dist (Content-Hub).')

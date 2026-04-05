@@ -118,18 +118,20 @@ export function Hero() {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <button
+          <a
+            href="#cotizador"
             data-testid="button-cotizar"
-            className="px-8 py-4 bg-primary text-primary-foreground font-bold rounded-md hover:bg-primary/90 transition-colors shadow-[0_0_20px_rgba(0,245,255,0.4)] hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] font-mono text-lg uppercase tracking-wider"
+            className="text-center px-8 py-4 bg-primary text-primary-foreground font-bold rounded-md hover:bg-primary/90 transition-colors shadow-[0_0_20px_rgba(0,245,255,0.4)] hover:shadow-[0_0_30px_rgba(0,245,255,0.6)] font-mono text-lg uppercase tracking-wider"
           >
             Cotizar Ahora
-          </button>
-          <button
+          </a>
+          <a
+            href="#galeria"
             data-testid="button-proyectos"
-            className="px-8 py-4 bg-transparent border-2 border-primary text-primary font-bold rounded-md hover:bg-primary/10 transition-colors font-mono text-lg uppercase tracking-wider"
+            className="text-center px-8 py-4 bg-transparent border-2 border-primary text-primary font-bold rounded-md hover:bg-primary/10 transition-colors font-mono text-lg uppercase tracking-wider"
           >
             Ver Proyectos
-          </button>
+          </a>
         </div>
       </div>
       

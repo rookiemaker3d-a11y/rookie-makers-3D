@@ -343,3 +343,5 @@ class LandingUpdate(BaseModel):
     cta: Optional[dict] = None
     footer: Optional[dict] = None
     nav: Optional[dict] = None
+    # Materiales de la calculadora pública (costoPorKg MXN, type FDM|SLA)
+    calculatorMaterials: Optional[list] = None
