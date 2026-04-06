@@ -318,6 +318,63 @@ async def list_usuarios_vendedor_ventas(
     ]
 
 
+@router.get("/usuarios", response_model=list[UserResponse])
+async def list_usuarios_admin(
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Solo admin. Lista usuarios (para abrir/cerrar perfiles)."""
+    r = await db.execute(select(User).order_by(User.id))
+    users = r.scalars().all()
+    return [
+        UserResponse(
+            id=u.id,
+            email=u.email,
+            role=u.role,
+            vendedor_id=u.vendedor_id,
+            is_active=bool(getattr(u, "is_active", True)),
+            nombre=getattr(u, "nombre", None),
+            vendedor_telefono=getattr(u, "telefono", None),
+            vendedor_banco=getattr(u, "banco", None),
+            vendedor_cuenta=getattr(u, "cuenta", None),
+            vendedor_clabe=getattr(u, "clabe", None),
+        )
+        for u in users
+    ]
+
+
+@router.patch("/usuarios/{user_id}/activo")
+async def set_user_active(
+    user_id: int,
+    body: dict,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Solo admin. Activa o desactiva un perfil (bloquea login cuando está inactivo). Body: { is_active: true|false }."""
+    is_active = body.get("is_active")
+    if not isinstance(is_active, bool):
+        raise HTTPException(status_code=400, detail="Body inválido. Usa {\"is_active\": true|false}.")
+    r = await db.execute(select(User).where(User.id == user_id))
+    u = r.scalar_one_or_none()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if u.id == _admin.id and not is_active:
+        raise HTTPException(status_code=400, detail="No puedes desactivar tu propio usuario admin")
+    u.is_active = is_active
+    await db.commit()
+    await db.refresh(u)
+    await log_audit(
+        db,
+        "user_active_changed",
+        user_id=_admin.id,
+        ip=_client_ip(request),
+        details={"target_user_id": u.id, "email": u.email, "is_active": is_active},
+    )
+    await db.commit()
+    return {"ok": True, "user_id": u.id, "is_active": bool(u.is_active)}
+
+
 @router.delete("/usuarios-vendedor-ventas/{user_id}")
 async def delete_usuario_vendedor_ventas(
     user_id: int,

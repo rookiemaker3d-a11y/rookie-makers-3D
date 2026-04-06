@@ -1,7 +1,7 @@
 import { useEffect, useState, Fragment } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { Plus, Trash2, ChevronDown, ChevronUp, Pencil } from 'lucide-react'
+import { Plus, Trash2, ChevronDown, ChevronUp, Pencil, Tag } from 'lucide-react'
 import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
 
 function resumenMaterialLineas(det) {
@@ -43,13 +43,17 @@ export default function Productos() {
   const [loading, setLoading] = useState(true)
   const [importOpen, setImportOpen] = useState(false)
   const [importForm, setImportForm] = useState({ descripcion: '', costo_produccion: '', costo_final: '' })
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createForm, setCreateForm] = useState({ descripcion: '', costo_base: '', costo_final: '', funkoPop: false })
   const [msg, setMsg] = useState('')
   const [expandedId, setExpandedId] = useState(null)
   const [editProduct, setEditProduct] = useState(null)
   const [editForm, setEditForm] = useState(null)
   const [porcentajeInversion, setPorcentajeInversion] = useState(defaultPorcentajeInversion)
+  const [vista, setVista] = useState('generales') // 'generales' | 'propios'
 
   const isAdmin = user?.role === 'administrador'
+  const canCreate = isAdmin || user?.role === 'vendedor_ventas'
 
   const savePorcentajeInversion = (pct) => {
     const n = Math.min(100, Math.max(0, Number(pct) || 0))
@@ -178,7 +182,7 @@ export default function Productos() {
         costo_final,
         cantidad: 1,
         vendedor: 'Importado',
-        detalles: {},
+        detalles: { catalogo: vista === 'propios' ? 'propio' : 'general' },
       }),
     })
     setImportOpen(false)
@@ -186,6 +190,43 @@ export default function Productos() {
     load()
     setMsg('Venta importada.')
   }
+
+  const saveCreated = async (e) => {
+    e.preventDefault()
+    setMsg('')
+    const costo_base = parseFloat(createForm.costo_base)
+    const costo_final = parseFloat(createForm.costo_final)
+    if (!createForm.descripcion || isNaN(costo_base) || isNaN(costo_final)) {
+      setMsg('Completa todos los campos con valores válidos.')
+      return
+    }
+    const detalles = {
+      catalogo: vista === 'propios' ? 'propio' : 'general',
+      funko_pop: !!createForm.funkoPop,
+    }
+    await api('/productos', {
+      method: 'POST',
+      body: JSON.stringify({
+        descripcion: createForm.descripcion,
+        costo_base,
+        costo_final,
+        cantidad: 1,
+        detalles,
+      }),
+    })
+    setCreateOpen(false)
+    setCreateForm({ descripcion: '', costo_base: '', costo_final: '', funkoPop: false })
+    load()
+    setMsg('Producto guardado.')
+  }
+
+  const getCatalogo = (p) => {
+    const det = p?.detalles || {}
+    const c = det.catalogo || det.catalog || det.tipo_catalogo
+    return c === 'propio' ? 'propio' : 'general'
+  }
+
+  const itemsFiltrados = items.filter((p) => (vista === 'propios' ? getCatalogo(p) === 'propio' : getCatalogo(p) === 'general'))
 
   let totalCosto = 0
   let totalVenta = 0
@@ -208,18 +249,49 @@ export default function Productos() {
   return (
     <div className="space-y-6">
       <SectionHeader
-        title="Productos autorizados"
-        subtitle="Ventas importadas y autorizadas. Ver análisis para desglose de costos; editar horas/gramos/extras para recalcular."
-        action={isAdmin && (
-          <button
-            onClick={() => setImportOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-lg btn-primary hover:opacity-95 text-sm font-medium transition shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Importar venta
-          </button>
+        title="Productos"
+        subtitle="Usa los tabs: Generales (a granel) vs Propios (venta única). Estos datos alimentan Análisis."
+        action={canCreate && (
+          <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => setImportOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg btn-secondary hover:opacity-95 text-sm font-medium transition shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Importar venta
+              </button>
+            )}
+            <button
+              onClick={() => setCreateOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg btn-primary hover:opacity-95 text-sm font-medium transition shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar producto
+            </button>
+          </div>
         )}
       />
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setVista('generales')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium border transition ${
+            vista === 'generales' ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-white/5 border-white/15 theme-text-muted hover:bg-white/10'
+          }`}
+        >
+          Productos generales
+        </button>
+        <button
+          type="button"
+          onClick={() => setVista('propios')}
+          className={`px-4 py-2 rounded-xl text-sm font-medium border transition ${
+            vista === 'propios' ? 'bg-cyan-600 text-white border-cyan-500' : 'bg-white/5 border-white/15 theme-text-muted hover:bg-white/10'
+          }`}
+        >
+          Productos propios
+        </button>
+      </div>
       {msg && <p className="theme-text-muted text-sm">{msg}</p>}
       <Card padding={false} className="overflow-hidden theme-table">
         <table className="w-full text-left text-sm">
@@ -228,6 +300,7 @@ export default function Productos() {
               <th className="p-3 theme-text-muted font-medium w-8"></th>
               <th className="p-3 theme-text-muted font-medium">ID</th>
               <th className="p-3 theme-text-muted font-medium">Descripción</th>
+              <th className="p-3 theme-text-muted font-medium w-32">Tipo</th>
               <th className="p-3 theme-text-muted font-medium min-w-[140px]">Material / color</th>
               <th className="p-3 theme-text-muted font-medium">Gramos</th>
               <th className="p-3 theme-text-muted font-medium">Horas imp.</th>
@@ -238,10 +311,11 @@ export default function Productos() {
             </tr>
           </thead>
           <tbody>
-            {items.map((p) => {
+            {itemsFiltrados.map((p) => {
               const gan = (p.costo_final || 0) - (p.costo_base || 0)
               const det = p.detalles || {}
               const res = resumenMaterialLineas(det)
+              const tipo = getCatalogo(p)
               const isExpanded = expandedId === p.id
               return (
                 <Fragment key={p.id}>
@@ -258,6 +332,13 @@ export default function Productos() {
                     </td>
                     <td className="p-3 theme-text tabular-nums">{p.id}</td>
                     <td className="p-3 theme-text">{p.descripcion}</td>
+                    <td className="p-3">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.06] border border-white/[0.08] text-xs theme-text">
+                        <Tag className="w-3 h-3 text-cyan-400" />
+                        {tipo === 'propio' ? 'Propio' : 'General'}
+                        {det.funko_pop ? <span className="ml-1 text-pink-400">· Funko Pop</span> : null}
+                      </span>
+                    </td>
                     <td className="p-3 theme-text text-xs max-w-[200px]" title={res.materialColor}>{res.materialColor}</td>
                     <td className="p-3 theme-text tabular-nums text-xs">{typeof res.gramos === 'number' ? `${res.gramos} g` : res.gramos}</td>
                     <td className="p-3 theme-text tabular-nums text-xs">{typeof res.horas === 'number' ? `${res.horas} h` : res.horas}</td>
@@ -284,7 +365,7 @@ export default function Productos() {
                   </tr>
                   {isExpanded && (
                     <tr key={`${p.id}-analisis`}>
-                      <td colSpan={isAdmin ? 10 : 9} className="p-0 bg-white/[0.02]">
+                      <td colSpan={isAdmin ? 11 : 10} className="p-0 bg-white/[0.02]">
                         <div className="p-4 border-t border-white/[0.06]">
                           <h4 className="text-xs font-semibold theme-text-muted uppercase tracking-wide mb-3">Análisis de costos</h4>
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-sm">
@@ -397,6 +478,54 @@ export default function Productos() {
               <div className="flex gap-2 pt-2">
                 <button type="submit" className="px-4 py-2 rounded-xl btn-primary font-medium">Guardar</button>
                 <button type="button" onClick={() => setImportOpen(false)} className="px-4 py-2 rounded-xl btn-secondary">Cancelar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {createOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="rounded-2xl border-2 theme-border theme-bg-card backdrop-blur-xl p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-lg font-bold theme-text mb-2">Agregar producto</h2>
+            <p className="text-xs theme-text-muted mb-4">
+              Se guardará como <strong>{vista === 'propios' ? 'Producto propio' : 'Producto general'}</strong>.
+            </p>
+            <form onSubmit={saveCreated} className="space-y-3">
+              <input
+                placeholder="Descripción"
+                value={createForm.descripcion}
+                onChange={(e) => setCreateForm((f) => ({ ...f, descripcion: e.target.value }))}
+                className="theme-input w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-[var(--theme-focus-ring)]"
+              />
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Costo de producción"
+                value={createForm.costo_base}
+                onChange={(e) => setCreateForm((f) => ({ ...f, costo_base: e.target.value }))}
+                className="theme-input w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-[var(--theme-focus-ring)]"
+              />
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Costo final de venta"
+                value={createForm.costo_final}
+                onChange={(e) => setCreateForm((f) => ({ ...f, costo_final: e.target.value }))}
+                className="theme-input w-full px-4 py-2.5 rounded-xl border focus:ring-2 focus:ring-[var(--theme-focus-ring)]"
+              />
+              <label className="flex items-center gap-2 theme-text-muted text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!createForm.funkoPop}
+                  onChange={(e) => setCreateForm((f) => ({ ...f, funkoPop: e.target.checked }))}
+                  className="rounded border-white/20"
+                />
+                Característica: Funko Pop
+              </label>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="px-4 py-2 rounded-xl btn-primary font-medium">Guardar</button>
+                <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-xl btn-secondary">Cancelar</button>
               </div>
             </form>
           </div>

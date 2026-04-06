@@ -31,6 +31,7 @@ const NAV = [
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/vendedores', label: 'Diseñadores', icon: UserCog, adminOnly: true },
+  { to: '/perfiles', label: 'Perfiles (bloquear)', icon: Shield, adminOnly: true },
   { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/seguridad', label: 'Seguridad', icon: Shield },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },

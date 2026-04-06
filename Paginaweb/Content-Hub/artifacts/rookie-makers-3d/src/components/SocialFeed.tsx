@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Play, Images } from "lucide-react";
+import { ExternalLink, Play } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook } from "react-icons/si";
-import { ALL_PORTFOLIO_IMAGES } from "@/data/portfolio";
 
 const INSTAGRAM_URL = "https://www.instagram.com/rookiemakers3d";
 const FACEBOOK_URL = "https://www.facebook.com/profile.php?id=61553700448358";
@@ -163,81 +162,7 @@ export function SocialFeed() {
           })}
         </motion.div>
 
-        {/* Connect CTA banner */}
-        <motion.div
-          className="mb-12"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-        >
-          <div className="glass-panel rounded-2xl overflow-hidden border border-primary/20">
-            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
-              {/* Instagram big CTA */}
-              <a
-                href={INSTAGRAM_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="cta-instagram"
-                className="group flex flex-col items-center text-center p-10 gap-4 hover:bg-pink-500/5 transition-colors duration-200"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <SiInstagram className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <p className="font-bold text-lg font-sans text-foreground">Instagram</p>
-                  <p className="font-mono text-sm text-pink-500">@rookiemakers3d</p>
-                </div>
-                <p className="text-sm text-muted-foreground font-mono">Fotos, reels y stories de nuestros proyectos</p>
-                <span className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-orange-400 text-white text-sm font-bold group-hover:opacity-90 transition-opacity">
-                  Ver perfil <ExternalLink className="w-3 h-3" />
-                </span>
-              </a>
-
-              {/* TikTok big CTA */}
-              <a
-                href={TIKTOK_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="cta-tiktok"
-                className="group flex flex-col items-center text-center p-10 gap-4 hover:bg-red-500/5 transition-colors duration-200"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-black via-[#EE1D52] to-[#69C9D0] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <SiTiktok className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <p className="font-bold text-lg font-sans text-foreground">TikTok</p>
-                  <p className="font-mono text-sm text-red-400">@rookiemakers3d</p>
-                </div>
-                <p className="text-sm text-muted-foreground font-mono">Videos virales de impresión en tiempo real</p>
-                <span className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-[#EE1D52] to-[#69C9D0] text-white text-sm font-bold group-hover:opacity-90 transition-opacity">
-                  Ver videos <ExternalLink className="w-3 h-3" />
-                </span>
-              </a>
-
-              {/* Facebook big CTA */}
-              <a
-                href={FACEBOOK_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="cta-facebook"
-                className="group flex flex-col items-center text-center p-10 gap-4 hover:bg-blue-500/5 transition-colors duration-200"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-700 to-blue-400 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <SiFacebook className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <p className="font-bold text-lg font-sans text-foreground">Facebook</p>
-                  <p className="font-mono text-sm text-blue-500">Rookie Makers 3D</p>
-                </div>
-                <p className="text-sm text-muted-foreground font-mono">Actualizaciones, precios y atención directa</p>
-                <span className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-blue-600 text-white text-sm font-bold group-hover:bg-blue-700 transition-colors">
-                  Ver página <ExternalLink className="w-3 h-3" />
-                </span>
-              </a>
-            </div>
-          </div>
-        </motion.div>
+        {/* (Se quitó banner duplicado de redes; dejamos un solo apartado + links de videos) */}
 
         {/* Video section — quick links */}
         <motion.div
@@ -282,37 +207,6 @@ export function SocialFeed() {
           </p>
         </motion.div>
 
-        {/* Galería de fotos (mismo set que arriba; aquí todas visibles — luego puedes mezclar videos) */}
-        <motion.div
-          className="mt-20"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.05 }}
-        >
-          <h3 className="text-xl font-bold font-sans text-foreground mb-2 flex items-center gap-3">
-            <Images className="text-primary w-5 h-5" />
-            Fotos de proyectos
-          </h3>
-          <p className="text-sm text-muted-foreground font-mono mb-6 max-w-2xl">
-            Todas las referencias fotográficas de nuestros trabajos. Más adelante aquí podrán ir videos embebidos junto a esta galería.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-            {ALL_PORTFOLIO_IMAGES.map(({ src, alt }) => (
-              <div
-                key={src}
-                className="aspect-square rounded-lg overflow-hidden border border-white/10 bg-muted/20 group"
-              >
-                <img
-                  src={src}
-                  alt={alt}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-            ))}
-          </div>
-        </motion.div>
       </div>
     </section>
   );

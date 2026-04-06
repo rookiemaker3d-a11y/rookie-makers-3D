@@ -21,6 +21,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     vendedor_id: Optional[int] = None
+    is_active: Optional[bool] = None
     nombre: Optional[str] = None  # nombre para mostrar (vendedor_nombre o user.nombre o email)
     vendedor_nombre: Optional[str] = None
     vendedor_correo: Optional[str] = None
