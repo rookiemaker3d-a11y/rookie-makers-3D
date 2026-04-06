@@ -17,6 +17,10 @@ backend/EJECUTAR-SEED.bat
 npm-debug.log*
 .DS_Store
 
+# Python cache
+__pycache__/
+*.pyc
+
 # Archivos enormes (rompen git push / GitHub 100MB límite)
 Content-Hub.zip
 *.zip

@@ -167,6 +167,7 @@ async def create_cotizacion(
     )
     db.add(c)
     await db.flush()
+    await db.commit()
     await db.refresh(c)
     return c
 
@@ -232,6 +233,7 @@ async def autorizar_venta(
                 )
                 db.add(p)
                 await db.delete(c)
+    await db.commit()
     return {"ok": True, "count": len(ids)}
 
 
@@ -310,4 +312,5 @@ async def delete_cotizacion(
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
     await db.delete(c)
+    await db.commit()
     return {"ok": True}

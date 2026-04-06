@@ -31,11 +31,20 @@ async def list_productos(
 async def create_producto(
     body: ProductoCreate,
     db: AsyncSession = Depends(get_db),
-    _admin=Depends(require_admin),
+    user=Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    """Solo administrador puede importar/crear productos."""
-    nombre_vendedor = body.vendedor or (vendedor.nombre if vendedor else "Importado")
+    """
+    Crea un producto:
+    - Admin: puede crear/importar y definir vendedor.
+    - vendedor_ventas: puede crear sus propios productos (vendedor = email).
+    """
+    if user.role not in ("administrador", "vendedor_ventas"):
+        raise HTTPException(status_code=403, detail="No tienes permiso para crear productos")
+    if user.role == "administrador":
+        nombre_vendedor = body.vendedor or (vendedor.nombre if vendedor else "Importado")
+    else:
+        nombre_vendedor = user.email
     p = Producto(
         descripcion=body.descripcion,
         costo_base=body.costo_base,
@@ -46,6 +55,7 @@ async def create_producto(
     )
     db.add(p)
     await db.flush()
+    await db.commit()
     await db.refresh(p)
     return p
 
@@ -69,6 +79,7 @@ async def update_producto(
     if body.costo_final is not None:
         p.costo_final = body.costo_final
     await db.flush()
+    await db.commit()
     await db.refresh(p)
     return p
 
@@ -85,4 +96,5 @@ async def delete_producto(
     if not p:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     await db.delete(p)
+    await db.commit()
     return {"ok": True}
