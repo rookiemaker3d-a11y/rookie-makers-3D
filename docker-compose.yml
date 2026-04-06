@@ -36,6 +36,12 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
+      # Mercado Pago (suscripciones)
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-}
+      MP_WEBHOOK_SECRET: ${MP_WEBHOOK_SECRET:-}
+      MP_SUCCESS_URL: ${MP_SUCCESS_URL:-}
+      MP_FAILURE_URL: ${MP_FAILURE_URL:-}
+      MP_PENDING_URL: ${MP_PENDING_URL:-}
       # Variables reservadas para integración WhatsApp/API (fase 1)
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
@@ -47,6 +53,8 @@ services:
     volumes:
       # Persistir archivos subidos (cotizaciones, etc.) en el servidor
       - backend_uploads:/app/uploads
+      # Persistir web-assets subidos desde el ERP (Editor web)
+      - web_assets:/app/web-assets
     expose:
       - "8000"
     # Localhost: Vite (npm run dev) proxy a la API. Si 8002 esta ocupado, define BACKEND_HOST_PORT en .env
@@ -109,5 +117,6 @@ services:
 volumes:
   postgres_data:
   backend_uploads:
+  web_assets:
   n8n_data:
   ollama_data:

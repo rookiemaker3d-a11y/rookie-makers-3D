@@ -34,6 +34,13 @@ class Settings(BaseSettings):
     email_from: str = ""  # Opcional; si está vacío se usa smtp_user
     app_base_url: str = "http://localhost:5173"  # URL del frontend para el enlace en el correo
 
+    # Mercado Pago (suscripciones por link de pago + webhook)
+    mp_access_token: str = ""
+    mp_webhook_secret: str = ""  # opcional: validar firma
+    mp_success_url: str = ""  # opcional: URL de retorno (pago OK)
+    mp_failure_url: str = ""  # opcional: URL de retorno (pago falló)
+    mp_pending_url: str = ""  # opcional: URL de retorno (pago pendiente)
+
     # WhatsApp Cloud API (Meta) — webhook y envío de mensajes
     whatsapp_phone_number_id: str = ""
     whatsapp_access_token: str = ""

@@ -30,6 +30,8 @@ class UserResponse(BaseModel):
     vendedor_cuenta: Optional[str] = None
     vendedor_clabe: Optional[str] = None
     vendedor_tarjeta_ultimos4: Optional[str] = None
+    subscription_plan_role: Optional[str] = None
+    subscription_expires_at: Optional[str] = None
 
     class Config:
         from_attributes = True

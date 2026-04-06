@@ -17,6 +17,8 @@ class User(Base):
     cuenta = Column(String(100), nullable=True)
     clabe = Column(String(22), nullable=True)
     is_active = Column(Boolean, default=True)
+    subscription_plan_role = Column(String(50), nullable=True)  # ej: vendedor, vendedor_ventas
+    subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
     mfa_secret = Column(String(64), nullable=True)  # TOTP secret (base32)
     mfa_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -179,6 +181,35 @@ class AuditLog(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     ip = Column(String(64), nullable=True)
     details = Column(JSON, default=dict)  # email, reason, target_user_id, etc.
+
+
+class PlanSuscripcion(Base):
+    """Plan configurable por rol (mensualidad por usuario)."""
+    __tablename__ = "planes_suscripcion"
+    id = Column(Integer, primary_key=True, index=True)
+    role = Column(String(50), nullable=False, unique=True)  # vendedor | vendedor_ventas | ...
+    precio_mxn = Column(Float, default=0)
+    periodo_dias = Column(Integer, default=30)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PagoSuscripcion(Base):
+    """Registro de pagos (MercadoPago) para auditoría e historial."""
+    __tablename__ = "pagos_suscripcion"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    plan_role = Column(String(50), nullable=False)
+    provider = Column(String(50), default="mercadopago")
+    provider_payment_id = Column(String(100), nullable=True)
+    status = Column(String(30), default="pendiente")  # pendiente|link_creado|aprobado|rechazado|cancelado|error
+    amount = Column(Float, default=0)
+    currency = Column(String(10), default="MXN")
+    payment_url = Column(Text, nullable=True)
+    months = Column(Integer, default=1)
+    metadata = Column(JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    paid_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class AlertaProgramada(Base):

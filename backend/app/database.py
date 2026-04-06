@@ -183,6 +183,26 @@ def _migrate_add_inventario_item_media(sync_conn):
             pass  # columna ya existe
 
 
+def _migrate_add_user_subscription(sync_conn):
+    """Añade columnas de suscripción a users si no existen."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan_role VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE users ADD COLUMN subscription_plan_role VARCHAR(50)",
+            "ALTER TABLE users ADD COLUMN subscription_expires_at DATETIME",
+        ]
+    for stmt in stmts:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -192,3 +212,4 @@ async def init_db():
         await conn.run_sync(_migrate_add_user_nombre)
         await conn.run_sync(_migrate_add_user_vendedor_ventas_profile)
         await conn.run_sync(_migrate_add_inventario_item_media)
+        await conn.run_sync(_migrate_add_user_subscription)

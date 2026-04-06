@@ -4,13 +4,14 @@ from sqlalchemy import select
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.database import AsyncSessionLocal
-from app.models import CotizacionEnEspera, AlertaProgramada
+from app.models import CotizacionEnEspera, AlertaProgramada, User
 from app.config import get_settings
 from app.email_service import send_cotizacion_lista_notification, MAX_REMINDERS
 from app.email_service import send_email
 
 INTERVAL_MINUTES = 30
 ALERTAS_INTERVAL_SECONDS = 30
+SUSCRIPCIONES_INTERVAL_MINUTES = 10
 
 
 async def _enviar_recordatorios():
@@ -78,10 +79,33 @@ async def _enviar_alertas_programadas():
         await db.commit()
 
 
+async def _cerrar_perfiles_expirados():
+    """Cierra perfiles cuyo subscription_expires_at ya venció (excepto admin)."""
+    now = datetime.now(timezone.utc)
+    async with AsyncSessionLocal() as db:
+        r = await db.execute(select(User))
+        users = r.scalars().all()
+        changed = 0
+        for u in users:
+            if getattr(u, "role", "") == "administrador":
+                continue
+            exp = getattr(u, "subscription_expires_at", None)
+            if not exp:
+                continue
+            if isinstance(exp, datetime) and exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            if exp and exp < now and u.is_active:
+                u.is_active = False
+                changed += 1
+        if changed:
+            await db.commit()
+
+
 def start_scheduler():
     """Arranca el scheduler que ejecuta recordatorios cada 30 min."""
     scheduler = AsyncIOScheduler()
     scheduler.add_job(_enviar_recordatorios, "interval", minutes=INTERVAL_MINUTES, id="recordatorios_cotizacion")
     scheduler.add_job(_enviar_alertas_programadas, "interval", seconds=ALERTAS_INTERVAL_SECONDS, id="alertas_programadas")
+    scheduler.add_job(_cerrar_perfiles_expirados, "interval", minutes=SUSCRIPCIONES_INTERVAL_MINUTES, id="cerrar_perfiles_expirados")
     scheduler.start()
     return scheduler

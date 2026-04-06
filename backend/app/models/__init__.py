@@ -15,6 +15,8 @@ from app.models.models import (
     PaginaPublicaConfig,
     AuditLog,
     AlertaProgramada,
+    PlanSuscripcion,
+    PagoSuscripcion,
 )
 
 __all__ = [
@@ -34,4 +36,6 @@ __all__ = [
     "PaginaPublicaConfig",
     "AuditLog",
     "AlertaProgramada",
+    "PlanSuscripcion",
+    "PagoSuscripcion",
 ]

@@ -1,6 +1,8 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.config import get_settings
 from app.database import init_db
@@ -25,6 +27,8 @@ from app.api.pagina_publica_routes import router as pagina_publica_router
 from app.api.whatsapp_routes import router as whatsapp_router
 from app.api.asistente_routes import router as asistente_router
 from app.api.alertas_routes import router as alertas_router
+from app.api.suscripciones_routes import router as suscripciones_router
+from app.api.web_assets_routes import router as web_assets_router
 
 settings = get_settings()
 
@@ -77,6 +81,13 @@ app.include_router(pagina_publica_router, prefix="/api")
 app.include_router(whatsapp_router, prefix="/api")
 app.include_router(asistente_router, prefix="/api")
 app.include_router(alertas_router, prefix="/api")
+app.include_router(suscripciones_router, prefix="/api")
+app.include_router(web_assets_router, prefix="/api")
+
+# Archivos estáticos subidos por admin (volumen docker recomendado)
+_assets_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "web-assets"))
+os.makedirs(_assets_dir, exist_ok=True)
+app.mount("/web-assets", StaticFiles(directory=_assets_dir), name="web-assets")
 
 
 @app.get("/")

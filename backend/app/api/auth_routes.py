@@ -161,6 +161,7 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
         email=user.email,
         role=user.role,
         vendedor_id=user.vendedor_id,
+        is_active=bool(getattr(user, "is_active", True)),
         nombre=display_nombre,
         vendedor_nombre=vendedor_nombre,
         vendedor_correo=vendedor_correo,
@@ -230,6 +231,7 @@ async def update_me(
         email=user.email,
         role=user.role,
         vendedor_id=user.vendedor_id,
+        is_active=bool(getattr(user, "is_active", True)),
         nombre=display_nombre,
         vendedor_nombre=vendedor_nombre,
         vendedor_correo=vendedor_correo,
@@ -308,6 +310,7 @@ async def list_usuarios_vendedor_ventas(
             email=u.email,
             role=u.role,
             vendedor_id=u.vendedor_id,
+            is_active=bool(getattr(u, "is_active", True)),
             nombre=getattr(u, "nombre", None),
             vendedor_telefono=getattr(u, "telefono", None),
             vendedor_banco=getattr(u, "banco", None),
@@ -333,6 +336,9 @@ async def list_usuarios_admin(
             role=u.role,
             vendedor_id=u.vendedor_id,
             is_active=bool(getattr(u, "is_active", True)),
+            # Suscripción
+            subscription_plan_role=getattr(u, "subscription_plan_role", None),
+            subscription_expires_at=(getattr(u, "subscription_expires_at", None).isoformat() if getattr(u, "subscription_expires_at", None) else None),
             nombre=getattr(u, "nombre", None),
             vendedor_telefono=getattr(u, "telefono", None),
             vendedor_banco=getattr(u, "banco", None),
@@ -438,6 +444,7 @@ async def update_usuario_vendedor_ventas(
         email=u.email,
         role=u.role,
         vendedor_id=u.vendedor_id,
+        is_active=bool(getattr(u, "is_active", True)),
         nombre=u.nombre,
         vendedor_telefono=getattr(u, "telefono", None),
         vendedor_banco=getattr(u, "banco", None),
@@ -487,7 +494,7 @@ async def create_usuario_vendedor_ventas(
     await db.commit()
     await db.refresh(u)
     await log_audit(db, "user_created", user_id=_admin.id, ip=_client_ip(request), details={"email": email, "role": "vendedor_ventas"})
-    return UserResponse(id=u.id, email=u.email, role=u.role, vendedor_id=None)
+    return UserResponse(id=u.id, email=u.email, role=u.role, vendedor_id=None, is_active=bool(u.is_active))
 
 
 @router.get("/audit-log")
