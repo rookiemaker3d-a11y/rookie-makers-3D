@@ -14,6 +14,7 @@ from app.models.models import (
     InventarioFilamento,
     PaginaPublicaConfig,
     AuditLog,
+    AlertaProgramada,
 )
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "InventarioFilamento",
     "PaginaPublicaConfig",
     "AuditLog",
+    "AlertaProgramada",
 ]

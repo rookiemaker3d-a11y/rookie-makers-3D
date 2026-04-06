@@ -346,3 +346,35 @@ class LandingUpdate(BaseModel):
     nav: Optional[dict] = None
     # Materiales de la calculadora pública (costoPorKg MXN, type FDM|SLA)
     calculatorMaterials: Optional[list] = None
+
+
+# ----- Alertas programadas (admin) -----
+class AlertaCreate(BaseModel):
+    titulo: str
+    mensaje: str
+    to_emails: list[str]
+    send_at: str  # ISO string
+
+
+class AlertaUpdate(BaseModel):
+    titulo: Optional[str] = None
+    mensaje: Optional[str] = None
+    to_emails: Optional[list[str]] = None
+    send_at: Optional[str] = None
+    status: Optional[str] = None  # cancelar
+
+
+class AlertaResponse(BaseModel):
+    id: int
+    titulo: str
+    mensaje: str
+    to_emails: list[str]
+    send_at: Optional[str] = None
+    status: Optional[str] = None
+    sent_at: Optional[str] = None
+    last_error: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by_user_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True

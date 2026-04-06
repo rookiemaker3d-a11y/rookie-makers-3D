@@ -103,3 +103,57 @@ async def notificar_filamento_bajo(db: AsyncSession = Depends(get_db), user=Depe
     )
     ok = send_email(user.email, "[Rookie] Filamento bajo stock", body, None)
     return {"ok": ok, "mensaje": "Correo enviado." if ok else "SMTP no configurado o error al enviar.", "items": len(items)}
+
+
+@router.post("/crear-alerta")
+async def crear_alerta_desde_texto(body: dict, db: AsyncSession = Depends(get_db), user=Depends(require_user)):
+    """
+    Admin: crea una alerta programada desde un texto.
+
+    Formato recomendado:
+      alerta: <titulo> | <mensaje> | para <correo1,correo2> | <YYYY-MM-DD HH:MM>
+    Ej:
+      alerta: Faltan productos | Revisa productos faltantes | para a@x.com,b@y.com | 2026-04-06 18:30
+    """
+    if user.role != "administrador":
+        return {"ok": False, "mensaje": "Solo administrador puede crear alertas."}
+    from datetime import datetime, timezone
+    import re
+    from app.models import AlertaProgramada
+
+    text = (body.get("text") or body.get("texto") or "").strip()
+    if not text:
+        return {"ok": False, "mensaje": "Mándame el texto de la alerta."}
+    t = text.replace("alerta:", "").replace("alarma:", "").strip()
+    parts = [p.strip() for p in t.split("|") if p.strip()]
+    if len(parts) < 4:
+        return {
+            "ok": False,
+            "mensaje": "Formato inválido. Usa: alerta: titulo | mensaje | para correo1,correo2 | 2026-04-06 18:30",
+        }
+    titulo, mensaje, para_part, when_part = parts[0], parts[1], parts[2], parts[3]
+    # correos
+    para_part = para_part.lower().replace("para", "").strip()
+    emails = [e.strip().lower() for e in re.split(r"[,\n; ]+", para_part) if e.strip()]
+    emails = [e for e in emails if "@" in e]
+    if not emails:
+        return {"ok": False, "mensaje": "No detecté correos válidos. Ej: para a@x.com,b@y.com"}
+    # fecha: YYYY-MM-DD HH:MM (asumimos UTC si no hay tz)
+    m = re.search(r"(20\d{2}-\d{2}-\d{2})\s+(\d{2}:\d{2})", when_part)
+    if not m:
+        return {"ok": False, "mensaje": "No detecté fecha. Usa: 2026-04-06 18:30"}
+    dt = datetime.fromisoformat(f"{m.group(1)}T{m.group(2)}:00")
+    dt = dt.replace(tzinfo=timezone.utc)
+    a = AlertaProgramada(
+        created_by_user_id=user.id,
+        titulo=titulo or "Alerta",
+        mensaje=mensaje or "",
+        to_emails=emails,
+        send_at=dt,
+        status="pendiente",
+    )
+    db.add(a)
+    await db.flush()
+    await db.commit()
+    await db.refresh(a)
+    return {"ok": True, "id": a.id, "send_at": a.send_at.isoformat(), "to": a.to_emails}

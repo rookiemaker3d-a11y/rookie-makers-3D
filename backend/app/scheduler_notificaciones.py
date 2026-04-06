@@ -4,11 +4,13 @@ from sqlalchemy import select
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.database import AsyncSessionLocal
-from app.models import CotizacionEnEspera
+from app.models import CotizacionEnEspera, AlertaProgramada
 from app.config import get_settings
 from app.email_service import send_cotizacion_lista_notification, MAX_REMINDERS
+from app.email_service import send_email
 
 INTERVAL_MINUTES = 30
+ALERTAS_INTERVAL_SECONDS = 30
 
 
 async def _enviar_recordatorios():
@@ -51,9 +53,35 @@ async def _enviar_recordatorios():
         await db.commit()
 
 
+async def _enviar_alertas_programadas():
+    """Envía alertas programadas (admin) cuando llega su hora."""
+    settings = get_settings()
+    if not getattr(settings, "smtp_user", None) or not getattr(settings, "smtp_password", None):
+        return
+    now = datetime.now(timezone.utc)
+    async with AsyncSessionLocal() as db:
+        r = await db.execute(
+            select(AlertaProgramada).where(
+                AlertaProgramada.status == "pendiente",
+                AlertaProgramada.send_at <= now,
+            )
+        )
+        rows = r.scalars().all()
+        for a in rows:
+            ok_all = True
+            for to in (a.to_emails or []):
+                ok = send_email(to, a.titulo, a.mensaje, None)
+                ok_all = ok_all and ok
+            a.sent_at = now
+            a.status = "enviado" if ok_all else "error"
+            a.last_error = None if ok_all else "Algún correo falló (SMTP o dirección inválida)."
+        await db.commit()
+
+
 def start_scheduler():
     """Arranca el scheduler que ejecuta recordatorios cada 30 min."""
     scheduler = AsyncIOScheduler()
     scheduler.add_job(_enviar_recordatorios, "interval", minutes=INTERVAL_MINUTES, id="recordatorios_cotizacion")
+    scheduler.add_job(_enviar_alertas_programadas, "interval", seconds=ALERTAS_INTERVAL_SECONDS, id="alertas_programadas")
     scheduler.start()
     return scheduler

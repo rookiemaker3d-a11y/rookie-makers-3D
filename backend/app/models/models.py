@@ -179,3 +179,18 @@ class AuditLog(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     ip = Column(String(64), nullable=True)
     details = Column(JSON, default=dict)  # email, reason, target_user_id, etc.
+
+
+class AlertaProgramada(Base):
+    """Alerta programada por admin: envía correos a cualquier destinatario."""
+    __tablename__ = "alertas_programadas"
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    titulo = Column(String(255), nullable=False)
+    mensaje = Column(Text, nullable=False)
+    to_emails = Column(JSON, default=list)  # lista de correos (strings)
+    send_at = Column(DateTime(timezone=True), nullable=False)
+    status = Column(String(20), default="pendiente")  # pendiente | enviado | error | cancelado
+    sent_at = Column(DateTime(timezone=True), nullable=True)
+    last_error = Column(Text, nullable=True)

@@ -20,6 +20,7 @@ import Seguridad from './pages/Seguridad'
 import Configuracion from './pages/Configuracion'
 import EditorPaginaPublica from './pages/EditorPaginaPublica'
 import PerfilesAdmin from './pages/PerfilesAdmin'
+import AlertasAdmin from './pages/AlertasAdmin'
 import Chatbot from './components/Chatbot'
 import './index.css'
 
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="videos-promocionales" element={<VideosPromocionales />} />
         <Route path="pagina-publica" element={<AdminOnlyRoute><EditorPaginaPublica /></AdminOnlyRoute>} />
         <Route path="perfiles" element={<AdminOnlyRoute><PerfilesAdmin /></AdminOnlyRoute>} />
+        <Route path="alertas" element={<AdminOnlyRoute><AlertasAdmin /></AdminOnlyRoute>} />
         <Route path="inventario" element={<Inventario />} />
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="seguridad" element={<Seguridad />} />

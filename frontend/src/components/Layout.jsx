@@ -16,6 +16,7 @@ import {
   Moon,
   Boxes,
   Shield,
+  Bell,
   Settings,
   FileEdit,
 } from 'lucide-react'
@@ -32,6 +33,7 @@ const NAV = [
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/vendedores', label: 'Diseñadores', icon: UserCog, adminOnly: true },
   { to: '/perfiles', label: 'Perfiles (bloquear)', icon: Shield, adminOnly: true },
+  { to: '/alertas', label: 'Alarmas / Alertas', icon: Bell, adminOnly: true },
   { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/seguridad', label: 'Seguridad', icon: Shield },
   { to: '/videos-promocionales', label: 'Videos promocionales', icon: Video },

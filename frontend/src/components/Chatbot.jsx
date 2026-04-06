@@ -56,6 +56,19 @@ export default function Chatbot() {
       }
 
       try {
+        // Crear alerta programada (solo admin). Formato: alerta: titulo | mensaje | para a@x.com,b@y.com | 2026-04-06 18:30
+        if ((t.includes('alerta:') || t.includes('alarma:') || t.startsWith('alerta ') || t.startsWith('alarma ')) && user?.role === 'administrador') {
+          const r = await api('/asistente/crear-alerta', {
+            method: 'POST',
+            body: JSON.stringify({ text }),
+          })
+          const data = await r.json().catch(() => ({}))
+          if (r.ok && data?.ok) {
+            return `Listo. Alerta #${data.id} programada para ${data.send_at} a: ${(data.to || []).join(', ')}.\n\nTip: también puedes administrar todo en el menú «Alarmas / Alertas».`
+          }
+          return data?.mensaje || 'No pude crear la alerta. Usa: alerta: titulo | mensaje | para correo1,correo2 | 2026-04-06 18:30'
+        }
+
         if (
           t.includes('color') ||
           t.includes('material') ||
