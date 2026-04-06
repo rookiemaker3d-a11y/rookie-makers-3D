@@ -103,7 +103,7 @@ async def solicitar_pago(body: dict, db: AsyncSession = Depends(get_db), _admin=
         amount=amount,
         currency="MXN",
         months=months,
-        metadata={"plan_periodo_dias": int(plan.periodo_dias or 30)},
+        extra_data={"plan_periodo_dias": int(plan.periodo_dias or 30)},
     )
     db.add(pago)
     await db.flush()
@@ -144,13 +144,13 @@ async def solicitar_pago(body: dict, db: AsyncSession = Depends(get_db), _admin=
         )
     if r.status_code >= 400:
         pago.status = "error"
-        pago.metadata = {**(pago.metadata or {}), "mp_error": r.text[:1000]}
+        pago.extra_data = {**(pago.extra_data or {}), "mp_error": r.text[:1000]}
         await db.commit()
         raise HTTPException(status_code=502, detail="Error creando link de Mercado Pago")
 
     data = r.json()
     pago.payment_url = data.get("init_point") or data.get("sandbox_init_point")
-    pago.metadata = {**(pago.metadata or {}), "mp_preference_id": data.get("id")}
+    pago.extra_data = {**(pago.extra_data or {}), "mp_preference_id": data.get("id")}
     await db.commit()
     return {"ok": True, "pago_id": pago.id, "payment_url": pago.payment_url}
 
@@ -226,7 +226,7 @@ async def mp_webhook(request: Request, db: AsyncSession = Depends(get_db)):
 
     # Idempotencia
     pago.provider_payment_id = payment_id
-    pago.metadata = {**(pago.metadata or {}), "mp_status": status, "mp_raw": mp}
+    pago.extra_data = {**(pago.extra_data or {}), "mp_status": status, "mp_raw": mp}
 
     if status == "approved":
         pago.status = "aprobado"
@@ -235,7 +235,7 @@ async def mp_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         u = ru.scalar_one_or_none()
         if u:
             # periodo desde plan (si existe)
-            periodo = int((pago.metadata or {}).get("plan_periodo_dias") or 30)
+            periodo = int((pago.extra_data or {}).get("plan_periodo_dias") or 30)
             await _apply_subscription(db, u, pago.plan_role, int(pago.months or 1), periodo)
         await db.commit()
         return {"ok": True, "pago_id": pago.id, "status": "approved"}

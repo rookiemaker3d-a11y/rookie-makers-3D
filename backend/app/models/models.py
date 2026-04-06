@@ -207,7 +207,8 @@ class PagoSuscripcion(Base):
     currency = Column(String(10), default="MXN")
     payment_url = Column(Text, nullable=True)
     months = Column(Integer, default=1)
-    metadata = Column(JSON, default=dict)
+    # Nombre en BD "metadata"; atributo Python distinto (SQLAlchemy reserva .metadata en el mapper)
+    extra_data = Column("metadata", JSON, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     paid_at = Column(DateTime(timezone=True), nullable=True)
 
