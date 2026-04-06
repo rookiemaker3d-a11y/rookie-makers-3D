@@ -203,6 +203,36 @@ def _migrate_add_user_subscription(sync_conn):
             pass
 
 
+def _seed_default_planes_suscripcion(sync_conn):
+    """Crea filas en planes_suscripcion por rol si no existen (precio editable luego vía API)."""
+    dialect = sync_conn.engine.dialect.name
+    defaults = [
+        ("vendedor", 500.0, 30),
+        ("vendedor_ventas", 500.0, 30),
+        ("administrador", 0.0, 30),
+    ]
+    for role, precio, dias in defaults:
+        try:
+            if dialect == "postgresql":
+                sync_conn.execute(
+                    text(
+                        "INSERT INTO planes_suscripcion (role, precio_mxn, periodo_dias, activo) "
+                        "VALUES (:role, :precio, :dias, true) ON CONFLICT (role) DO NOTHING"
+                    ),
+                    {"role": role, "precio": precio, "dias": dias},
+                )
+            else:
+                sync_conn.execute(
+                    text(
+                        "INSERT OR IGNORE INTO planes_suscripcion (role, precio_mxn, periodo_dias, activo) "
+                        "VALUES (:role, :precio, :dias, 1)"
+                    ),
+                    {"role": role, "precio": precio, "dias": dias},
+                )
+        except Exception:
+            pass
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -213,3 +243,4 @@ async def init_db():
         await conn.run_sync(_migrate_add_user_vendedor_ventas_profile)
         await conn.run_sync(_migrate_add_inventario_item_media)
         await conn.run_sync(_migrate_add_user_subscription)
+        await conn.run_sync(_seed_default_planes_suscripcion)

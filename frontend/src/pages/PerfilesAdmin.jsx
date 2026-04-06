@@ -63,9 +63,16 @@ export default function PerfilesAdmin() {
     return m
   }, [planes])
 
+  const planesSorted = useMemo(() => {
+    return [...(planes || [])].filter((p) => p?.role).sort((a, b) => String(a.role).localeCompare(String(b.role)))
+  }, [planes])
+
   const openPay = (u) => {
     setPayUser(u)
-    setPayPlanRole(u?.role || '')
+    const ur = (u?.role || '').trim()
+    const roleOk = ur && planesByRole.has(ur)
+    const first = planesSorted[0]?.role || ''
+    setPayPlanRole(roleOk ? ur : first)
     setPayMonths(1)
     setPayUrl('')
     setPayOpen(true)
@@ -228,12 +235,25 @@ export default function PerfilesAdmin() {
             <p className="text-sm theme-text-muted mb-4">
               Usuario: <span className="theme-text">{payUser?.email}</span>
             </p>
+            {planesSorted.length === 0 ? (
+              <p className="text-sm text-amber-400 mb-3">
+                No hay planes cargados. Recarga la página tras reiniciar el backend (se crean planes por defecto: vendedor, vendedor_ventas, administrador) o configura precios con{' '}
+                <code className="text-xs bg-white/10 px-1 rounded">PUT /api/suscripciones/planes</code>.
+              </p>
+            ) : null}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs theme-text-muted mb-1">Plan (rol)</label>
-                <select value={payPlanRole} onChange={(e) => setPayPlanRole(e.target.value)} className="theme-input w-full px-3 py-2 rounded-xl border">
-                  {[...planesByRole.keys()].map((r) => (
-                    <option key={r} value={r}>{r}</option>
+                <select
+                  value={payPlanRole}
+                  onChange={(e) => setPayPlanRole(e.target.value)}
+                  className="theme-input w-full px-3 py-2 rounded-xl border"
+                >
+                  <option value="">— Elige un plan —</option>
+                  {planesSorted.map((p) => (
+                    <option key={p.role} value={p.role}>
+                      {p.role} · ${Number(p.precio_mxn || 0).toFixed(0)}/mes · {p.activo === false ? 'inactivo' : 'activo'}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -243,7 +263,12 @@ export default function PerfilesAdmin() {
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <button type="button" onClick={solicitarPago} disabled={paying} className="px-4 py-2 rounded-xl btn-primary font-medium disabled:opacity-50">
+              <button
+                type="button"
+                onClick={solicitarPago}
+                disabled={paying || !payPlanRole || planesSorted.length === 0}
+                className="px-4 py-2 rounded-xl btn-primary font-medium disabled:opacity-50"
+              >
                 {paying ? 'Generando…' : 'Generar link de pago'}
               </button>
               <button type="button" onClick={() => setPayOpen(false)} className="px-4 py-2 rounded-xl btn-secondary">
