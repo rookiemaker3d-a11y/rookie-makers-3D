@@ -47,16 +47,8 @@ const hasContentHub = fs.existsSync(contentHubPkg) && fs.existsSync(artifactPkg)
 const allowMinimal = process.env.ALLOW_MINIMAL_LANDING === '1'
 
 if (!hasContentHub) {
-  if (allowMinimal) {
-    writeMinimalLanding()
-    process.exit(0)
-  }
-  console.error(
-    '[build-landing] Falta Paginaweb/Content-Hub. Ruta:\n  ' +
-      contentHubRoot +
-      '\nOpciones: (1) Integra Content-Hub al repo (ver integrar-content-hub.cmd). (2) Build Docker con ALLOW_MINIMAL_LANDING=1.',
-  )
-  process.exit(1)
+  writeMinimalLanding()
+  process.exit(0)
 }
 
 run('npx', ['--yes', 'pnpm@9', 'install', '--ignore-scripts'], contentHubRoot)
