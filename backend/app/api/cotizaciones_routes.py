@@ -152,10 +152,16 @@ async def create_cotizacion(
     user=Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    vendedor_nombre = vendedor.nombre if vendedor else (user.email if user.role == "vendedor_ventas" else None)
+    d = body.detalles or {}
+    vendedor_nombre = None
+    if user.role == "administrador" and isinstance(d, dict):
+        vend_email = (d.get("vendedor_email") or "").strip()
+        vend_nombre = (d.get("vendedor_nombre") or "").strip()
+        vendedor_nombre = vend_email or vend_nombre
     if not vendedor_nombre:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=403, detail="Solo vendedores o vendedor de ventas pueden crear cotizaciones en espera")
+        vendedor_nombre = vendedor.nombre if vendedor else None
+    if not vendedor_nombre:
+        vendedor_nombre = user.email or user.nombre or str(user.id)
     c = CotizacionEnEspera(
         vendedor=vendedor_nombre,
         descripcion=body.descripcion,

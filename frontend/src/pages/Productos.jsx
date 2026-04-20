@@ -53,7 +53,7 @@ export default function Productos() {
   const [vista, setVista] = useState('generales') // 'generales' | 'propios'
 
   const isAdmin = user?.role === 'administrador'
-  const canCreate = isAdmin || user?.role === 'vendedor_ventas'
+  const canCreate = !!user
 
   const savePorcentajeInversion = (pct) => {
     const n = Math.min(100, Math.max(0, Number(pct) || 0))

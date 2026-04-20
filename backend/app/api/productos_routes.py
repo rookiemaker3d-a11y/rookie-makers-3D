@@ -35,16 +35,14 @@ async def create_producto(
     vendedor=Depends(get_vendedor_from_user),
 ):
     """
-    Crea un producto:
-    - Admin: puede crear/importar y definir vendedor.
-    - vendedor_ventas: puede crear sus propios productos (vendedor = email).
+    Crea un producto. Cualquier usuario autenticado puede crear productos.
     """
-    if user.role not in ("administrador", "vendedor_ventas"):
-        raise HTTPException(status_code=403, detail="No tienes permiso para crear productos")
     if user.role == "administrador":
         nombre_vendedor = body.vendedor or (vendedor.nombre if vendedor else "Importado")
+    elif vendedor:
+        nombre_vendedor = vendedor.nombre
     else:
-        nombre_vendedor = user.email
+        nombre_vendedor = user.email or user.nombre or str(user.id)
     p = Producto(
         descripcion=body.descripcion,
         costo_base=body.costo_base,
