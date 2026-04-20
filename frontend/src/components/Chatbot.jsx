@@ -16,12 +16,27 @@ const FAQ = [
   { keys: ['buscar', 'folio', 'orden', 'cotización', 'cotizacion', 'dónde está', 'donde esta'], msg: 'Escribe por ejemplo: buscar COT-2026 o el texto del proyecto. Si iniciaste sesión, intentaré buscar en cotizaciones recientes.' },
   { keys: ['analisis', 'análisis', 'ganancia', 'reporte'], msg: 'El módulo Análisis resume ventas, extras (envío, empaque, regalías) y costos. Abre el menú «Análisis».' },
   { keys: ['hola', 'buenas', 'ayuda'], msg: 'Soy el asistente del ERP. Puedes preguntar por: materiales y colores (sin costos ajenos), buscar cotización por folio, dónde cambiar precios de filamento, o ir a Análisis/Inventario.' },
+  { keys: ['producto', 'guardar producto', 'agregar producto', 'crear producto', 'no guarda', 'no se guarda'], msg: 'Para guardar un producto ve a Productos → «Agregar producto». Completa descripción, costo de producción y costo final. Si marca error, verifica que los campos numéricos tengan valores válidos y que tu rol permita crear (admin o vendedor_ventas).' },
+  { keys: ['suscripción', 'suscripcion', 'plan', 'pago', 'mercado pago', 'membresía', 'membresia'], msg: 'Las suscripciones se gestionan desde el menú Perfiles (solo admin). Ahí puedes asignar plan, generar link de pago de Mercado Pago y ver fecha de vencimiento.' },
+  { keys: ['pdf', 'descargar', 'imprimir cotización', 'recibo'], msg: 'En Cotizaciones espera, al marcar como «cotizado» se genera un PDF que puedes descargar. También desde el paso final de Nueva cotización.' },
+  { keys: ['cliente', 'agregar cliente', 'nuevo cliente'], msg: 'Ve al menú Clientes para agregar, editar o consultar clientes. Los datos se usan al crear cotizaciones.' },
+  { keys: ['seguridad', 'contraseña', 'mfa', 'autenticación', '2fa', 'doble factor'], msg: 'En el menú Seguridad puedes activar MFA (autenticación de dos factores con Google Authenticator), cambiar tu contraseña y ver el registro de accesos.' },
+  { keys: ['stl', 'archivo stl', 'modelo 3d', 'convertir imagen'], msg: 'En la calculadora puedes subir una imagen (PNG/JPG) y convertirla a STL automáticamente. También puedes subir archivos STL directamente a las cotizaciones.' },
+  { keys: ['cotización en espera', 'estado', 'pipeline', 'flujo', 'proceso'], msg: 'Las cotizaciones pasan por estados: espera → aprobado → en producción → post proceso → anexo foto → entregado. Usa «Siguiente» para avanzar el estado en cada cotización.' },
+  { keys: ['hora', 'horas diseñador', 'saldo horas', 'paquete horas', 'cyber'], msg: 'Los diseñadores tienen saldo de horas (modelo cyber-café). El admin puede asignar paquetes de horas con fecha de vencimiento desde Perfiles. Las horas se consumen al trabajar.' },
+  { keys: ['video', 'videos promocionales', 'promo', 'tiktok video'], msg: 'En el menú Videos promocionales puedes gestionar enlaces de videos. Los videos pasan por aprobación antes de publicarse.' },
+  { keys: ['error', 'falla', 'bug', 'problema', 'no funciona'], msg: 'Si algo no funciona: 1) Recarga la página (F5). 2) Cierra sesión y vuelve a entrar. 3) Limpia caché del navegador. Si persiste, reporta el error por WhatsApp.' },
+  { keys: ['perfil', 'mi perfil', 'editar perfil', 'datos personales'], msg: 'En el menú Configuración puedes editar tu perfil: nombre, teléfono, datos bancarios. El admin puede gestionar todos los perfiles desde Perfiles.' },
+  { keys: ['dashboard', 'panel', 'inicio', 'resumen general'], msg: 'El Dashboard muestra el resumen general: costo total, venta total, ganancia neta y cantidad de productos. Usa el % de inversión para calcular cuánto reservar.' },
+  { keys: ['exportar', 'excel', 'csv', 'descargar datos'], msg: 'Actualmente los datos se consultan dentro del ERP. Para análisis detallado usa el módulo Análisis que desglosa costos, ganancias y extras.' },
+  { keys: ['material', 'pla', 'petg', 'abs', 'tpu', 'tipo'], msg: '' },
+  { keys: ['color', 'colores disponibles'], msg: '' },
 ]
 
 function matchFaq(texto) {
   const t = (texto || '').toLowerCase().trim()
   for (const { keys, msg } of FAQ) {
-    if (keys.some((k) => t.includes(k))) return msg
+    if (keys.some((k) => t.includes(k))) return msg || null
   }
   return null
 }
@@ -39,9 +54,43 @@ export default function Chatbot() {
   const [pending, setPending] = useState(false)
   const bottomRef = useRef(null)
 
+  // --- Drag state ---
+  const panelRef = useRef(null)
+  const dragRef = useRef({ dragging: false, startX: 0, startY: 0, origLeft: 0, origTop: 0 })
+  const [panelPos, setPanelPos] = useState({ left: null, top: null })
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Drag handlers for header
+  const onHeaderMouseDown = (e) => {
+    if (e.target.closest('button') || e.target.closest('a')) return
+    e.preventDefault()
+    const panel = panelRef.current
+    if (!panel) return
+    const rect = panel.getBoundingClientRect()
+    dragRef.current = { dragging: true, startX: e.clientX, startY: e.clientY, origLeft: rect.left, origTop: rect.top }
+    const onMouseMove = (ev) => {
+      if (!dragRef.current.dragging) return
+      const dx = ev.clientX - dragRef.current.startX
+      const dy = ev.clientY - dragRef.current.startY
+      const newLeft = Math.max(0, Math.min(window.innerWidth - 100, dragRef.current.origLeft + dx))
+      const newTop = Math.max(0, Math.min(window.innerHeight - 60, dragRef.current.origTop + dy))
+      setPanelPos({ left: newLeft, top: newTop })
+    }
+    const onMouseUp = () => {
+      dragRef.current.dragging = false
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
+  const panelStyle = panelPos.left !== null
+    ? { position: 'fixed', left: panelPos.left, top: panelPos.top, bottom: 'auto', right: 'auto' }
+    : {}
 
   const replyWithAssistant = useCallback(
     async (text) => {
@@ -56,7 +105,7 @@ export default function Chatbot() {
       }
 
       try {
-        // Crear alerta programada (solo admin). Formato: alerta: titulo | mensaje | para a@x.com,b@y.com | 2026-04-06 18:30
+        // Crear alerta programada (solo admin)
         if ((t.includes('alerta:') || t.includes('alarma:') || t.startsWith('alerta ') || t.startsWith('alarma ')) && user?.role === 'administrador') {
           const r = await api('/asistente/crear-alerta', {
             method: 'POST',
@@ -114,7 +163,7 @@ export default function Chatbot() {
         return 'No pude consultar el servidor. Comprueba conexión y que el backend esté activo.'
       }
 
-      return matchFaq(text) || 'Prueba: «¿qué colores hay en PLA?», «buscar COT-2026», «dónde cambio el costo del PLA» o abre Análisis / Inventario desde el menú.'
+      return matchFaq(text) || 'Prueba: «¿qué colores hay en PLA?», «buscar COT-2026», «dónde cambio el costo del PLA», «cómo guardo un producto» o abre Análisis / Inventario desde el menú.'
     },
     [api, user],
   )
@@ -134,7 +183,7 @@ export default function Chatbot() {
     <>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); setPanelPos({ left: null, top: null }) }}
         className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-cyan-500 hover:bg-cyan-400 text-white shadow-lg shadow-cyan-500/30 flex items-center justify-center text-2xl transition"
         aria-label="Abrir asistente"
       >
@@ -142,13 +191,21 @@ export default function Chatbot() {
       </button>
 
       {open && (
-        <div className="fixed bottom-24 right-6 z-40 w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col overflow-hidden max-h-[85vh]">
-          <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-2 bg-slate-50 shrink-0">
+        <div
+          ref={panelRef}
+          style={panelStyle}
+          className={`fixed z-40 w-full max-w-sm rounded-2xl bg-white border border-slate-200 shadow-2xl flex flex-col overflow-hidden max-h-[85vh] ${panelPos.left === null ? 'bottom-24 right-6' : ''}`}
+        >
+          <div
+            onMouseDown={onHeaderMouseDown}
+            className="px-4 py-3 border-b border-slate-200 flex items-center gap-2 bg-slate-50 shrink-0 cursor-move select-none"
+          >
             <div className="relative w-8 h-8 shrink-0">
               <img src={publicPath('logo.png')} alt="" className="absolute inset-0 w-full h-full rounded-full object-cover bg-cyan-600" onError={(e) => { e.target.style.display = 'none' }} />
               <div className="absolute inset-0 w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-bold text-sm" aria-hidden="true">R</div>
             </div>
             <span className="font-semibold text-slate-900">Asistente</span>
+            <span className="text-slate-400 text-xs ml-1">↕ arrastrar</span>
             <a href={WHATSAPP_CHAT} target="_blank" rel="noopener noreferrer" className="text-slate-600 hover:text-cyan-700 text-xs ml-auto font-medium whitespace-nowrap">{WHATSAPP_NUM}</a>
             <button type="button" onClick={() => setOpen(false)} className="text-slate-500 hover:text-slate-900 p-1 rounded">✕</button>
           </div>

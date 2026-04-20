@@ -32,9 +32,23 @@ class UserResponse(BaseModel):
     vendedor_tarjeta_ultimos4: Optional[str] = None
     subscription_plan_role: Optional[str] = None
     subscription_expires_at: Optional[str] = None
+    horas_saldo: Optional[float] = None
+    horas_paquete_expira_at: Optional[str] = None
+    disenador_tipo: Optional[str] = None  # rookie | emanuel
+    recibir_alertas_suscripcion: Optional[bool] = None
 
     class Config:
         from_attributes = True
+
+
+class AdminUsuarioPerfilSuscripcionUpdate(BaseModel):
+    """Solo admin. Tipo diseñador (planes disenador_rookie / disenador_emanuel) y saldo de horas."""
+    disenador_tipo: Optional[str] = None  # "", "rookie", "emanuel" o null para limpiar
+    horas_saldo: Optional[float] = None  # si se envía, fija el saldo absoluto
+    horas_saldo_delta: Optional[float] = None  # si se envía, suma al saldo actual (p. ej. +5 o -1)
+    horas_paquete_expira_at: Optional[str] = None  # ISO 8601 o "" para quitar vencimiento del paquete
+    pack_valid_days_from_now: Optional[int] = None  # si >0, fija expiración del paquete a ahora+N días
+    recibir_alertas_suscripcion: Optional[bool] = None
 
 
 class MiPerfilUpdate(BaseModel):
@@ -156,8 +170,8 @@ class CalculateCostResponse(BaseModel):
 # ----- Producto -----
 class ProductoBase(BaseModel):
     descripcion: str
-    costo_base: float = 0
-    costo_final: float = 0
+    costo_base: Optional[float] = 0
+    costo_final: Optional[float] = 0
     cantidad: float = 1
     vendedor: Optional[str] = None
     detalles: Optional[dict] = None

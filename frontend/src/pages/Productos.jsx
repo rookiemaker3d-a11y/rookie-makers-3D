@@ -157,13 +157,22 @@ export default function Productos() {
   const saveEdit = async () => {
     if (!editProduct) return
     const { costo_base, costo_final, detalles } = recalcEdit()
-    await api(`/productos/${editProduct.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ detalles, costo_base, costo_final }),
-    })
-    setEditProduct(null)
-    setEditForm(null)
-    load()
+    try {
+      const res = await api(`/productos/${editProduct.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ detalles, costo_base, costo_final }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setMsg(`Error al guardar: ${err.detail || res.statusText}`)
+        return
+      }
+      setEditProduct(null)
+      setEditForm(null)
+      load()
+    } catch (e) {
+      setMsg(`Error de conexión: ${e.message}`)
+    }
   }
 
   const saveImported = async (e) => {
@@ -174,21 +183,30 @@ export default function Productos() {
       setMsg('Completa todos los campos con valores válidos.')
       return
     }
-    await api('/productos', {
-      method: 'POST',
-      body: JSON.stringify({
-        descripcion: importForm.descripcion,
-        costo_base,
-        costo_final,
-        cantidad: 1,
-        vendedor: 'Importado',
-        detalles: { catalogo: vista === 'propios' ? 'propio' : 'general' },
-      }),
-    })
-    setImportOpen(false)
-    setImportForm({ descripcion: '', costo_produccion: '', costo_final: '' })
-    load()
-    setMsg('Venta importada.')
+    try {
+      const res = await api('/productos', {
+        method: 'POST',
+        body: JSON.stringify({
+          descripcion: importForm.descripcion,
+          costo_base,
+          costo_final,
+          cantidad: 1,
+          vendedor: 'Importado',
+          detalles: { catalogo: vista === 'propios' ? 'propio' : 'general' },
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setMsg(`Error al guardar: ${err.detail || res.statusText}`)
+        return
+      }
+      setImportOpen(false)
+      setImportForm({ descripcion: '', costo_produccion: '', costo_final: '' })
+      load()
+      setMsg('Venta importada.')
+    } catch (e) {
+      setMsg(`Error de conexión: ${e.message}`)
+    }
   }
 
   const saveCreated = async (e) => {
@@ -204,20 +222,29 @@ export default function Productos() {
       catalogo: vista === 'propios' ? 'propio' : 'general',
       funko_pop: !!createForm.funkoPop,
     }
-    await api('/productos', {
-      method: 'POST',
-      body: JSON.stringify({
-        descripcion: createForm.descripcion,
-        costo_base,
-        costo_final,
-        cantidad: 1,
-        detalles,
-      }),
-    })
-    setCreateOpen(false)
-    setCreateForm({ descripcion: '', costo_base: '', costo_final: '', funkoPop: false })
-    load()
-    setMsg('Producto guardado.')
+    try {
+      const res = await api('/productos', {
+        method: 'POST',
+        body: JSON.stringify({
+          descripcion: createForm.descripcion,
+          costo_base,
+          costo_final,
+          cantidad: 1,
+          detalles,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setMsg(`Error al guardar: ${err.detail || res.statusText}`)
+        return
+      }
+      setCreateOpen(false)
+      setCreateForm({ descripcion: '', costo_base: '', costo_final: '', funkoPop: false })
+      load()
+      setMsg('Producto guardado.')
+    } catch (e) {
+      setMsg(`Error de conexión: ${e.message}`)
+    }
   }
 
   const getCatalogo = (p) => {
