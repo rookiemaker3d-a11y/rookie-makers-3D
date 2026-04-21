@@ -81,6 +81,54 @@ export default function NuevaCotizacion() {
 
   const isAdmin = user?.role === 'administrador'
 
+  const folio = useMemo(() => (typeof genFolio === 'function' ? genFolio() : `COT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`), [])
+  const materialesParaCotizador = useMemo(() => materialesFromAPI(Array.isArray(materiales) ? materiales : []), [materiales])
+  const cotizadorConfig = useMemo(() => ({ materiales: materialesParaCotizador || undefined }), [materialesParaCotizador])
+  const cotizador = useCotizador(cotizadorConfig)
+
+  const vendedorSeleccionado = useMemo(() => {
+    if (!isAdmin) return null
+    return vendedores.find((v) => v?.id === vendedorSeleccionadoId) || null
+  }, [isAdmin, vendedores, vendedorSeleccionadoId])
+
+  const descripcionActual = useMemo(() => {
+    return `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
+  }, [wizardData.cliente?.nombre, wizardData.proyecto?.nombre])
+
+  const detallesRemoteBase = useMemo(() => {
+    const base = {
+      folio,
+      estado: 'borrador',
+      borrador: true,
+      cliente_id: wizardData.cliente?.id,
+      cliente_nombre: wizardData.cliente?.nombre,
+      proyecto: wizardData.proyecto?.nombre,
+      categoria_proyecto: wizardData.proyecto?.categoria || undefined,
+      es_funko: wizardData.proyecto?.categoria === 'funko' || undefined,
+      notas,
+    }
+    if (isAdmin) {
+      return {
+        ...base,
+        vendedor_id: vendedorSeleccionado?.id ?? undefined,
+        vendedor_nombre: vendedorSeleccionado?.nombre ?? undefined,
+        vendedor_email: vendedorSeleccionado?.correo ?? undefined,
+      }
+    }
+    return base
+  }, [
+    folio,
+    isAdmin,
+    notas,
+    vendedorSeleccionado?.correo,
+    vendedorSeleccionado?.id,
+    vendedorSeleccionado?.nombre,
+    wizardData.cliente?.id,
+    wizardData.cliente?.nombre,
+    wizardData.proyecto?.categoria,
+    wizardData.proyecto?.nombre,
+  ])
+
   // Restore borrador al entrar
   useEffect(() => {
     const d = readDraft()
@@ -238,11 +286,6 @@ export default function NuevaCotizacion() {
     }
   }, [api, detallesRemoteBase, paso, remoteDraftId, remoteDraftIdKey, saving, shouldRemoteDraft])
 
-  const materialesParaCotizador = useMemo(() => materialesFromAPI(Array.isArray(materiales) ? materiales : []), [materiales])
-  const cotizadorConfig = useMemo(() => ({ materiales: materialesParaCotizador || undefined }), [materialesParaCotizador])
-  const cotizador = useCotizador(cotizadorConfig)
-  const folio = useMemo(() => (typeof genFolio === 'function' ? genFolio() : `COT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`), [])
-
   const canGoNext = () => {
     if (paso === 1) return !!wizardData.cliente
     if (paso === 2) return !!(wizardData.proyecto?.nombre?.trim())
@@ -354,49 +397,6 @@ export default function NuevaCotizacion() {
   const envio = Number(wizardData.envio) || 0
   const empaque = Number(wizardData.empaque) || 0
   const totalFinal = subTotal - descuento + envio + empaque
-
-  const vendedorSeleccionado = useMemo(() => {
-    if (!isAdmin) return null
-    return vendedores.find((v) => v?.id === vendedorSeleccionadoId) || null
-  }, [isAdmin, vendedores, vendedorSeleccionadoId])
-
-  const descripcionActual = useMemo(() => {
-    return `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
-  }, [wizardData.cliente?.nombre, wizardData.proyecto?.nombre])
-
-  const detallesRemoteBase = useMemo(() => {
-    const base = {
-      folio,
-      estado: 'borrador',
-      borrador: true,
-      cliente_id: wizardData.cliente?.id,
-      cliente_nombre: wizardData.cliente?.nombre,
-      proyecto: wizardData.proyecto?.nombre,
-      categoria_proyecto: wizardData.proyecto?.categoria || undefined,
-      es_funko: wizardData.proyecto?.categoria === 'funko' || undefined,
-      notas,
-    }
-    if (isAdmin) {
-      return {
-        ...base,
-        vendedor_id: vendedorSeleccionado?.id ?? undefined,
-        vendedor_nombre: vendedorSeleccionado?.nombre ?? undefined,
-        vendedor_email: vendedorSeleccionado?.correo ?? undefined,
-      }
-    }
-    return base
-  }, [
-    folio,
-    isAdmin,
-    notas,
-    vendedorSeleccionado?.correo,
-    vendedorSeleccionado?.id,
-    vendedorSeleccionado?.nombre,
-    wizardData.cliente?.id,
-    wizardData.cliente?.nombre,
-    wizardData.proyecto?.categoria,
-    wizardData.proyecto?.nombre,
-  ])
 
   const productLinesOnly = useMemo(
     () => lineas.filter((l) => String(l?.id_producto || '').startsWith('P')),
