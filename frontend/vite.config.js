@@ -13,7 +13,7 @@ export default defineConfig(({ command }) => ({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/recharts/')) return 'vendor-recharts'
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router') || id.includes('node_modules/framer-motion/') || id.includes('node_modules/motion/')) return 'vendor-react'
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router') || id.includes('node_modules/framer-motion/')) return 'vendor-react'
         },
       },
     },
