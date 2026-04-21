@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { Mail, Plus, Send, X, RefreshCw } from 'lucide-react'
+import { Mail, Plus, Send, X, RefreshCw, Pause, Play, Bell } from 'lucide-react'
 
 function parseEmails(text) {
   const raw = (text || '')
@@ -32,17 +32,21 @@ export default function AlertasAdmin() {
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [saving, setSaving] = useState(false)
+  const [autoSubAlerts, setAutoSubAlerts] = useState(true)
+  const [togglingAuto, setTogglingAuto] = useState(false)
 
   const load = async () => {
     setErr('')
     setMsg('')
     setLoading(true)
     try {
-      const [r1, r2] = await Promise.all([api('/alertas'), api('/auth/usuarios')])
+      const [r1, r2, r3] = await Promise.all([api('/alertas'), api('/auth/usuarios'), api('/alertas/config-sistema')])
       const a = await r1.json().catch(() => [])
       const u = await r2.json().catch(() => [])
+      const cfg = r3.ok ? await r3.json().catch(() => ({})) : {}
       setItems(Array.isArray(a) ? a : [])
       setUsers(Array.isArray(u) ? u : [])
+      if (typeof cfg.alertas_automaticas_suscripcion === 'boolean') setAutoSubAlerts(cfg.alertas_automaticas_suscripcion)
     } catch (e) {
       setErr(e.message || 'Error al cargar')
     } finally {
@@ -123,6 +127,41 @@ export default function AlertasAdmin() {
     }
   }
 
+  const toggleAutoSub = async () => {
+    setTogglingAuto(true)
+    setErr('')
+    try {
+      const res = await api('/alertas/config-sistema', {
+        method: 'PUT',
+        body: JSON.stringify({ alertas_automaticas_suscripcion: !autoSubAlerts }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(d?.detail || 'Error')
+      setAutoSubAlerts(!!d.alertas_automaticas_suscripcion)
+      setMsg(d.alertas_automaticas_suscripcion ? 'Alertas automáticas de suscripción activadas.' : 'Alertas automáticas de suscripción desactivadas.')
+    } catch (e) {
+      setErr(e.message || 'Error')
+    } finally {
+      setTogglingAuto(false)
+    }
+  }
+
+  const setAlertaPausada = async (id, pausar) => {
+    setErr('')
+    try {
+      const res = await api(`/alertas/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: pausar ? 'pausada' : 'activar' }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(d?.detail || 'Error')
+      setMsg(pausar ? 'Alerta pausada (no se enviará en la fecha hasta reactivar).' : 'Alerta reactivada.')
+      await load()
+    } catch (e) {
+      setErr(e.message || 'Error')
+    }
+  }
+
   const cancel = async (id) => {
     setErr('')
     setMsg('')
@@ -141,7 +180,7 @@ export default function AlertasAdmin() {
     <div className="space-y-6">
       <SectionHeader
         title="Alarmas / Alertas (correo)"
-        subtitle="Programa correos a cualquier destinatario (aunque no exista en clientes/vendedores). Requiere SMTP configurado en el backend."
+        subtitle="Alertas manuales programadas + interruptor global de recordatorios automáticos de suscripción/pago (también por usuario en Perfiles). SMTP en el servidor."
         action={
           <div className="flex gap-2">
             <button
@@ -169,6 +208,25 @@ export default function AlertasAdmin() {
       {err && <p className="text-red-500 text-sm">{err}</p>}
 
       <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2 text-sm theme-text-muted">
+            <Bell className="w-4 h-4 text-amber-400" />
+            <span>
+              Recordatorios automáticos de <strong className="theme-text">suscripción / pago</strong> (correo a usuario y admin, si el usuario no las desactivó en Perfiles)
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleAutoSub}
+            disabled={togglingAuto}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border ${
+              autoSubAlerts ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400' : 'border-white/20 text-slate-400'
+            }`}
+          >
+            {autoSubAlerts ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {togglingAuto ? '…' : autoSubAlerts ? 'Desactivar automáticas' : 'Activar automáticas'}
+          </button>
+        </div>
         <div className="text-sm theme-text-muted mb-4">
           Admin: <span className="theme-text">{user?.email}</span>
         </div>
@@ -197,12 +255,34 @@ export default function AlertasAdmin() {
                     <td className="p-3 theme-text-muted text-xs">{(a.to_emails || []).slice(0, 3).join(', ')}{(a.to_emails || []).length > 3 ? '…' : ''}</td>
                     <td className="p-3 theme-text-muted text-xs">{a.send_at ? new Date(a.send_at).toLocaleString() : '—'}</td>
                     <td className="p-3">
-                      <span className={a.status === 'enviado' ? 'text-emerald-500' : a.status === 'error' ? 'text-red-400' : a.status === 'cancelado' ? 'text-slate-400' : 'text-cyan-400'}>
+                      <span
+                        className={
+                          a.status === 'enviado'
+                            ? 'text-emerald-500'
+                            : a.status === 'error'
+                              ? 'text-red-400'
+                              : a.status === 'cancelado'
+                                ? 'text-slate-400'
+                                : a.status === 'pausada'
+                                  ? 'text-amber-400'
+                                  : 'text-cyan-400'
+                        }
+                      >
                         {a.status}
                       </span>
                     </td>
                     <td className="p-2">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {a.status === 'pendiente' || a.status === 'pausada' ? (
+                          <button
+                            type="button"
+                            onClick={() => setAlertaPausada(a.id, a.status !== 'pausada')}
+                            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-xs theme-text"
+                          >
+                            {a.status === 'pausada' ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+                            {a.status === 'pausada' ? 'Activar' : 'Pausar'}
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           onClick={() => sendNow(a.id)}
