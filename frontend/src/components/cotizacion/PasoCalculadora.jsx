@@ -337,15 +337,26 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
           </div>
           <div className="space-y-3 pt-2">
             <input
-              type="number"
-              min={0}
-              step={0.25}
-              value={horasMaquina || ''}
-              onChange={(e) => setHorasMaquina(Number(e.target.value) || 0)}
-              placeholder="Ej: 6.5 = 6 h 30 min"
+              type="text"
+              inputMode="decimal"
+              value={horasMaquina ? (() => { const h = Math.floor(horasMaquina); const m = Math.round((horasMaquina - h) * 60); return m ? `${h}:${String(m).padStart(2, '0')}` : String(horasMaquina); })() : ''}
+              onChange={(e) => {
+                const val = e.target.value.trim()
+                if (!val) { setHorasMaquina(0); return }
+                // Accept HH:MM format (e.g. "2:20" = 2.333h) or decimal (e.g. "2.5" = 2.5h)
+                if (val.includes(':')) {
+                  const parts = val.split(':')
+                  const hours = Number(parts[0]) || 0
+                  const minutes = Number(parts[1]) || 0
+                  setHorasMaquina(Math.round((hours + minutes / 60) * 100) / 100)
+                } else {
+                  setHorasMaquina(Number(val) || 0)
+                }
+              }}
+              placeholder="Ej: 2:20 = 2h 20min o 2.5 = 2h 30min"
               className={inputClass}
             />
-            <p className="theme-text-dim text-xs mt-1">Usa decimales: 6:30 h = 6.5</p>
+            <p className="theme-text-dim text-xs mt-1">Escribe horas:minutos (2:20) o decimal (2.5)</p>
           </div>
         </Card>
 
