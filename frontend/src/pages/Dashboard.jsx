@@ -63,8 +63,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     api('/dashboard/totals')
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then(setTotals)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setTotals(data); else setErr('No se pudieron cargar los totales') })
       .catch(() => setErr('No se pudieron cargar los totales'))
       .finally(() => setLoading(false))
   }, [api])

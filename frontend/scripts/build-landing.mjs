@@ -27,13 +27,28 @@ function writeMinimalLanding() {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="refresh" content="0;url=/app/" />
-  <title>Rookie Makers 3D</title>
-  <style>body{font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0}a{color:#22d3ee}</style>
+  <title>Rookie Makers 3D — Impresión 3D a medida</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'DM Sans',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column}
+    .hero{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem}
+    h1{font-family:'Bebas Neue',sans-serif;font-size:3rem;color:#22d3ee;margin-bottom:0.5rem}
+    p.sub{color:#94a3b8;font-size:1.1rem;max-width:500px;margin-bottom:2rem}
+    .cta{display:inline-block;background:#22d3ee;color:#0f172a;padding:0.8rem 2rem;border-radius:12px;text-decoration:none;font-weight:700;font-size:1rem;transition:background 0.2s}
+    .cta:hover{background:#06b6d4}
+    .footer{padding:1.5rem;text-align:center;color:#64748b;font-size:0.85rem}
+    .footer a{color:#22d3ee;text-decoration:none}
+  </style>
 </head>
 <body>
-  <p>Redirigiendo al sistema… <a href="/app/">Entrar al ERP</a>.</p>
-  <p style="font-size:14px;margin-top:1rem;opacity:0.75">La web pública completa requiere subir Paginaweb/Content-Hub al repositorio.</p>
+  <div class="hero">
+    <h1>Rookie Makers 3D</h1>
+    <p class="sub">Impresión 3D personalizada. Cotiza tu proyecto en segundos y recibe tu pieza en la puerta de tu casa.</p>
+    <a href="/app/" class="cta">Entrar al sistema</a>
+  </div>
+  <div class="footer">
+    <p>&copy; 2026 Rookie Makers 3D &middot; <a href="/app/login">Iniciar sesión</a></p>
+  </div>
 </body>
 </html>
 `

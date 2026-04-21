@@ -15,7 +15,7 @@ export default function Seguridad() {
 
   useEffect(() => {
     api('/auth/mfa/status')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : {})
       .then((d) => setMfaEnabled(!!d.mfa_enabled))
       .catch(() => setMfaEnabled(false))
       .finally(() => setLoading(false))

@@ -38,15 +38,17 @@ export default function Configuracion() {
 
   useEffect(() => {
     api('/auth/me')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : {})
       .then((data) => {
-        setPerfil(data)
-        setNombre(data?.nombre ?? data?.email ?? '')
-        setTelefono(data?.vendedor_telefono ?? '')
-        setBanco(data?.vendedor_banco ?? '')
-        setCuenta(data?.vendedor_cuenta ?? '')
-        setClabe(data?.vendedor_clabe ?? '')
-        refreshUser()
+        if (data && data.email) {
+          setPerfil(data)
+          setNombre(data?.nombre ?? data?.email ?? '')
+          setTelefono(data?.vendedor_telefono ?? '')
+          setBanco(data?.vendedor_banco ?? '')
+          setCuenta(data?.vendedor_cuenta ?? '')
+          setClabe(data?.vendedor_clabe ?? '')
+          refreshUser()
+        }
       })
       .catch(() => setPerfil(null))
       .finally(() => setLoading(false))

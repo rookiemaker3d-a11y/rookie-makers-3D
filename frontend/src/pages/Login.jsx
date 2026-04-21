@@ -176,7 +176,7 @@ export default function Login() {
         </form>
         )}
         <p className="text-center mt-6" style={{ color: 'var(--theme-text-muted)' }}>
-          <a href="/" className="text-sm underline hover:opacity-90">
+          <a href="/../" className="text-sm underline hover:opacity-90">
             Volver a la web pública
           </a>
         </p>
