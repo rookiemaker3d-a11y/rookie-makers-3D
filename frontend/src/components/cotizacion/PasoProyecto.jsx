@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   Upload,
   Send,
+  Sparkles,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Card, SectionHeader } from '../ui'
@@ -19,6 +20,7 @@ const CATEGORIAS = [
   { id: 'refaccion', label: 'Refacción', icon: Wrench },
   { id: 'decorativo', label: 'Decorativo', icon: Palette },
   { id: 'gaming', label: 'Gaming / Setup', icon: Gamepad2 },
+  { id: 'funko', label: 'Funko', icon: Sparkles },
   { id: 'otro', label: 'Otro', icon: MoreHorizontal },
 ]
 

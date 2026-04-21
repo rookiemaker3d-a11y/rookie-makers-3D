@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""  # Contraseña de aplicación de 16 caracteres (no la de Gmail)
     email_from: str = ""  # Opcional; si está vacío se usa smtp_user
     app_base_url: str = "http://localhost:5173"  # URL del frontend para el enlace en el correo
+    admin_notify_email: str = ""  # avisos de suscripción/pago; si vacío se usa smtp_user
 
     # Mercado Pago (suscripciones por link de pago + webhook)
     mp_access_token: str = ""

@@ -55,6 +55,31 @@ def send_password_changed_notification(to_email: str) -> bool:
     return send_email(to_email, subject, text, html)
 
 
+def send_suscripcion_pago_reminder(
+    user_email: str,
+    admin_email: str,
+    dias_restantes: int | None,
+    vence_iso: str | None,
+    app_url: str,
+) -> bool:
+    """Aviso: renovar suscripción / pago pendiente. Envía al usuario y al admin."""
+    subj_user = "Recordatorio: suscripción / pago - Rookie Makers 3D"
+    dias_txt = f"Quedan aprox. {dias_restantes} día(s)." if dias_restantes is not None else "Revisa tu plan en la app."
+    vence_txt = f"Vencimiento: {vence_iso}." if vence_iso else ""
+    body_u = (
+        f"Hola,\n\n{dias_txt} {vence_txt}\n\n"
+        f"Entra a la app para coordinar el pago o ver tu estado:\n{app_url}\n\nRookie Makers 3D"
+    )
+    ok_u = send_email(user_email, subj_user, body_u, None)
+    subj_a = f"[Admin] Pago / suscripción: {user_email}"
+    body_a = (
+        f"El usuario {user_email} tiene aviso de suscripción/pago.\n\n{dias_txt} {vence_txt}\n\n"
+        f"Panel: {app_url}\n"
+    )
+    ok_a = send_email(admin_email, subj_a, body_a, None) if admin_email and admin_email != user_email else True
+    return ok_u and ok_a
+
+
 def send_cotizacion_lista_notification(to_email: str, descripcion: str, total: float, app_url: str) -> bool:
     """Notificación: tu cotización está lista."""
     subject = "Tu cotización está lista - Rookie Makers 3D"

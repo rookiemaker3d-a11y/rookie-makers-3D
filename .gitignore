@@ -34,3 +34,5 @@ imagenes/**/*.mov
 # Build web pública + paquete despliegue (Vercel)
 frontend/landing-dist/
 frontend/deploy-dist/
+
+.vercel

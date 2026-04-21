@@ -17,6 +17,7 @@ from app.models.models import (
     AlertaProgramada,
     PlanSuscripcion,
     PagoSuscripcion,
+    AppSetting,
 )
 
 __all__ = [
@@ -38,4 +39,5 @@ __all__ = [
     "AlertaProgramada",
     "PlanSuscripcion",
     "PagoSuscripcion",
+    "AppSetting",
 ]

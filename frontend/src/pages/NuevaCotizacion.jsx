@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, Droplets, X } from 'lucide-react'
@@ -20,6 +20,11 @@ const TOTAL_PASOS = 6
 
 export default function NuevaCotizacion() {
   const { api, apiUpload, user } = useAuth()
+  const draftKey = useMemo(() => `cotizacion_draft_v1:${user?.id ?? 'anon'}`, [user?.id])
+  const remoteDraftIdKey = useMemo(() => `cotizacion_remote_id_v1:${user?.id ?? 'anon'}`, [user?.id])
+  const restoringRef = useRef(false)
+  const saveTimerRef = useRef(null)
+  const remoteTimerRef = useRef(null)
   const [materiales, setMateriales] = useState([])
   const [vendedores, setVendedores] = useState([])
   const [vendedorSeleccionadoId, setVendedorSeleccionadoId] = useState(null)
@@ -39,6 +44,33 @@ export default function NuevaCotizacion() {
   const [saveError, setSaveError] = useState('')
   const [showCostosFilamento, setShowCostosFilamento] = useState(false)
   const [ordenEnviadaMsg, setOrdenEnviadaMsg] = useState('')
+  const [draftInfo, setDraftInfo] = useState(null)
+  const [remoteDraftId, setRemoteDraftId] = useState(null)
+  const [remoteStatus, setRemoteStatus] = useState('') // '', 'guardando', 'ok', 'error'
+
+  const readDraft = () => {
+    try {
+      const raw = localStorage.getItem(draftKey)
+      if (!raw) return null
+      const obj = JSON.parse(raw)
+      if (!obj || typeof obj !== 'object') return null
+      return obj
+    } catch (_) {
+      return null
+    }
+  }
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(draftKey)
+      localStorage.removeItem(remoteDraftIdKey)
+    } catch (_) {
+      // ignore
+    }
+    setDraftInfo(null)
+    setRemoteDraftId(null)
+    setRemoteStatus('')
+  }
 
   useEffect(() => {
     api('/materiales-filamento')
@@ -48,6 +80,35 @@ export default function NuevaCotizacion() {
   }, [api])
 
   const isAdmin = user?.role === 'administrador'
+
+  // Restore borrador al entrar
+  useEffect(() => {
+    const d = readDraft()
+    if (!d) return
+    restoringRef.current = true
+    try {
+      if (d?.wizardData) setWizardData(d.wizardData)
+      if (typeof d?.notas === 'string') setNotas(d.notas)
+      if (typeof d?.paso === 'number' && d.paso >= 1 && d.paso <= TOTAL_PASOS) setPaso(d.paso)
+      if (d?.vendedorSeleccionadoId != null) setVendedorSeleccionadoId(d.vendedorSeleccionadoId)
+      setDraftInfo({ savedAt: d?.savedAt || null })
+    } finally {
+      setTimeout(() => {
+        restoringRef.current = false
+      }, 0)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey])
+
+  // Restore remote draft id
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(remoteDraftIdKey)
+      if (raw && String(raw).trim()) setRemoteDraftId(Number(raw) || null)
+    } catch (_) {
+      // ignore
+    }
+  }, [remoteDraftIdKey])
   useEffect(() => {
     if (!isAdmin) return
     api('/vendedores')
@@ -62,6 +123,120 @@ export default function NuevaCotizacion() {
       })
       .catch(() => setVendedores([]))
   }, [api, isAdmin, user?.email])
+
+  // Autosave borrador (debounce)
+  useEffect(() => {
+    if (!draftKey) return
+    if (restoringRef.current) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        const payload = {
+          savedAt: new Date().toISOString(),
+          paso,
+          wizardData,
+          notas,
+          vendedorSeleccionadoId,
+        }
+        localStorage.setItem(draftKey, JSON.stringify(payload))
+        setDraftInfo({ savedAt: payload.savedAt })
+      } catch (_) {
+        // ignore
+      }
+    }, 400)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [draftKey, paso, wizardData, notas, vendedorSeleccionadoId])
+
+  const shouldRemoteDraft = !!wizardData?.cliente && !!wizardData?.proyecto?.nombre?.trim()
+
+  // Crear borrador remoto (una vez) cuando ya hay cliente+proyecto
+  useEffect(() => {
+    if (!shouldRemoteDraft) return
+    if (remoteDraftId) return
+    if (saving) return
+    let cancelled = false
+    const run = async () => {
+      setRemoteStatus('guardando')
+      try {
+        const res = await api('/cotizaciones-en-espera', {
+          method: 'POST',
+          body: JSON.stringify({
+            descripcion: descripcionActual,
+            cantidad: 1,
+            costo_base: 0,
+            costo_final: 0,
+            detalles: detallesRemoteBase,
+          }),
+        })
+        const d = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(d?.detail || 'No se pudo crear borrador')
+        if (cancelled) return
+        const id = d?.id
+        if (id != null) {
+          setRemoteDraftId(id)
+          try {
+            localStorage.setItem(remoteDraftIdKey, String(id))
+          } catch (_) {
+            // ignore
+          }
+          setRemoteStatus('ok')
+        }
+      } catch (_) {
+        if (!cancelled) setRemoteStatus('error')
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+  }, [api, descripcionActual, detallesRemoteBase, remoteDraftId, remoteDraftIdKey, saving, shouldRemoteDraft])
+
+  // Actualizar borrador remoto conforme avanzas (debounce)
+  useEffect(() => {
+    if (!shouldRemoteDraft) return
+    if (!remoteDraftId) return
+    if (saving) return
+    if (restoringRef.current) return
+    if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current)
+    remoteTimerRef.current = setTimeout(async () => {
+      setRemoteStatus('guardando')
+      try {
+        const payload = {
+          detalles: {
+            ...detallesRemoteBase,
+            paso_actual: paso,
+          },
+          costo_base: 0,
+          costo_final: 0,
+        }
+        const res = await api(`/cotizaciones-en-espera/${remoteDraftId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        })
+        const d = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          // si ya no existe, recrear
+          if (res.status === 404) {
+            try {
+              localStorage.removeItem(remoteDraftIdKey)
+            } catch (_) {
+              // ignore
+            }
+            setRemoteDraftId(null)
+          }
+          throw new Error(d?.detail || 'No se pudo actualizar borrador')
+        }
+        setRemoteStatus('ok')
+      } catch (_) {
+        setRemoteStatus('error')
+      }
+    }, 900)
+    return () => {
+      if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current)
+    }
+  }, [api, detallesRemoteBase, paso, remoteDraftId, remoteDraftIdKey, saving, shouldRemoteDraft])
 
   const materialesParaCotizador = useMemo(() => materialesFromAPI(Array.isArray(materiales) ? materiales : []), [materiales])
   const cotizadorConfig = useMemo(() => ({ materiales: materialesParaCotizador || undefined }), [materialesParaCotizador])
@@ -90,11 +265,10 @@ export default function NuevaCotizacion() {
     setOrdenEnviadaMsg('')
     setSaving(true)
     try {
-      const descripcion = `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
       const res = await api('/cotizaciones-en-espera', {
         method: 'POST',
         body: JSON.stringify({
-          descripcion,
+          descripcion: descripcionActual,
           cantidad: 1,
           costo_base: 0,
           costo_final: 0,
@@ -106,6 +280,13 @@ export default function NuevaCotizacion() {
             cliente_id: wizardData.cliente?.id,
             proyecto: wizardData.proyecto?.nombre,
             cliente_nombre: wizardData.cliente?.nombre,
+            ...(isAdmin
+              ? {
+                  vendedor_id: vendedorSeleccionado?.id ?? undefined,
+                  vendedor_nombre: vendedorSeleccionado?.nombre ?? undefined,
+                  vendedor_email: vendedorSeleccionado?.correo ?? undefined,
+                }
+              : {}),
           },
         }),
       })
@@ -126,6 +307,7 @@ export default function NuevaCotizacion() {
         }
       }
       setOrdenEnviadaMsg('Orden enviada a Norberto. Aparece en su dashboard (Pipeline de pedidos). Verás "Recibido" cuando él la cotice.')
+      clearDraft()
     } catch (e) {
       setSaveError(e?.message || 'Error al enviar la orden')
     } finally {
@@ -178,6 +360,44 @@ export default function NuevaCotizacion() {
     return vendedores.find((v) => v?.id === vendedorSeleccionadoId) || null
   }, [isAdmin, vendedores, vendedorSeleccionadoId])
 
+  const descripcionActual = useMemo(() => {
+    return `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
+  }, [wizardData.cliente?.nombre, wizardData.proyecto?.nombre])
+
+  const detallesRemoteBase = useMemo(() => {
+    const base = {
+      folio,
+      estado: 'borrador',
+      borrador: true,
+      cliente_id: wizardData.cliente?.id,
+      cliente_nombre: wizardData.cliente?.nombre,
+      proyecto: wizardData.proyecto?.nombre,
+      categoria_proyecto: wizardData.proyecto?.categoria || undefined,
+      es_funko: wizardData.proyecto?.categoria === 'funko' || undefined,
+      notas,
+    }
+    if (isAdmin) {
+      return {
+        ...base,
+        vendedor_id: vendedorSeleccionado?.id ?? undefined,
+        vendedor_nombre: vendedorSeleccionado?.nombre ?? undefined,
+        vendedor_email: vendedorSeleccionado?.correo ?? undefined,
+      }
+    }
+    return base
+  }, [
+    folio,
+    isAdmin,
+    notas,
+    vendedorSeleccionado?.correo,
+    vendedorSeleccionado?.id,
+    vendedorSeleccionado?.nombre,
+    wizardData.cliente?.id,
+    wizardData.cliente?.nombre,
+    wizardData.proyecto?.categoria,
+    wizardData.proyecto?.nombre,
+  ])
+
   const productLinesOnly = useMemo(
     () => lineas.filter((l) => String(l?.id_producto || '').startsWith('P')),
     [lineas],
@@ -197,15 +417,13 @@ export default function NuevaCotizacion() {
     setSaving(true)
     try {
       const d = cotizador?.desglose ?? {}
-      const descripcion = `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
       const esOrdenVendedor = isVendedorVentas && lineas.length === 0
       const detalles = {
         ...(esOrdenVendedor ? {} : d),
-        folio,
-        cliente_id: wizardData.cliente?.id,
-        proyecto: wizardData.proyecto?.nombre,
-        notas,
+        ...detallesRemoteBase,
         estado: 'espera',
+        borrador: undefined,
+        borrador_finalizado_at: new Date().toISOString(),
         orden_vendedor: esOrdenVendedor || undefined,
         lineas: lineasParaCotizacion.length ? lineasParaCotizacion : undefined,
         materiales_extra: materialesExtra.length ? materialesExtra : undefined,
@@ -221,35 +439,50 @@ export default function NuevaCotizacion() {
         sub_total: lineasParaCotizacion.length ? subTotal : (esOrdenVendedor ? 0 : undefined),
         total: totalFinal,
       }
-      const res = await api('/cotizaciones-en-espera', {
-        method: 'POST',
-        body: JSON.stringify({
-          descripcion,
-          cantidad: 1,
-              costo_base: lineas.length ? subTotalBaseCost : (esOrdenVendedor ? 0 : (d.costoTotal ?? 0)),
-          costo_final: totalFinal,
-          detalles,
-        }),
-      })
+      const costoBaseFinal = lineas.length ? subTotalBaseCost : (esOrdenVendedor ? 0 : (d.costoTotal ?? 0))
+      let res
+      if (remoteDraftId) {
+        res = await api(`/cotizaciones-en-espera/${remoteDraftId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            detalles,
+            costo_base: costoBaseFinal,
+            costo_final: totalFinal,
+          }),
+        })
+      } else {
+        res = await api('/cotizaciones-en-espera', {
+          method: 'POST',
+          body: JSON.stringify({
+            descripcion: descripcionActual,
+            cantidad: 1,
+            costo_base: costoBaseFinal,
+            costo_final: totalFinal,
+            detalles,
+          }),
+        })
+      }
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}))
         setSaveError(errData?.detail || res.statusText || 'Error al guardar')
         return false
       }
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
+      const savedId = data?.id ?? remoteDraftId
       const file = wizardData.proyecto?.file
-      if (file && data?.id != null) {
+      if (file && savedId != null) {
         const formData = new FormData()
         formData.append('file', file)
         try {
-          await apiUpload(`/cotizaciones-en-espera/${data.id}/archivo`, formData)
+          await apiUpload(`/cotizaciones-en-espera/${savedId}/archivo`, formData)
         } catch (_) {
           // Orden ya creada; fallo en archivo no bloquea
         }
       }
+      clearDraft()
       return true
     } catch (e) {
-      const msg = e?.message || (e?.status === 403 ? 'Solo vendedores pueden crear cotizaciones. Inicia sesión como vendedor.' : 'Error al guardar')
+      const msg = e?.message || (e?.status === 403 ? 'No tienes permiso para crear cotizaciones.' : 'Error al guardar')
       setSaveError(msg)
       return false
     } finally {
@@ -282,6 +515,44 @@ export default function NuevaCotizacion() {
           </button>
         )}
       </div>
+
+      {draftInfo?.savedAt ? (
+        <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm theme-text">
+                Borrador guardado automáticamente.
+              </p>
+              <p className="text-xs theme-text-dim mt-0.5">
+                Último guardado: {new Date(draftInfo.savedAt).toLocaleString()}
+              </p>
+              {remoteDraftId ? (
+                <p className="text-xs theme-text-dim mt-0.5">
+                  Guardado en servidor: #{remoteDraftId}{' '}
+                  <span className={remoteStatus === 'error' ? 'text-red-400' : remoteStatus === 'guardando' ? 'text-amber-300' : 'text-emerald-400'}>
+                    {remoteStatus === 'error' ? 'error' : remoteStatus === 'guardando' ? 'guardando…' : 'ok'}
+                  </span>
+                </p>
+              ) : shouldRemoteDraft ? (
+                <p className="text-xs theme-text-dim mt-0.5">
+                  Guardado en servidor:{' '}
+                  <span className={remoteStatus === 'error' ? 'text-red-400' : remoteStatus === 'guardando' ? 'text-amber-300' : 'theme-text-dim'}>
+                    {remoteStatus === 'error' ? 'error' : remoteStatus === 'guardando' ? 'creando…' : '—'}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="px-3 py-1.5 rounded-lg text-xs bg-white/10 hover:bg-white/15 theme-text"
+              title="Borrar borrador"
+            >
+              Borrar
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Modal: tabla de costos de filamentos */}
       {showCostosFilamento && (

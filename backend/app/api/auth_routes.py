@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone, timedelta
 import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +7,19 @@ from sqlalchemy import select, func
 from app.database import get_db
 from app.auth import get_password_hash, create_access_token, create_mfa_pending_token, decode_mfa_pending_token, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
 from app.models import User, Vendedor
-from app.schemas import LoginRequest, Token, UserResponse, VendedorCreate, VendedorResponse, UserPasswordUpdate, VendedorVentasCreate, VendedorVentasUpdate, MiPerfilUpdate, CambiarContrasenaRequest
+from app.schemas import (
+    LoginRequest,
+    Token,
+    UserResponse,
+    VendedorCreate,
+    VendedorResponse,
+    UserPasswordUpdate,
+    VendedorVentasCreate,
+    VendedorVentasUpdate,
+    MiPerfilUpdate,
+    CambiarContrasenaRequest,
+    AdminUsuarioPerfilSuscripcionUpdate,
+)
 from app.audit import log_audit
 from app.config import get_settings
 
@@ -170,6 +182,20 @@ async def me(user: User = Depends(require_user), db: AsyncSession = Depends(get_
         vendedor_cuenta=vendedor_cuenta,
         vendedor_clabe=vendedor_clabe,
         vendedor_tarjeta_ultimos4=vendedor_tarjeta_ultimos4,
+        subscription_plan_role=getattr(user, "subscription_plan_role", None),
+        subscription_expires_at=(
+            getattr(user, "subscription_expires_at", None).isoformat()
+            if getattr(user, "subscription_expires_at", None)
+            else None
+        ),
+        horas_saldo=float(getattr(user, "horas_saldo", 0) or 0),
+        horas_paquete_expira_at=(
+            getattr(user, "horas_paquete_expira_at", None).isoformat()
+            if getattr(user, "horas_paquete_expira_at", None)
+            else None
+        ),
+        disenador_tipo=getattr(user, "disenador_tipo", None),
+        recibir_alertas_suscripcion=bool(getattr(user, "recibir_alertas_suscripcion", True)),
     )
 
 
@@ -240,6 +266,20 @@ async def update_me(
         vendedor_cuenta=vendedor_cuenta,
         vendedor_clabe=vendedor_clabe,
         vendedor_tarjeta_ultimos4=vendedor_tarjeta_ultimos4,
+        subscription_plan_role=getattr(user, "subscription_plan_role", None),
+        subscription_expires_at=(
+            getattr(user, "subscription_expires_at", None).isoformat()
+            if getattr(user, "subscription_expires_at", None)
+            else None
+        ),
+        horas_saldo=float(getattr(user, "horas_saldo", 0) or 0),
+        horas_paquete_expira_at=(
+            getattr(user, "horas_paquete_expira_at", None).isoformat()
+            if getattr(user, "horas_paquete_expira_at", None)
+            else None
+        ),
+        disenador_tipo=getattr(user, "disenador_tipo", None),
+        recibir_alertas_suscripcion=bool(getattr(user, "recibir_alertas_suscripcion", True)),
     )
 
 
@@ -316,6 +356,20 @@ async def list_usuarios_vendedor_ventas(
             vendedor_banco=getattr(u, "banco", None),
             vendedor_cuenta=getattr(u, "cuenta", None),
             vendedor_clabe=getattr(u, "clabe", None),
+            subscription_plan_role=getattr(u, "subscription_plan_role", None),
+            subscription_expires_at=(
+                getattr(u, "subscription_expires_at", None).isoformat()
+                if getattr(u, "subscription_expires_at", None)
+                else None
+            ),
+            horas_saldo=float(getattr(u, "horas_saldo", 0) or 0),
+            horas_paquete_expira_at=(
+                getattr(u, "horas_paquete_expira_at", None).isoformat()
+                if getattr(u, "horas_paquete_expira_at", None)
+                else None
+            ),
+            disenador_tipo=getattr(u, "disenador_tipo", None),
+            recibir_alertas_suscripcion=bool(getattr(u, "recibir_alertas_suscripcion", True)),
         )
         for u in users
     ]
@@ -344,9 +398,138 @@ async def list_usuarios_admin(
             vendedor_banco=getattr(u, "banco", None),
             vendedor_cuenta=getattr(u, "cuenta", None),
             vendedor_clabe=getattr(u, "clabe", None),
+            horas_saldo=float(getattr(u, "horas_saldo", 0) or 0),
+            horas_paquete_expira_at=(
+                getattr(u, "horas_paquete_expira_at", None).isoformat()
+                if getattr(u, "horas_paquete_expira_at", None)
+                else None
+            ),
+            disenador_tipo=getattr(u, "disenador_tipo", None),
+            recibir_alertas_suscripcion=bool(getattr(u, "recibir_alertas_suscripcion", True)),
         )
         for u in users
     ]
+
+
+@router.patch("/usuarios/{user_id}/perfil-suscripcion", response_model=UserResponse)
+async def patch_usuario_perfil_suscripcion(
+    user_id: int,
+    body: AdminUsuarioPerfilSuscripcionUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Admin: tipo diseñador (rookie/emanuel) y saldo de horas (fijo o delta)."""
+    r = await db.execute(select(User).where(User.id == user_id))
+    u = r.scalar_one_or_none()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if body.disenador_tipo is not None:
+        raw = (body.disenador_tipo or "").strip().lower()
+        if raw in ("", "none", "-"):
+            u.disenador_tipo = None
+        elif raw in ("rookie", "emanuel"):
+            u.disenador_tipo = raw
+        else:
+            raise HTTPException(status_code=400, detail="disenador_tipo debe ser rookie, emanuel o vacío")
+    saldo = float(getattr(u, "horas_saldo", 0) or 0)
+    if body.horas_saldo is not None:
+        u.horas_saldo = max(0.0, float(body.horas_saldo))
+    elif body.horas_saldo_delta is not None:
+        u.horas_saldo = max(0.0, saldo + float(body.horas_saldo_delta))
+    if body.pack_valid_days_from_now is not None and int(body.pack_valid_days_from_now) > 0:
+        u.horas_paquete_expira_at = datetime.now(timezone.utc) + timedelta(days=int(body.pack_valid_days_from_now))
+    if body.horas_paquete_expira_at is not None:
+        raw = (body.horas_paquete_expira_at or "").strip()
+        if raw in ("", "null", "none"):
+            u.horas_paquete_expira_at = None
+        else:
+            try:
+                dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                u.horas_paquete_expira_at = dt
+            except Exception:
+                raise HTTPException(status_code=400, detail="horas_paquete_expira_at inválido (usa ISO 8601)")
+    if body.recibir_alertas_suscripcion is not None:
+        u.recibir_alertas_suscripcion = bool(body.recibir_alertas_suscripcion)
+    await db.commit()
+    await db.refresh(u)
+    await log_audit(
+        db,
+        "user_perfil_suscripcion",
+        user_id=_admin.id,
+        ip=_client_ip(request),
+        details={"target_user_id": u.id, "email": u.email},
+    )
+    await db.commit()
+    return UserResponse(
+        id=u.id,
+        email=u.email,
+        role=u.role,
+        vendedor_id=u.vendedor_id,
+        is_active=bool(getattr(u, "is_active", True)),
+        subscription_plan_role=getattr(u, "subscription_plan_role", None),
+        subscription_expires_at=(
+            getattr(u, "subscription_expires_at", None).isoformat()
+            if getattr(u, "subscription_expires_at", None)
+            else None
+        ),
+        nombre=getattr(u, "nombre", None),
+        vendedor_telefono=getattr(u, "telefono", None),
+        vendedor_banco=getattr(u, "banco", None),
+        vendedor_cuenta=getattr(u, "cuenta", None),
+        vendedor_clabe=getattr(u, "clabe", None),
+        horas_saldo=float(getattr(u, "horas_saldo", 0) or 0),
+        horas_paquete_expira_at=(
+            getattr(u, "horas_paquete_expira_at", None).isoformat()
+            if getattr(u, "horas_paquete_expira_at", None)
+            else None
+        ),
+        disenador_tipo=getattr(u, "disenador_tipo", None),
+        recibir_alertas_suscripcion=bool(getattr(u, "recibir_alertas_suscripcion", True)),
+    )
+
+
+@router.post("/usuarios/{user_id}/aviso-pago-correo")
+async def post_aviso_pago_correo(
+    user_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Admin: envía correo al usuario y al admin (ADMIN_NOTIFY_EMAIL o SMTP_USER) recordando pago/suscripción."""
+    from app.email_service import send_suscripcion_pago_reminder
+
+    r = await db.execute(select(User).where(User.id == user_id))
+    u = r.scalar_one_or_none()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    settings = get_settings()
+    if not getattr(settings, "smtp_user", None) or not getattr(settings, "smtp_password", None):
+        raise HTTPException(status_code=400, detail="SMTP no configurado")
+    admin_em = (getattr(settings, "admin_notify_email", None) or "").strip() or (settings.smtp_user or "").strip()
+    app_url = (getattr(settings, "app_base_url", None) or "").strip() or "http://localhost:5173"
+    exp = getattr(u, "subscription_expires_at", None)
+    dias = None
+    vence_iso = None
+    if exp:
+        if isinstance(exp, datetime) and exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        vence_iso = exp.isoformat()
+        dias = max(0, int((exp - datetime.now(timezone.utc)).total_seconds() // 86400))
+    ok = send_suscripcion_pago_reminder(u.email, admin_em, dias, vence_iso, app_url)
+    await log_audit(
+        db,
+        "user_aviso_pago_email",
+        user_id=_admin.id,
+        ip=_client_ip(request),
+        details={"target_user_id": u.id, "email": u.email, "ok": ok},
+    )
+    await db.commit()
+    if not ok:
+        raise HTTPException(status_code=502, detail="No se pudo enviar uno o más correos")
+    return {"ok": True}
 
 
 @router.patch("/usuarios/{user_id}/activo")
@@ -450,6 +633,8 @@ async def update_usuario_vendedor_ventas(
         vendedor_banco=getattr(u, "banco", None),
         vendedor_cuenta=getattr(u, "cuenta", None),
         vendedor_clabe=getattr(u, "clabe", None),
+        horas_saldo=float(getattr(u, "horas_saldo", 0) or 0),
+        disenador_tipo=getattr(u, "disenador_tipo", None),
     )
 
 
@@ -494,7 +679,15 @@ async def create_usuario_vendedor_ventas(
     await db.commit()
     await db.refresh(u)
     await log_audit(db, "user_created", user_id=_admin.id, ip=_client_ip(request), details={"email": email, "role": "vendedor_ventas"})
-    return UserResponse(id=u.id, email=u.email, role=u.role, vendedor_id=None, is_active=bool(u.is_active))
+    return UserResponse(
+        id=u.id,
+        email=u.email,
+        role=u.role,
+        vendedor_id=None,
+        is_active=bool(u.is_active),
+        horas_saldo=float(getattr(u, "horas_saldo", 0) or 0),
+        disenador_tipo=getattr(u, "disenador_tipo", None),
+    )
 
 
 @router.get("/audit-log")

@@ -19,6 +19,12 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     subscription_plan_role = Column(String(50), nullable=True)  # ej: vendedor, vendedor_ventas
     subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
+    # Diseño / tiempo de uso (admin asigna horas; tipo afecta plan sugerido al cobrar)
+    horas_saldo = Column(Float, default=0)
+    horas_paquete_expira_at = Column(DateTime(timezone=True), nullable=True)  # validez tipo “ciber”
+    disenador_tipo = Column(String(32), nullable=True)  # rookie | emanuel | disenador_3d | None
+    subscription_reminder_sent_at = Column(DateTime(timezone=True), nullable=True)
+    recibir_alertas_suscripcion = Column(Boolean, default=True)
     mfa_secret = Column(String(64), nullable=True)  # TOTP secret (base32)
     mfa_enabled = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -213,6 +219,13 @@ class PagoSuscripcion(Base):
     paid_at = Column(DateTime(timezone=True), nullable=True)
 
 
+class AppSetting(Base):
+    """Clave/valor JSON para toggles (ej. alertas automáticas)."""
+    __tablename__ = "app_settings"
+    key = Column(String(80), primary_key=True)
+    value_json = Column(JSON, default=dict)
+
+
 class AlertaProgramada(Base):
     """Alerta programada por admin: envía correos a cualquier destinatario."""
     __tablename__ = "alertas_programadas"
@@ -223,6 +236,6 @@ class AlertaProgramada(Base):
     mensaje = Column(Text, nullable=False)
     to_emails = Column(JSON, default=list)  # lista de correos (strings)
     send_at = Column(DateTime(timezone=True), nullable=False)
-    status = Column(String(20), default="pendiente")  # pendiente | enviado | error | cancelado
+    status = Column(String(20), default="pendiente")  # pendiente | pausada | enviado | error | cancelado
     sent_at = Column(DateTime(timezone=True), nullable=True)
     last_error = Column(Text, nullable=True)

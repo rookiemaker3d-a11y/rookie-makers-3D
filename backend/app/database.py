@@ -203,6 +203,70 @@ def _migrate_add_user_subscription(sync_conn):
             pass
 
 
+def _migrate_add_user_horas_disenador(sync_conn):
+    """Horas de uso, tipo diseñador (rookie/emanuel) y dedupe de recordatorios de suscripción."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS horas_saldo DOUBLE PRECISION DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS disenador_tipo VARCHAR(32)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_reminder_sent_at TIMESTAMPTZ",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS horas_paquete_expira_at TIMESTAMPTZ",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS recibir_alertas_suscripcion BOOLEAN DEFAULT true",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE users ADD COLUMN horas_saldo FLOAT DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN disenador_tipo VARCHAR(32)",
+            "ALTER TABLE users ADD COLUMN subscription_reminder_sent_at DATETIME",
+            "ALTER TABLE users ADD COLUMN horas_paquete_expira_at DATETIME",
+            "ALTER TABLE users ADD COLUMN recibir_alertas_suscripcion BOOLEAN DEFAULT 1",
+        ]
+    for stmt in stmts:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass
+
+
+def _migrate_app_settings(sync_conn):
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        sync_conn.execute(
+            text(
+                "CREATE TABLE IF NOT EXISTS app_settings ("
+                " key VARCHAR(80) PRIMARY KEY,"
+                " value_json JSONB DEFAULT '{}'::jsonb)"
+            )
+        )
+    else:
+        sync_conn.execute(
+            text(
+                "CREATE TABLE IF NOT EXISTS app_settings ("
+                " key VARCHAR(80) PRIMARY KEY,"
+                " value_json JSON DEFAULT '{}')"
+            )
+        )
+    try:
+        if dialect == "postgresql":
+            sync_conn.execute(
+                text(
+                    "INSERT INTO app_settings (key, value_json) VALUES "
+                    "('alertas_automaticas_suscripcion', '{\"enabled\": true}'::jsonb) "
+                    "ON CONFLICT (key) DO NOTHING"
+                )
+            )
+        else:
+            sync_conn.execute(
+                text(
+                    "INSERT OR IGNORE INTO app_settings (key, value_json) VALUES "
+                    "('alertas_automaticas_suscripcion', '{\"enabled\": true}')"
+                )
+            )
+    except Exception:
+        pass
+
+
 def _seed_default_planes_suscripcion(sync_conn):
     """Crea filas en planes_suscripcion por rol si no existen (precio editable luego vía API)."""
     dialect = sync_conn.engine.dialect.name
@@ -210,6 +274,9 @@ def _seed_default_planes_suscripcion(sync_conn):
         ("vendedor", 500.0, 30),
         ("vendedor_ventas", 500.0, 30),
         ("administrador", 0.0, 30),
+        ("disenador_3d", 650.0, 30),
+        ("disenador_rookie", 600.0, 30),
+        ("disenador_emanuel", 750.0, 30),
     ]
     for role, precio, dias in defaults:
         try:
@@ -243,4 +310,6 @@ async def init_db():
         await conn.run_sync(_migrate_add_user_vendedor_ventas_profile)
         await conn.run_sync(_migrate_add_inventario_item_media)
         await conn.run_sync(_migrate_add_user_subscription)
+        await conn.run_sync(_migrate_add_user_horas_disenador)
+        await conn.run_sync(_migrate_app_settings)
         await conn.run_sync(_seed_default_planes_suscripcion)

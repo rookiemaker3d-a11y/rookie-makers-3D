@@ -8,7 +8,7 @@ from app.config import get_settings
 from app.database import init_db
 from app.middleware.security import SecurityHeadersMiddleware, LoginRateLimitMiddleware
 from app.scheduler_notificaciones import start_scheduler
-from app import models  # noqa: F401 - asegura que todas las tablas (incl. audit_log) estén registradas antes de init_db
+from app import models  # noqa: F401 - asegura que todas las tablas (incl. app_settings, audit_log) estén registradas antes de init_db
 from app.api.auth_routes import router as auth_router
 from app.api.calculator_routes import router as calculator_router
 from app.api.dashboard_routes import router as dashboard_router

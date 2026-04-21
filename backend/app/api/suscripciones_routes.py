@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -155,6 +155,106 @@ async def solicitar_pago(body: dict, db: AsyncSession = Depends(get_db), _admin=
     return {"ok": True, "pago_id": pago.id, "payment_url": pago.payment_url}
 
 
+@router.post("/solicitar-pago-horas", response_model=dict)
+async def solicitar_pago_horas(body: dict, db: AsyncSession = Depends(get_db), _admin=Depends(require_admin)):
+    """
+    Link Mercado Pago para vender tiempo (horas). Body: user_id, horas, precio_por_hora_mxn, valid_days (opcional).
+    Al aprobar el pago, el webhook suma horas y opcionalmente fija horas_paquete_expira_at.
+    """
+    settings = get_settings()
+    token = (settings.mp_access_token or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Mercado Pago no configurado (MP_ACCESS_TOKEN).")
+
+    user_id = int(body.get("user_id") or 0)
+    horas = float(body.get("horas") or 0)
+    pxh = float(body.get("precio_por_hora_mxn") or 0)
+    valid_days = int(body.get("valid_days") or 0)
+    horas = max(0.5, min(horas, 500.0))
+    if pxh <= 0:
+        raise HTTPException(status_code=400, detail="precio_por_hora_mxn debe ser > 0")
+
+    ru = await db.execute(select(User).where(User.id == user_id))
+    u = ru.scalar_one_or_none()
+    if not u:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    amount = round(horas * pxh, 2)
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Monto inválido")
+
+    extra = {
+        "kind": "hours_pack",
+        "horas": horas,
+        "pack_valid_days": valid_days,
+        "precio_por_hora_mxn": pxh,
+        "plan_periodo_dias": 30,
+    }
+    pago = PagoSuscripcion(
+        user_id=u.id,
+        plan_role="horas",
+        provider="mercadopago",
+        status="link_creado",
+        amount=amount,
+        currency="MXN",
+        months=max(1, int(round(horas))),
+        extra_data=extra,
+    )
+    db.add(pago)
+    await db.flush()
+    await db.commit()
+    await db.refresh(pago)
+
+    back_urls = {}
+    if (settings.mp_success_url or "").strip():
+        back_urls["success"] = settings.mp_success_url.strip()
+    if (settings.mp_failure_url or "").strip():
+        back_urls["failure"] = settings.mp_failure_url.strip()
+    if (settings.mp_pending_url or "").strip():
+        back_urls["pending"] = settings.mp_pending_url.strip()
+
+    vd_txt = f" (válidas {valid_days} días)" if valid_days > 0 else ""
+    pref = {
+        "items": [
+            {
+                "title": f"Paquete {horas} h uso plataforma{vd_txt}",
+                "quantity": 1,
+                "currency_id": "MXN",
+                "unit_price": amount,
+            }
+        ],
+        "external_reference": str(pago.id),
+        "metadata": {
+            "pago_id": pago.id,
+            "user_id": u.id,
+            "kind": "hours_pack",
+            "horas": horas,
+        },
+        "notification_url": "",
+    }
+    if back_urls:
+        pref["back_urls"] = back_urls
+        pref["auto_return"] = "approved"
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        r = await client.post(
+            "https://api.mercadopago.com/checkout/preferences",
+            headers={"Authorization": f"Bearer {token}"},
+            json=pref,
+        )
+    if r.status_code >= 400:
+        pago.status = "error"
+        pago.extra_data = {**(pago.extra_data or {}), "mp_error": r.text[:1000]}
+        await db.commit()
+        raise HTTPException(status_code=502, detail="Error creando link de Mercado Pago")
+
+    data = r.json()
+    pago.payment_url = data.get("init_point") or data.get("sandbox_init_point")
+    pago.extra_data = {**(pago.extra_data or {}), "mp_preference_id": data.get("id")}
+    await db.commit()
+    return {"ok": True, "pago_id": pago.id, "payment_url": pago.payment_url}
+
+
 async def _apply_subscription(db: AsyncSession, u: User, plan_role: str, months: int, periodo_dias: int):
     now = _now_utc()
     base = u.subscription_expires_at
@@ -163,11 +263,10 @@ async def _apply_subscription(db: AsyncSession, u: User, plan_role: str, months:
             base = base.replace(tzinfo=timezone.utc)
     if not base or base < now:
         base = now
-    new_exp = base + __import__("datetime").timedelta(days=int(periodo_dias or 30) * int(months or 1))
+    new_exp = base + timedelta(days=int(periodo_dias or 30) * int(months or 1))
     u.subscription_plan_role = plan_role
     u.subscription_expires_at = new_exp
     u.is_active = True
-    await db.commit()
 
 
 @router.post("/webhook/mercadopago", response_model=dict)
@@ -234,9 +333,19 @@ async def mp_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         ru = await db.execute(select(User).where(User.id == pago.user_id))
         u = ru.scalar_one_or_none()
         if u:
-            # periodo desde plan (si existe)
-            periodo = int((pago.extra_data or {}).get("plan_periodo_dias") or 30)
-            await _apply_subscription(db, u, pago.plan_role, int(pago.months or 1), periodo)
+            ed = pago.extra_data or {}
+            if ed.get("kind") == "hours_pack":
+                horas_add = float(ed.get("horas") or 0)
+                if horas_add <= 0:
+                    horas_add = float(pago.months or 0)
+                u.horas_saldo = float(getattr(u, "horas_saldo", 0) or 0) + horas_add
+                vd = int(ed.get("pack_valid_days") or 0)
+                if vd > 0:
+                    u.horas_paquete_expira_at = _now_utc() + timedelta(days=vd)
+                u.is_active = True
+            else:
+                periodo = int(ed.get("plan_periodo_dias") or 30)
+                await _apply_subscription(db, u, pago.plan_role, int(pago.months or 1), periodo)
         await db.commit()
         return {"ok": True, "pago_id": pago.id, "status": "approved"}
 

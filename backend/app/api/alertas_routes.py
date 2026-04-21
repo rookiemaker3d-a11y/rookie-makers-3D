@@ -7,11 +7,13 @@ from sqlalchemy import select, desc
 
 from app.database import get_db
 from app.auth import require_admin, require_user
-from app.models import AlertaProgramada
+from app.models import AlertaProgramada, AppSetting
 from app.schemas import AlertaCreate, AlertaUpdate
 from app.email_service import send_email
 
 router = APIRouter(prefix="/alertas", tags=["alertas"])
+
+KEY_AUTO_SUSCR = "alertas_automaticas_suscripcion"
 
 
 def _parse_iso_dt(v: str) -> datetime:
@@ -34,6 +36,40 @@ def _clean_emails(items: list[str]) -> list[str]:
         if s not in out:
             out.append(s)
     return out
+
+
+@router.get("/config-sistema", response_model=dict)
+async def get_config_sistema(
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    """Toggles globales (alertas automáticas de suscripción / pago)."""
+    r = await db.execute(select(AppSetting).where(AppSetting.key == KEY_AUTO_SUSCR))
+    row = r.scalar_one_or_none()
+    enabled = True
+    if row and isinstance(row.value_json, dict):
+        enabled = bool(row.value_json.get("enabled", True))
+    return {"alertas_automaticas_suscripcion": enabled}
+
+
+@router.put("/config-sistema", response_model=dict)
+async def put_config_sistema(
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    enabled = body.get("alertas_automaticas_suscripcion")
+    if not isinstance(enabled, bool):
+        raise HTTPException(status_code=400, detail="Body: { \"alertas_automaticas_suscripcion\": true|false }")
+    r = await db.execute(select(AppSetting).where(AppSetting.key == KEY_AUTO_SUSCR))
+    row = r.scalar_one_or_none()
+    if not row:
+        row = AppSetting(key=KEY_AUTO_SUSCR, value_json={"enabled": enabled})
+        db.add(row)
+    else:
+        row.value_json = {**(row.value_json or {}), "enabled": enabled}
+    await db.commit()
+    return {"ok": True, "alertas_automaticas_suscripcion": enabled}
 
 
 @router.get("", response_model=list[dict])
@@ -113,6 +149,14 @@ async def update_alerta(
         st = (body.status or "").strip().lower()
         if st in ("cancelado", "cancelar"):
             a.status = "cancelado"
+        elif st in ("activar", "reanudar"):
+            if a.status == "enviado":
+                raise HTTPException(status_code=400, detail="No se reactiva una alerta ya enviada")
+            a.status = "pendiente"
+        elif st in ("pausada", "pausar"):
+            if a.status == "enviado":
+                raise HTTPException(status_code=400, detail="No se pausa una alerta ya enviada")
+            a.status = "pausada"
         elif st in ("pendiente", "enviado", "error"):
             a.status = st
     await db.commit()
@@ -132,6 +176,7 @@ async def enviar_ahora(
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
     if a.status == "cancelado":
         raise HTTPException(status_code=400, detail="Alerta cancelada")
+    # pausada: el admin puede forzar "Enviar ahora"
     ok_all = True
     for to in (a.to_emails or []):
         ok = send_email(to, a.titulo, a.mensaje, None)

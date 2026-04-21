@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -19,6 +19,8 @@ import {
   Bell,
   Settings,
   FileEdit,
+  Menu,
+  X as CloseIcon,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -32,7 +34,7 @@ const NAV = [
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/vendedores', label: 'Diseñadores', icon: UserCog, adminOnly: true },
-  { to: '/perfiles', label: 'Perfiles (bloquear)', icon: Shield, adminOnly: true },
+  { to: '/perfiles', label: 'Perfiles y suscripción', icon: Shield, adminOnly: true },
   { to: '/alertas', label: 'Alarmas / Alertas', icon: Bell, adminOnly: true },
   { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/seguridad', label: 'Seguridad', icon: Shield },
@@ -59,6 +61,32 @@ export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [logoError, setLogoError] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const navItems = useMemo(() => {
+    const base = user?.role === 'vendedor_ventas'
+      ? NAV_VENDEDOR_VENTAS
+      : NAV.filter((item) => !item.adminOnly || user?.role === 'administrador')
+    return base
+  }, [user?.role])
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('layout_sidebar_open_v1')
+      if (raw === '0') setSidebarOpen(false)
+      if (raw === '1') setSidebarOpen(true)
+    } catch (_) {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('layout_sidebar_open_v1', sidebarOpen ? '1' : '0')
+    } catch (_) {
+      // ignore
+    }
+  }, [sidebarOpen])
 
   const handleLogout = () => {
     logout()
@@ -77,18 +105,30 @@ export default function Layout() {
         style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-header)' }}
       >
         <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 shrink-0 theme-text" title="Rookie Makers 3D">
-            {logoError ? (
-              <span className="theme-text font-semibold text-lg">Rookie Makers 3D</span>
-            ) : (
-              <img
-                src={publicPath('logos/logo-cotizacion.png')}
-                alt="Rookie Makers 3D"
-                className="h-8 w-auto object-contain max-w-[180px]"
-                onError={() => setLogoError(true)}
-              />
-            )}
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="flex items-center justify-center w-9 h-9 rounded-lg transition-colors hover:opacity-90"
+              style={{ color: 'var(--theme-text-muted)', background: 'var(--theme-bg-card)' }}
+              aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+              title={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+            >
+              {sidebarOpen ? <CloseIcon className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
+            <Link to="/" className="flex items-center gap-2 theme-text" title="Rookie Makers 3D">
+              {logoError ? (
+                <span className="theme-text font-semibold text-lg">Rookie Makers 3D</span>
+              ) : (
+                <img
+                  src={publicPath('logos/logo-cotizacion.png')}
+                  alt="Rookie Makers 3D"
+                  className="h-8 w-auto object-contain max-w-[180px]"
+                  onError={() => setLogoError(true)}
+                />
+              )}
+            </Link>
+          </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -107,7 +147,7 @@ export default function Layout() {
               title="Volver al inicio"
             >
               <RefreshCw className="w-4 h-4" />
-              Reiniciar
+              Inicio
             </Link>
             <span className="text-sm flex items-center gap-1.5" style={{ color: 'var(--theme-text-muted)' }}>
               <span className="w-2 h-2 rounded-full bg-emerald-500/80" aria-hidden />
@@ -127,68 +167,45 @@ export default function Layout() {
         </div>
       </header>
 
-      <nav
-        className="border-b backdrop-blur-sm transition-colors duration-300"
-        style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-nav)' }}
-      >
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-2">
-          <ul className="flex flex-wrap items-center gap-1">
-            {(user?.role === 'vendedor_ventas' ? NAV_VENDEDOR_VENTAS : NAV.filter((item) => !item.adminOnly || user?.role === 'administrador')).map((item) => {
-              const { to, href, label, icon: Icon, external } = item
-              const isActive =
-                to != null &&
-                (location.pathname === to || (to !== '/' && location.pathname.startsWith(to)))
-              const linkClass = `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                isActive ? 'shadow-[0_2px_12px_rgba(var(--theme-accent),0.15)]' : ''
-              }`
-              const linkStyle = isActive
-                ? { background: 'var(--theme-bg-card-hover)', color: 'var(--theme-text)', border: '1px solid var(--theme-border-hover)' }
-                : { color: 'var(--theme-text-muted)' }
-              const hoverProps = {
-                onMouseEnter: (e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'var(--theme-bg-card)'
-                    e.currentTarget.style.color = 'var(--theme-text)'
+      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
+        <div className="flex gap-4">
+          <aside className={`shrink-0 transition-all duration-200 ${sidebarOpen ? 'w-72' : 'w-0'} overflow-hidden`}>
+            <div className="rounded-2xl border backdrop-blur-sm p-2" style={{ borderColor: 'var(--theme-border)', background: 'var(--theme-bg-nav)' }}>
+              <ul className="space-y-1">
+                {navItems.map((item) => {
+                  const { to, href, label, icon: Icon, external } = item
+                  const isActive = to != null && (location.pathname === to || (to !== '/' && location.pathname.startsWith(to)))
+                  const baseClass = 'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition w-full'
+                  const style = isActive
+                    ? { background: 'var(--theme-bg-card-hover)', color: 'var(--theme-text)', border: '1px solid var(--theme-border-hover)' }
+                    : { color: 'var(--theme-text-muted)' }
+                  if (external && href) {
+                    return (
+                      <li key={href}>
+                        <a href={href} className={baseClass} style={style}>
+                          <Icon className="w-4 h-4 shrink-0" />
+                          {label}
+                        </a>
+                      </li>
+                    )
                   }
-                },
-                onMouseLeave: (e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = ''
-                    e.currentTarget.style.color = 'var(--theme-text-muted)'
-                  }
-                },
-              }
-              if (external && href) {
-                return (
-                  <li key={href}>
-                    <a
-                      href={href}
-                      className={linkClass}
-                      style={linkStyle}
-                      {...hoverProps}
-                    >
-                      <Icon className="w-4 h-4 shrink-0" />
-                      {label}
-                    </a>
-                  </li>
-                )
-              }
-              return (
-                <li key={to}>
-                  <Link to={to} className={linkClass} style={linkStyle} {...hoverProps}>
-                    <Icon className="w-4 h-4 shrink-0" />
-                    {label}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+                  return (
+                    <li key={to}>
+                      <Link to={to} className={baseClass} style={style}>
+                        <Icon className="w-4 h-4 shrink-0" />
+                        {label}
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          </aside>
+          <main className="flex-1 min-w-0">
+            <Outlet />
+          </main>
         </div>
-      </nav>
-
-      <main className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6">
-        <Outlet />
-      </main>
+      </div>
     </div>
   )
 }
