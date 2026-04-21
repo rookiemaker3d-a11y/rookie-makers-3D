@@ -29,6 +29,13 @@ const FAQ = [
   { keys: ['perfil', 'mi perfil', 'editar perfil', 'datos personales'], msg: 'En el menú Configuración puedes editar tu perfil: nombre, teléfono, datos bancarios. El admin puede gestionar todos los perfiles desde Perfiles.' },
   { keys: ['dashboard', 'panel', 'inicio', 'resumen general'], msg: 'El Dashboard muestra el resumen general: costo total, venta total, ganancia neta y cantidad de productos. Usa el % de inversión para calcular cuánto reservar.' },
   { keys: ['exportar', 'excel', 'csv', 'descargar datos'], msg: 'Actualmente los datos se consultan dentro del ERP. Para análisis detallado usa el módulo Análisis que desglosa costos, ganancias y extras.' },
+  { keys: ['tiempo', 'tiempo de entrega', 'cuánto tarda', 'cuanto tarda', 'días', 'dias'], msg: 'El tiempo de entrega depende de la complejidad. Impresiones sencillas: 1-3 días. Proyectos complejos o con post-proceso: 5-10 días hábiles. Pregunta por tu cotización específica por WhatsApp.' },
+  { keys: ['envío', 'envio', 'paquetería', 'paqueteria', 'domicilio', 'entrega a domicilio'], msg: 'Hacemos envíos a todo México. El costo de envío se calcula en la cotización según destino y peso. También puedes recoger en nuestro taller en Irapuato, Gto.' },
+  { keys: ['garantía', 'garantia', 'defecto', 'mal impreso', 'reimpresión', 'reimpresion'], msg: 'Si la pieza tiene defectos de impresión, la reponemos sin costo. Reporta cualquier problema dentro de los 3 días posteriores a la entrega con fotos por WhatsApp.' },
+  { keys: ['pago', 'forma de pago', 'método de pago', 'metodo de pago', 'transferencia', 'efectivo'], msg: 'Aceptamos transferencia bancaria, Mercado Pago y efectivo (solo en tienda). El anticipo es del 50% para empezar la impresión; el resto al entregar.' },
+  { keys: ['personalizar', 'personalización', 'medida', 'a medida', 'custom', 'propio'], msg: '¡Claro! Puedes personalizar tamaño, color, texto grabado y más. Sube tu imagen o STL en Nueva cotización y describe qué necesitas. También convertimos imágenes a STL.' },
+  { keys: ['pedido especial', 'pedido grande', 'mayoreo', 'volumen', 'descuento volumen'], msg: 'Para pedidos de 10+ piezas ofrecemos descuento por volumen. Crea una cotización con la cantidad deseada y aplica el % de descuento en la vista previa, o contáctanos por WhatsApp para cotización especial.' },
+  { keys: ['acabado', 'pintura', 'lijar', 'pulir', 'postproceso', 'post proceso'], msg: 'Ofrecemos acabados: lijado, pintura acrílica, pulido, ensamblaje de piezas. Los acabados se agregan como extras en la cotización. Cada acabado tiene costo según la pieza.' },
   { keys: ['material', 'pla', 'petg', 'abs', 'tpu', 'tipo'], msg: '' },
   { keys: ['color', 'colores disponibles'], msg: '' },
 ]

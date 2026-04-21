@@ -271,15 +271,17 @@ async def update_cotizacion(
     if detalles_final.get("estado_cotizacion_vendedor") == "cotizado":
         to_email = (c.vendedor or "").strip()
         if to_email and "@" in to_email:
-            settings = get_settings()
-            app_url = (getattr(settings, "app_base_url", None) or "").strip() or "http://localhost:5173"
-            send_cotizacion_lista_notification(to_email, c.descripcion or "Cotización", float(c.costo_final or 0), app_url)
-            # Registrar envío para el scheduler de recordatorios (cada 30 min hasta que entre a la app)
-            detalles_final["last_email_sent_at"] = datetime.now(timezone.utc).isoformat()
-            detalles_final["reminder_count"] = detalles_final.get("reminder_count", 0)
-            c.detalles = detalles_final
-            await db.commit()
-            await db.refresh(c)
+            try:
+                settings = get_settings()
+                app_url = (getattr(settings, "app_base_url", None) or "").strip() or "http://localhost:5173"
+                send_cotizacion_lista_notification(to_email, c.descripcion or "Cotización", float(c.costo_final or 0), app_url)
+                detalles_final["last_email_sent_at"] = datetime.now(timezone.utc).isoformat()
+                detalles_final["reminder_count"] = detalles_final.get("reminder_count", 0)
+                c.detalles = detalles_final
+                await db.commit()
+                await db.refresh(c)
+            except Exception:
+                pass
     return c
 
 

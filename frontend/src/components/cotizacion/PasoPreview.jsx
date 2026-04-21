@@ -35,7 +35,16 @@ export default function PasoPreview({
   const setRegaliaMarkupPct = (v) => setWizardData((prev) => ({ ...prev, regalia_markup_pct: Math.max(0, Number(v) || 0) }))
   const setRegaliaVendedorPct = (v) => setWizardData((prev) => ({ ...prev, regalia_vendedor_pct: Math.max(0, Number(v) || 0) }))
 
-  const setDescuento = (v) => setWizardData((prev) => ({ ...prev, descuento: Number(v) || 0 }))
+  const descuentoPct = Number(wizardData?.descuento_pct) || 0
+  const setDescuentoPct = (v) => {
+    const pct = Math.max(0, Math.min(100, Number(v) || 0))
+    setWizardData((prev) => ({ ...prev, descuento_pct: pct, descuento: Math.round(subTotal * pct) / 100 }))
+  }
+  const setDescuento = (v) => setWizardData((prev) => {
+    const val = Number(v) || 0
+    const pct = subTotal > 0 ? Math.round((val / subTotal) * 10000) / 100 : 0
+    return { ...prev, descuento: val, descuento_pct: pct }
+  })
   const setEnvio = (v) => setWizardData((prev) => ({ ...prev, envio: Number(v) || 0 }))
   const setEmpaque = (v) => setWizardData((prev) => ({ ...prev, empaque: Number(v) || 0 }))
 
@@ -315,7 +324,14 @@ export default function PasoPreview({
                 </div>
                 <div className="flex justify-between gap-8"><span className="theme-text-muted">Sub total</span><span className="tabular-nums theme-text">${subTotal.toFixed(2)}</span></div>
                 <div className="flex justify-between gap-8 items-center">
-                  <span className="theme-text-muted">Descuento</span>
+                  <span className="theme-text-muted">Descuento %</span>
+                  <div className="flex items-center gap-2">
+                    <input type="number" min={0} max={100} step={1} value={descuentoPct || ''} onChange={(e) => setDescuentoPct(e.target.value)} className="w-16 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
+                    <span className="theme-text-dim text-xs">%</span>
+                  </div>
+                </div>
+                <div className="flex justify-between gap-8 items-center">
+                  <span className="theme-text-muted">Descuento $</span>
                   <input type="number" min={0} step={0.01} value={descuento} onChange={(e) => setDescuento(e.target.value)} className="w-24 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums" />
                 </div>
                 <div className="flex justify-between gap-8 items-center">

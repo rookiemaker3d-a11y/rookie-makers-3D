@@ -61,6 +61,13 @@ function writeMinimalLanding() {
 const hasContentHub = fs.existsSync(contentHubPkg) && fs.existsSync(artifactPkg)
 const allowMinimal = process.env.ALLOW_MINIMAL_LANDING === '1'
 
+// Si landing-dist ya tiene contenido (pre-construida en el repo), usarla directamente
+const indexHtml = path.join(landingDist, 'index.html')
+if (fs.existsSync(indexHtml) && fs.readFileSync(indexHtml, 'utf8').includes('Rookie Makers 3D')) {
+  console.log('[build-landing] landing-dist pre-construida encontrada. Saltando build de Content-Hub.')
+  process.exit(0)
+}
+
 if (!hasContentHub) {
   writeMinimalLanding()
   process.exit(0)

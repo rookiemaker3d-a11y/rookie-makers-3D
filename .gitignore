@@ -32,7 +32,7 @@ imagenes/**/*.mp4
 imagenes/**/*.mov
 
 # Build web pública + paquete despliegue (Vercel)
-frontend/landing-dist/
+# landing-dist se commitea pre-construida para que Vercel no necesite pnpm workspace
 frontend/deploy-dist/
 
 .vercel

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Any
-from datetime import date
+from datetime import date, datetime
 
 
 # ----- Auth -----
@@ -215,7 +215,7 @@ class CotizacionEnEsperaResponse(BaseModel):
     costo_final: float
     fecha: Optional[str] = None
     detalles: Optional[dict] = None
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
     has_archivo: Optional[bool] = None
 
     class Config:
@@ -296,7 +296,7 @@ class InventarioItemUpdate(BaseModel):
 class InventarioItemResponse(InventarioItemBase):
     id: int
     vendedor_id: Optional[int] = None
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -332,7 +332,7 @@ class InventarioFilamentoResponse(BaseModel):
     cantidad_gramos: float
     foto_url: Optional[str] = None
     activo: bool = True
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -389,7 +389,7 @@ class AlertaResponse(BaseModel):
     status: Optional[str] = None
     sent_at: Optional[str] = None
     last_error: Optional[str] = None
-    created_at: Optional[str] = None
+    created_at: Optional[datetime] = None
     created_by_user_id: Optional[int] = None
 
     class Config:
