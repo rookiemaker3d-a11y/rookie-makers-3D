@@ -176,8 +176,8 @@ export default function Inventario() {
       setEditingId(null)
       setFormOpen(false)
       load()
-    } catch (err) {
-      setError(err.status === 403 ? 'No tienes permiso para editar este ítem.' : 'Error al guardar.')
+    } catch {
+      setError('Error de conexión al guardar.')
     }
   }
 
@@ -187,8 +187,8 @@ export default function Inventario() {
       await api(`/inventario/${id}`, { method: 'DELETE' })
       setMsg('Ítem eliminado.')
       load()
-    } catch (err) {
-      setError(err.status === 403 ? 'No tienes permiso para eliminar este ítem.' : 'Error al eliminar.')
+    } catch {
+      setError('Error de conexión al eliminar.')
     }
   }
 

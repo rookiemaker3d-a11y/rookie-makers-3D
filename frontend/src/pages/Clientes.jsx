@@ -10,8 +10,9 @@ export default function Clientes() {
 
   function load() {
     api('/clientes')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : [])
       .then(setItems)
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }
 
@@ -25,13 +26,22 @@ export default function Clientes() {
       setMsg('Nombre y correo son obligatorios.')
       return
     }
-    await api('/clientes', {
-      method: 'POST',
-      body: JSON.stringify(form),
-    })
-    setForm({ nombre: '', correo: '', telefono: '', direccion: '' })
-    load()
-    setMsg('Cliente guardado.')
+    try {
+      const res = await api('/clientes', {
+        method: 'POST',
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        setMsg(err.detail || 'Error al guardar cliente')
+        return
+      }
+      setForm({ nombre: '', correo: '', telefono: '', direccion: '' })
+      load()
+      setMsg('Cliente guardado.')
+    } catch {
+      setMsg('Error de conexión')
+    }
   }
 
   if (loading) return <div className="p-8 theme-text-muted">Cargando...</div>

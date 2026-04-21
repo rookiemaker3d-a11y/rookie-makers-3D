@@ -100,8 +100,7 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         setUser(null)
-        window.location.href = `${import.meta.env.BASE_URL}login`
-        return Promise.reject(new Error('Sesión expirada o no autorizado'))
+        setTimeout(() => { window.location.href = `${import.meta.env.BASE_URL}login` }, 100)
       }
       return res
     })

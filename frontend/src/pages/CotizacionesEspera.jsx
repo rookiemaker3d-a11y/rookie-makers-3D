@@ -48,8 +48,9 @@ export default function CotizacionesEspera() {
 
   function load() {
     api('/cotizaciones-en-espera')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : [])
       .then(setItems)
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }
 
@@ -99,7 +100,7 @@ export default function CotizacionesEspera() {
     if (!ordenAbiertaData) return
     setPanelSaving(true)
     try {
-      await api(`/cotizaciones-en-espera/${ordenAbiertaData.id}`, {
+      const res = await api(`/cotizaciones-en-espera/${ordenAbiertaData.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           costo_base: Number(panelCotizar.costo_base) || 0,
@@ -107,9 +108,16 @@ export default function CotizacionesEspera() {
           detalles: { estado_cotizacion_vendedor: 'cotizado', visto_por_vendedor: false },
         }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(err.detail || 'Error al actualizar')
+        return
+      }
       setOrdenAbierta(null)
       setOrdenAbiertaData(null)
       load()
+    } catch {
+      alert('Error de conexión')
     } finally {
       setPanelSaving(false)
     }
@@ -124,7 +132,7 @@ export default function CotizacionesEspera() {
     if (!cotizarModal) return
     setCotizarSaving(true)
     try {
-      await api(`/cotizaciones-en-espera/${cotizarModal.id}`, {
+      const res = await api(`/cotizaciones-en-espera/${cotizarModal.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           costo_base: Number(cotizarModal.costo_base) || 0,
@@ -132,8 +140,15 @@ export default function CotizacionesEspera() {
           detalles: { estado_cotizacion_vendedor: 'cotizado', visto_por_vendedor: false },
         }),
       })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(err.detail || 'Error al cotizar')
+        return
+      }
       setCotizarModal(null)
       load()
+    } catch {
+      alert('Error de conexión')
     } finally {
       setCotizarSaving(false)
     }
@@ -152,6 +167,8 @@ export default function CotizacionesEspera() {
         body: JSON.stringify({ detalles: { estado } }),
       })
       load()
+    } catch {
+      // error silencioso, el usuario ve que no avanza
     } finally {
       setUpdating(null)
     }
@@ -159,8 +176,12 @@ export default function CotizacionesEspera() {
 
   const deleteOne = async (id) => {
     if (!confirm('¿Eliminar esta cotización?')) return
-    await api(`/cotizaciones-en-espera/${id}`, { method: 'DELETE' })
-    load()
+    try {
+      await api(`/cotizaciones-en-espera/${id}`, { method: 'DELETE' })
+      load()
+    } catch {
+      // error silencioso
+    }
   }
 
   const formatDate = (d) => {

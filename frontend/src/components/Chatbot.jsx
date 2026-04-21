@@ -64,13 +64,17 @@ export default function Chatbot() {
   }, [messages])
 
   // Drag handlers for header
-  const onHeaderMouseDown = (e) => {
-    if (e.target.closest('button') || e.target.closest('a')) return
-    e.preventDefault()
+  const startDrag = (clientX, clientY) => {
     const panel = panelRef.current
     if (!panel) return
     const rect = panel.getBoundingClientRect()
-    dragRef.current = { dragging: true, startX: e.clientX, startY: e.clientY, origLeft: rect.left, origTop: rect.top }
+    dragRef.current = { dragging: true, startX: clientX, startY: clientY, origLeft: rect.left, origTop: rect.top }
+  }
+
+  const onHeaderMouseDown = (e) => {
+    if (e.target.closest('button') || e.target.closest('a')) return
+    e.preventDefault()
+    startDrag(e.clientX, e.clientY)
     const onMouseMove = (ev) => {
       if (!dragRef.current.dragging) return
       const dx = ev.clientX - dragRef.current.startX
@@ -86,6 +90,30 @@ export default function Chatbot() {
     }
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
+  }
+
+  const onHeaderTouchStart = (e) => {
+    if (e.target.closest('button') || e.target.closest('a')) return
+    const touch = e.touches[0]
+    if (!touch) return
+    startDrag(touch.clientX, touch.clientY)
+    const onTouchMove = (ev) => {
+      if (!dragRef.current.dragging) return
+      const t = ev.touches[0]
+      if (!t) return
+      const dx = t.clientX - dragRef.current.startX
+      const dy = t.clientY - dragRef.current.startY
+      const newLeft = Math.max(0, Math.min(window.innerWidth - 100, dragRef.current.origLeft + dx))
+      const newTop = Math.max(0, Math.min(window.innerHeight - 60, dragRef.current.origTop + dy))
+      setPanelPos({ left: newLeft, top: newTop })
+    }
+    const onTouchEnd = () => {
+      dragRef.current.dragging = false
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+    window.addEventListener('touchmove', onTouchMove)
+    window.addEventListener('touchend', onTouchEnd)
   }
 
   const panelStyle = panelPos.left !== null
@@ -198,6 +226,7 @@ export default function Chatbot() {
         >
           <div
             onMouseDown={onHeaderMouseDown}
+            onTouchStart={onHeaderTouchStart}
             className="px-4 py-3 border-b border-slate-200 flex items-center gap-2 bg-slate-50 shrink-0 cursor-move select-none"
           >
             <div className="relative w-8 h-8 shrink-0">

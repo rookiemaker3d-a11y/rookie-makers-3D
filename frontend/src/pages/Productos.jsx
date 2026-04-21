@@ -63,8 +63,9 @@ export default function Productos() {
 
   function load() {
     api('/productos')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : [])
       .then(setItems)
+      .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }
 
@@ -74,8 +75,12 @@ export default function Productos() {
 
   const deleteOne = async (id) => {
     if (!confirm('¿Eliminar este producto?')) return
-    await api(`/productos/${id}`, { method: 'DELETE' })
-    load()
+    try {
+      await api(`/productos/${id}`, { method: 'DELETE' })
+      load()
+    } catch {
+      setMsg('Error al eliminar')
+    }
   }
 
   const openEdit = (p) => {

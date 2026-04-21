@@ -22,7 +22,7 @@ export default function Vendedores() {
 
   function load() {
     api('/vendedores')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : [])
       .then(setItems)
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
@@ -30,7 +30,7 @@ export default function Vendedores() {
 
   function loadVendedoresVentas() {
     api('/auth/usuarios-vendedor-ventas')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : [])
       .then(setVendedoresVentas)
       .catch(() => setVendedoresVentas([]))
   }
