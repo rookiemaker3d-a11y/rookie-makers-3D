@@ -102,6 +102,33 @@ async def create_category(
     return {"ok": True, "id": cat.id, "slug": slug_clean}
 
 
+@router.get("/categories/{category_id}/images", response_model=list[dict])
+async def list_images_by_category(
+    category_id: int,
+    db: AsyncSession = Depends(get_db),
+    _admin=Depends(require_admin),
+):
+    r = await db.execute(select(WebGalleryCategory).where(WebGalleryCategory.id == category_id))
+    cat = r.scalar_one_or_none()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    rimg = await db.execute(
+        select(WebGalleryImage)
+        .where(WebGalleryImage.categoria_id == category_id)
+        .order_by(asc(WebGalleryImage.orden), asc(WebGalleryImage.id))
+    )
+    imgs = rimg.scalars().all()
+    return [
+        {
+            "id": img.id,
+            "src": f"/web-assets/gallery/{img.stored_name}",
+            "alt": img.nombre_original,
+            "size": img.size,
+        }
+        for img in imgs
+    ]
+
+
 @router.get("/categories", response_model=list[dict])
 async def list_categories(
     db: AsyncSession = Depends(get_db),

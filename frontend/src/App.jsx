@@ -22,6 +22,7 @@ import EditorPaginaPublica from './pages/EditorPaginaPublica'
 import PerfilesAdmin from './pages/PerfilesAdmin'
 import AlertasAdmin from './pages/AlertasAdmin'
 import EditorWebPublica from './pages/EditorWebPublica'
+import EditorGaleriaWeb from './pages/EditorGaleriaWeb'
 import Chatbot from './components/Chatbot'
 import './index.css'
 
@@ -44,6 +45,7 @@ function AppRoutes() {
         <Route path="videos-promocionales" element={<VideosPromocionales />} />
         <Route path="pagina-publica" element={<AdminOnlyRoute><EditorPaginaPublica /></AdminOnlyRoute>} />
         <Route path="editor-web" element={<AdminOnlyRoute><EditorWebPublica /></AdminOnlyRoute>} />
+        <Route path="editor-galeria" element={<AdminOnlyRoute><EditorGaleriaWeb /></AdminOnlyRoute>} />
         <Route path="perfiles" element={<AdminOnlyRoute><PerfilesAdmin /></AdminOnlyRoute>} />
         <Route path="alertas" element={<AdminOnlyRoute><AlertasAdmin /></AdminOnlyRoute>} />
         <Route path="inventario" element={<Inventario />} />
