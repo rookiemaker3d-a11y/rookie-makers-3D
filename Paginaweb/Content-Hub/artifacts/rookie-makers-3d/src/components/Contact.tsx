@@ -35,13 +35,9 @@ export function Contact() {
               
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-bold text-white text-sm font-sans mb-1">Taller HQ</h4>
-                  <p className="text-muted-foreground text-xs font-mono">Guadalajara, Jalisco, México<br/>(Citas solo con previo aviso)</p>
-                </div>
-                <div>
                   <h4 className="font-bold text-white text-sm font-sans mb-1">Contacto Directo</h4>
-                  <p className="text-primary text-xs font-mono hover:underline cursor-pointer">print@rookiemakers3d.mx</p>
-                  <p className="text-primary text-xs font-mono hover:underline cursor-pointer">+52 33 1234 5678</p>
+                  <p className="text-primary text-xs font-mono hover:underline cursor-pointer">rookiemaker3d@gmail.com</p>
+                  <p className="text-primary text-xs font-mono hover:underline cursor-pointer">+52 472 148 8913</p>
                 </div>
               </div>
             </div>

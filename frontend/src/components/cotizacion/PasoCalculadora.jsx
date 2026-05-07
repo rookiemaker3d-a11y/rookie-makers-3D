@@ -48,6 +48,16 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
     }))
   }
 
+  // Estado local para el input de horas máquina (permite escribir "2:30" sin normalización instantánea)
+  const [horasMaquinaRaw, setHorasMaquinaRaw] = useState('')
+
+  useEffect(() => {
+    if (!horasMaquina) { setHorasMaquinaRaw(''); return }
+    const h = Math.floor(horasMaquina)
+    const m = Math.round((horasMaquina - h) * 60)
+    setHorasMaquinaRaw(m ? `${h}:${String(m).padStart(2, '0')}` : String(horasMaquina))
+  }, [horasMaquina])
+
   const {
     config,
     MATERIALES,
@@ -338,12 +348,16 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
           <div className="space-y-3 pt-2">
             <input
               type="text"
-              inputMode="decimal"
-              value={horasMaquina ? (() => { const h = Math.floor(horasMaquina); const m = Math.round((horasMaquina - h) * 60); return m ? `${h}:${String(m).padStart(2, '0')}` : String(horasMaquina); })() : ''}
+              value={horasMaquinaRaw}
               onChange={(e) => {
-                const val = e.target.value.trim()
+                const val = e.target.value
+                // Solo permitir dígitos, punto decimal y dos puntos (HH:MM)
+                const cleaned = val.replace(/[^0-9.:]/g, '')
+                setHorasMaquinaRaw(cleaned)
+              }}
+              onBlur={() => {
+                const val = horasMaquinaRaw.trim()
                 if (!val) { setHorasMaquina(0); return }
-                // Accept HH:MM format (e.g. "2:20" = 2.333h) or decimal (e.g. "2.5" = 2.5h)
                 if (val.includes(':')) {
                   const parts = val.split(':')
                   const hours = Number(parts[0]) || 0
