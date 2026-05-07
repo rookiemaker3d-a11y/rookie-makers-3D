@@ -86,6 +86,11 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
         select(User).where(func.lower(User.email) == email, User.is_active == True)
     )
     user = result.scalar_one_or_none()
+    print(f"DEBUG_LOGIN email={email} user_found={bool(user)} password={data.password!r}")
+    if user:
+        print(f"DEBUG_LOGIN user.id={user.id} hash_prefix={user.password_hash[:20]}")
+        vp = verify_password(data.password or "", user.password_hash)
+        print(f"DEBUG_LOGIN verify_password={vp}")
     if not user or not verify_password(data.password or "", user.password_hash):
         record_failed_login(email)
         await log_audit(db, "login_failed", ip=ip, details={"email": email, "reason": "invalid_credentials"})
