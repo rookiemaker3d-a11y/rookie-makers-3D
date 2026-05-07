@@ -18,6 +18,8 @@ from app.models.models import (
     PlanSuscripcion,
     PagoSuscripcion,
     AppSetting,
+    WebGalleryCategory,
+    WebGalleryImage,
 )
 
 __all__ = [
@@ -40,4 +42,6 @@ __all__ = [
     "PlanSuscripcion",
     "PagoSuscripcion",
     "AppSetting",
+    "WebGalleryCategory",
+    "WebGalleryImage",
 ]

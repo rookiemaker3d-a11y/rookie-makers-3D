@@ -759,6 +759,11 @@ export default function NuevaCotizacion() {
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}
+          {paso === 5 && (
+            <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium">
+              Confirmar y registrar <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
     </div>
