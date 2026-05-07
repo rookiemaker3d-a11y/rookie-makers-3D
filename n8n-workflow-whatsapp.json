@@ -1,0 +1,325 @@
+{
+  "name": "WhatsApp Rookie Makers 3D - Auto-respuestas + ERP",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "whatsapp-incoming"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.type }}",
+              "rightValue": "text",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-is-text",
+      "name": "Es mensaje de texto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body?.toLowerCase() }}",
+              "rightValue": "producto",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-asks-products",
+      "name": "Pide productos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ERP_BASE_URL || 'http://187.124.234.72' }}/api/productos",
+        "sendQuery": false,
+        "options": {}
+      },
+      "id": "http-get-products",
+      "name": "Consultar productos ERP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [940, 140]
+    },
+    {
+      "parameters": {
+        "jsCode": "const products = $input.all()[0]?.json || [];\nconst limited = products.slice(0, 5);\nlet msg = 'Estos son algunos de nuestros productos disponibles:\\n\\n';\nfor (const p of limited) {\n  msg += `- ${p.descripcion}: $${p.costo_final?.toFixed(2) || '0.00'} MXN\\n`;\n}\nmsg += '\\nPara cotizar algo personalizado, escribe *cotizar*.';\nreturn [{ json: { replyText: msg } }];"
+      },
+      "id": "code-format-products",
+      "name": "Formatear productos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 140]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c3",
+              "leftValue": "={{ $json.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body?.toLowerCase() }}",
+              "rightValue": "cotizar",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-asks-quote",
+      "name": "Pide cotizar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.1,
+      "position": [700, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { replyText: 'Para cotizar, necesito saber:\\n1. Tipo de pieza o descripción\\n2. Material aproximado (PLA, PETG, etc.)\\n3. Ciudad de envío\\n4. Si tienes archivo 3D (STL/OBJ), adjúntalo por WhatsApp o sube tu diseño a nuestra app:\\nhttps://www.rookiemakers3d.com/app/cotizador' } }];"
+      },
+      "id": "code-cotizar-reply",
+      "name": "Respuesta cotizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 340]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { replyText: 'Hola! Soy el asistente de Rookie Makers 3D. Puedo ayudarte con:\\n- Escribe *productos* para ver disponibles\\n- Escribe *cotizar* para una cotización personalizada\\n- Visita nuestra web: https://www.rookiemakers3d.com' } }];"
+      },
+      "id": "code-default-reply",
+      "name": "Respuesta default",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 520]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://graph.facebook.com/v18.0/' + ($env.WHATSAPP_PHONE_NUMBER_ID || '1085954511261083') + '/messages' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + ($env.WHATSAPP_ACCESS_TOKEN || '') }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "recipient_type",
+              "value": "individual"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.from }}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text.body",
+              "value": "={{ $json.replyText }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-send-whatsapp",
+      "name": "Enviar respuesta WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1420, 300]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "respond-to-webhook",
+      "name": "Responder 200 a Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [460, 500]
+    }
+  ],
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [
+        [
+          {
+            "node": "Es mensaje de texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Es mensaje de texto?": {
+      "main": [
+        [
+          {
+            "node": "Pide productos?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 200 a Meta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pide productos?": {
+      "main": [
+        [
+          {
+            "node": "Consultar productos ERP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pide cotizar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar productos ERP": {
+      "main": [
+        [
+          {
+            "node": "Formatear productos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear productos": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pide cotizar?": {
+      "main": [
+        [
+          {
+            "node": "Respuesta cotizar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta default",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta cotizar": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respuesta default": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

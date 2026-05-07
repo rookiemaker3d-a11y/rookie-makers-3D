@@ -239,3 +239,30 @@ class AlertaProgramada(Base):
     status = Column(String(20), default="pendiente")  # pendiente | pausada | enviado | error | cancelado
     sent_at = Column(DateTime(timezone=True), nullable=True)
     last_error = Column(Text, nullable=True)
+
+
+class WebGalleryCategory(Base):
+    """Categoría de galería web (portfolio/landing). Ej: funkos, soportes, etc."""
+    __tablename__ = "web_gallery_categories"
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(80), unique=True, nullable=False)
+    label = Column(String(255), nullable=False)
+    tag = Column(String(100), nullable=False)
+    span = Column(String(50), default="col-span-1 row-span-1")
+    orden = Column(Integer, default=0)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class WebGalleryImage(Base):
+    """Imagen de una categoría de galería web."""
+    __tablename__ = "web_gallery_images"
+    id = Column(Integer, primary_key=True, index=True)
+    categoria_id = Column(Integer, ForeignKey("web_gallery_categories.id", ondelete="CASCADE"), nullable=False)
+    nombre_original = Column(String(255), nullable=False)
+    stored_name = Column(String(255), nullable=False)  # nombre seguro en disco
+    content_type = Column(String(128), nullable=False)
+    size = Column(Integer, default=0)
+    orden = Column(Integer, default=0)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

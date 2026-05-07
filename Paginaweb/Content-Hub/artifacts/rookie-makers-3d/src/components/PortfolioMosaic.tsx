@@ -5,7 +5,30 @@ import { ALL_PORTFOLIO_IMAGES } from "@/data/portfolio";
 
 export function PortfolioMosaic() {
   const [open, setOpen] = useState(false);
-  const visible = useMemo(() => (open ? ALL_PORTFOLIO_IMAGES : ALL_PORTFOLIO_IMAGES.slice(0, 4)), [open]);
+  const [dynamicImages, setDynamicImages] = useState<{ src: string; alt: string }[] | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch("/api/web-gallery")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !Array.isArray(data)) return;
+        const flat = data.flatMap((cat: any) =>
+          Array.isArray(cat.images)
+            ? cat.images.map((img: any) => ({
+                src: String(img.src || img),
+                alt: String(img.alt || cat.label || ""),
+              }))
+            : []
+        );
+        if (flat.length > 0) setDynamicImages(flat);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const allImages = dynamicImages && dynamicImages.length > 0 ? dynamicImages : ALL_PORTFOLIO_IMAGES;
+  const visible = useMemo(() => (open ? allImages : allImages.slice(0, 4)), [open, allImages]);
 
   return (
     <section className="py-20 bg-background relative" id="fotos">
@@ -64,4 +87,3 @@ export function PortfolioMosaic() {
     </section>
   );
 }
-

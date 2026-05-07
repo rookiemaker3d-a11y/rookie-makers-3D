@@ -58,6 +58,31 @@ function RotatingTile({ project, index }: { project: PortfolioCategory; index: n
 }
 
 export function Gallery() {
+  const [categories, setCategories] = useState<PortfolioCategory[]>(PORTFOLIO_CATEGORIES);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/web-gallery")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !Array.isArray(data) || data.length === 0) return;
+        const mapped: PortfolioCategory[] = data.map((cat: any, i: number) => ({
+          id: String(cat.slug || cat.id || i),
+          label: cat.label || "Sin nombre",
+          tag: cat.tag || "Proyecto",
+          span: cat.span || "col-span-1 row-span-1",
+          images: Array.isArray(cat.images)
+            ? cat.images.map((img: any) => String(img.src || img))
+            : [],
+        }));
+        setCategories(mapped);
+      })
+      .catch(() => {
+        /* fallback to hardcoded portfolio.ts */
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <section className="py-24 bg-background relative" id="galeria">
       <div className="container mx-auto px-4 md:px-6">
@@ -71,7 +96,7 @@ export function Gallery() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[250px]">
-          {PORTFOLIO_CATEGORIES.map((project, i) => (
+          {categories.map((project, i) => (
             <RotatingTile key={project.id} project={project} index={i} />
           ))}
         </div>
