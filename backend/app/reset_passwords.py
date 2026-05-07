@@ -29,7 +29,8 @@ async def reset_all():
         for u in users:
             pwd = PASSWORDS.get(u.role, "Rookie2025!")
             u.password_hash = get_password_hash(pwd)
-            print(f"  ID {u.id:>3} | {u.role:<18} | {u.email:<35} | Nueva contraseña: {pwd}")
+            u.is_active = True
+            print(f"  ID {u.id:>3} | {u.role:<18} | {u.email:<35} | Nueva contraseña: {pwd} | activo=True")
 
         await db.commit()
         print()
