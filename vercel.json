@@ -9,7 +9,7 @@
     { "source": "/app", "destination": "/app/index.html" },
     { "source": "/app/", "destination": "/app/index.html" },
     { "source": "/app/:path*", "destination": "/app/index.html" },
-    { "source": "/api/:path*", "destination": "http://api.rookiemakers3d.com:8080/api/:path*" },
+    { "source": "/api/:path*", "destination": "https://api.rookiemakers3d.com/api/:path*" },
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/logos/:path*", "destination": "/logos/:path*" },
     { "source": "/((?!app/).*)", "destination": "/index.html" }
