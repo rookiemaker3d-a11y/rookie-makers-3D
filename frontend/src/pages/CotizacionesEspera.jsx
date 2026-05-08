@@ -184,15 +184,18 @@ export default function CotizacionesEspera() {
     }
   }
 
-  const autorizarVenta = async (id) => {
-    if (!confirm('¿Autorizar venta de esta cotización? Se creará un producto y desaparecerá del pipeline.')) return
+  const autorizarVenta = async (id, catalogo) => {
+    const msg = catalogo === 'propio'
+      ? '¿Guardar como producto propio? Solo tú lo verás en tu catálogo.'
+      : '¿Guardar como producto general? Todos los usuarios lo verán en el catálogo general.'
+    if (!confirm(msg)) return
     try {
       const r = await api('/cotizaciones-en-espera/autorizar-venta', {
         method: 'POST',
-        body: JSON.stringify({ ids: [id] }),
+        body: JSON.stringify({ ids: [id], catalogo }),
       })
       if (!r.ok) throw new Error((await r.json()).detail || 'Error al autorizar')
-      alert('Venta autorizada. Producto creado.')
+      alert(`Producto guardado como ${catalogo === 'propio' ? 'propio' : 'general'}.`)
       load()
     } catch (err) {
       alert(err.message || 'Error de conexión')
@@ -304,13 +307,22 @@ export default function CotizacionesEspera() {
                         <span />
                       )}
                       {(user?.role === 'administrador' || user?.role === 'vendedor') && (
-                        <button
-                          type="button"
-                          onClick={() => autorizarVenta(c.id)}
-                          className="text-xs px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400"
-                        >
-                          Autorizar venta
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => autorizarVenta(c.id, 'general')}
+                            className="text-xs px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400"
+                          >
+                            Producto general
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => autorizarVenta(c.id, 'propio')}
+                            className="text-xs px-2 py-1 rounded bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400"
+                          >
+                            Producto propio
+                          </button>
+                        </>
                       )}
                       <button
                         type="button"

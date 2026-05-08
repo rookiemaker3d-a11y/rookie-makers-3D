@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 class AutorizarVentaRequest(BaseModel):
     ids: list[int]
+    catalogo: str | None = None
 
 
 class CotizacionUpdate(BaseModel):
@@ -186,6 +187,7 @@ async def autorizar_venta(
 ):
     """Mueve las cotizaciones seleccionadas a productos (autorizar venta)."""
     ids = body.ids
+    catalogo = (body.catalogo or "").strip().lower() or "general"
     for cid in ids:
         result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cid))
         c = result.scalar_one_or_none()
@@ -194,6 +196,7 @@ async def autorizar_venta(
             lineas = d.get("lineas") if isinstance(d, dict) else None
             modo = (d.get("modoProductos") or "unico") if isinstance(d, dict) else "unico"
             kit_nombre = (d.get("kitNombre") or "").strip() if isinstance(d, dict) else ""
+            detalles_producto = {**d, "catalogo": catalogo}
 
             # Si la cotización trae múltiples partidas (Nueva cotización), decidir si se autoriza como kit o por partida
             if isinstance(lineas, list) and len(lineas) > 0:
@@ -205,7 +208,7 @@ async def autorizar_venta(
                         costo_final=c.costo_final,
                         cantidad=1,
                         vendedor=c.vendedor,
-                        detalles={**d, "tipo_producto": "kit"},
+                        detalles={**detalles_producto, "tipo_producto": "kit"},
                     )
                     db.add(p)
                 else:
@@ -223,7 +226,7 @@ async def autorizar_venta(
                             costo_final=costo_final,
                             cantidad=cant,
                             vendedor=c.vendedor,
-                            detalles={**d, "tipo_producto": "unico", "linea": l},
+                            detalles={**detalles_producto, "tipo_producto": "unico", "linea": l},
                         )
                         db.add(p)
                 await db.delete(c)
@@ -235,7 +238,7 @@ async def autorizar_venta(
                     costo_final=c.costo_final,
                     cantidad=c.cantidad,
                     vendedor=c.vendedor,
-                    detalles=d,
+                    detalles=detalles_producto,
                 )
                 db.add(p)
                 await db.delete(c)
