@@ -191,6 +191,7 @@ class ProductoUpdate(BaseModel):
 class ProductoResponse(ProductoBase):
     id: int
     detalles: Optional[dict] = None
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
