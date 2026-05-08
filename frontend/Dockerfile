@@ -6,7 +6,7 @@ ARG ALLOW_MINIMAL_LANDING=1
 ENV ALLOW_MINIMAL_LANDING=${ALLOW_MINIMAL_LANDING}
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install
 COPY frontend/ ./
 COPY Paginaweb /app/Paginaweb
 ENV VITE_API_URL=
