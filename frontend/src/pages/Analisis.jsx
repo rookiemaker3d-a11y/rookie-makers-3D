@@ -105,11 +105,60 @@ export default function Analisis() {
   }
 
   const totalVenta = productosFiltrados.reduce((s, p) => s + (Number(p.costo_final) || 0), 0)
-  const totalCosto = productosFiltrados.reduce((s, p) => s + (Number(p.costo) ?? 0), 0)
+  const totalCosto = productosFiltrados.reduce((s, p) => s + (Number(p.costo_base) || 0), 0)
   const ganancia = totalVenta - totalCosto
   const cantidad = productosFiltrados.length
   const ticketPromedio = cantidad > 0 ? totalVenta / cantidad : 0
   const margenPromedio = totalVenta > 0 ? (ganancia / totalVenta) * 100 : 0
+
+  /** Extrae desglose de costos desde detalles del producto (simple o kit). */
+  const getProductoDesglose = (p) => {
+    const det = p?.detalles || {}
+    const lineas = Array.isArray(det.lineas) ? det.lineas : []
+    const isSimple = lineas.length === 0 && (det.costoTotal != null || det.material != null || det.costoMaterial != null)
+    return {
+      material: isSimple ? (Number(det.material) || Number(det.costoMaterial) || 0) : 0,
+      tiempoMaquina: isSimple ? (Number(det.tiempoMaquina) || Number(det.costoTiempoMaquina) || 0) : 0,
+      disenoArchivo: isSimple ? (Number(det.disenoArchivo) || Number(det.costoDisenoYArchivo) || 0) : 0,
+      extras: isSimple ? (Number(det.extras) || Number(det.costoExtras) || 0) : 0,
+      descuento: Number(det.descuento) || 0,
+      envio: Number(det.envio) || 0,
+      empaque: Number(det.empaque) || 0,
+      markup: Number(det.regalia_markup_monto) || 0,
+      vendedorMonto: Number(det.regalia_vendedor_monto) || 0,
+      isSimple,
+      lineasCount: lineas.length,
+    }
+  }
+
+  const desgloseProductos = productosFiltrados.map((p) => ({
+    id: p.id,
+    descripcion: p.descripcion || '—',
+    cantidad: Number(p.cantidad) || 1,
+    venta: Number(p.costo_final) || 0,
+    costo: Number(p.costo_base) || 0,
+    ganancia: (Number(p.costo_final) || 0) - (Number(p.costo_base) || 0),
+    margenPct: p.costo_final > 0 ? (((p.costo_final - p.costo_base) / p.costo_final) * 100) : 0,
+    ...getProductoDesglose(p),
+  }))
+
+  const totalesDesglose = desgloseProductos.reduce(
+    (acc, d) => ({
+      material: acc.material + d.material,
+      tiempoMaquina: acc.tiempoMaquina + d.tiempoMaquina,
+      disenoArchivo: acc.disenoArchivo + d.disenoArchivo,
+      extras: acc.extras + d.extras,
+      descuento: acc.descuento + d.descuento,
+      envio: acc.envio + d.envio,
+      empaque: acc.empaque + d.empaque,
+      markup: acc.markup + d.markup,
+      vendedorMonto: acc.vendedorMonto + d.vendedorMonto,
+    }),
+    { material: 0, tiempoMaquina: 0, disenoArchivo: 0, extras: 0, descuento: 0, envio: 0, empaque: 0, markup: 0, vendedorMonto: 0 }
+  )
+
+  const hasDescuentosEnProductos = desgloseProductos.some((d) => d.descuento > 0)
+  const hasKitsEnProductos = desgloseProductos.some((d) => !d.isSimple && d.lineasCount > 0)
 
   const ingresosPorMes = (() => {
     const byMonth = {}
@@ -276,13 +325,51 @@ export default function Analisis() {
           <h3 className="text-sm font-semibold theme-text mb-4">Resumen de costos</h3>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="theme-text-muted">Total costo</span>
+              <span className="theme-text-muted">Venta total</span>
+              <span className="theme-text tabular-nums">${totalVenta.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Costo producción</span>
               <span className="theme-text tabular-nums">${totalCosto.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="theme-text-muted">Ganancia neta</span>
               <span className={`${ganancia >= 0 ? 'text-emerald-500' : 'text-red-500'} tabular-nums`}>${ganancia.toFixed(2)}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Margen bruto</span>
+              <span className="text-emerald-500 tabular-nums">{margenPromedio.toFixed(1)}%</span>
+            </div>
+            {totalesDesglose.descuento > 0 && (
+              <div className="flex justify-between">
+                <span className="theme-text-muted">Descuentos aplicados</span>
+                <span className="text-amber-500 tabular-nums">-${totalesDesglose.descuento.toFixed(2)}</span>
+              </div>
+            )}
+            {totalesDesglose.envio > 0 && (
+              <div className="flex justify-between">
+                <span className="theme-text-muted">Envío facturado</span>
+                <span className="theme-text tabular-nums">${totalesDesglose.envio.toFixed(2)}</span>
+              </div>
+            )}
+            {totalesDesglose.empaque > 0 && (
+              <div className="flex justify-between">
+                <span className="theme-text-muted">Empaque facturado</span>
+                <span className="theme-text tabular-nums">${totalesDesglose.empaque.toFixed(2)}</span>
+              </div>
+            )}
+            {totalesDesglose.markup > 0 && (
+              <div className="flex justify-between">
+                <span className="theme-text-muted">Markup (regalía empresa)</span>
+                <span className="theme-text tabular-nums">${totalesDesglose.markup.toFixed(2)}</span>
+              </div>
+            )}
+            {totalesDesglose.vendedorMonto > 0 && (
+              <div className="flex justify-between">
+                <span className="theme-text-muted">Pago vendedor</span>
+                <span className="theme-text tabular-nums">${totalesDesglose.vendedorMonto.toFixed(2)}</span>
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -349,6 +436,79 @@ export default function Analisis() {
           </div>
         </Card>
       </div>
+
+      {(totalesDesglose.material > 0 || totalesDesglose.tiempoMaquina > 0 || totalesDesglose.disenoArchivo > 0 || totalesDesglose.extras > 0) && (
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <Calculator className="w-4 h-4 text-cyan-500" />
+            <h3 className="text-sm font-semibold theme-text">Desglose de producción (productos simples)</h3>
+          </div>
+          <p className="theme-text-muted text-xs mb-3">Suma de costos internos desglosados de productos guardados con calculadora. Los kits muestran solo el total agregado.</p>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Material</span>
+              <span className="theme-text tabular-nums">${totalesDesglose.material.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Tiempo máquina</span>
+              <span className="theme-text tabular-nums">${totalesDesglose.tiempoMaquina.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Diseño / archivo</span>
+              <span className="theme-text tabular-nums">${totalesDesglose.disenoArchivo.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="theme-text-muted">Extras</span>
+              <span className="theme-text tabular-nums">${totalesDesglose.extras.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t font-medium" style={{ borderColor: 'var(--theme-border)' }}>
+              <span className="theme-text">Subtotal producción</span>
+              <span className="theme-text tabular-nums">${(totalesDesglose.material + totalesDesglose.tiempoMaquina + totalesDesglose.disenoArchivo + totalesDesglose.extras).toFixed(2)}</span>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {desgloseProductos.length > 0 && (
+        <Card>
+          <h3 className="text-sm font-semibold theme-text mb-4">Productos del periodo</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-black/40 theme-text text-xs uppercase tracking-wide">
+                  <th className="text-left py-2 px-3 font-medium">Producto</th>
+                  <th className="text-right py-2 px-3 font-medium">Cant</th>
+                  <th className="text-right py-2 px-3 font-medium">Venta</th>
+                  <th className="text-right py-2 px-3 font-medium">Costo</th>
+                  <th className="text-right py-2 px-3 font-medium">Ganancia</th>
+                  <th className="text-right py-2 px-3 font-medium">Margen</th>
+                  {hasDescuentosEnProductos && <th className="text-right py-2 px-3 font-medium">Desc</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {desgloseProductos
+                  .sort((a, b) => b.ganancia - a.ganancia)
+                  .map((d) => (
+                    <tr key={d.id} className="border-b border-white/[0.06]">
+                      <td className="py-2 px-3 theme-text max-w-[200px] truncate" title={d.descripcion}>{d.descripcion}</td>
+                      <td className="py-2 px-3 text-right theme-text tabular-nums">{d.cantidad}</td>
+                      <td className="py-2 px-3 text-right theme-text tabular-nums">${d.venta.toFixed(0)}</td>
+                      <td className="py-2 px-3 text-right theme-text tabular-nums">${d.costo.toFixed(0)}</td>
+                      <td className="py-2 px-3 text-right text-emerald-500 tabular-nums">${d.ganancia.toFixed(0)}</td>
+                      <td className="py-2 px-3 text-right text-emerald-500 tabular-nums">{d.margenPct.toFixed(0)}%</td>
+                      {hasDescuentosEnProductos && (
+                        <td className="py-2 px-3 text-right text-amber-500 tabular-nums">{d.descuento > 0 ? `-$${d.descuento.toFixed(0)}` : '—'}</td>
+                      )}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+          {hasKitsEnProductos && (
+            <p className="theme-text-dim text-xs mt-3">* Productos tipo kit no muestran desglose interno de material/tiempo porque se guardan como líneas agregadas.</p>
+          )}
+        </Card>
+      )}
 
       {user?.role !== 'vendedor_ventas' && (
       <Card>
