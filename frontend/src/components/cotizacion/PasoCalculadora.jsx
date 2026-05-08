@@ -48,16 +48,6 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
     }))
   }
 
-  // Estado local para el input de horas máquina (permite escribir "2:30" sin normalización instantánea)
-  const [horasMaquinaRaw, setHorasMaquinaRaw] = useState('')
-
-  useEffect(() => {
-    if (!horasMaquina) { setHorasMaquinaRaw(''); return }
-    const h = Math.floor(horasMaquina)
-    const m = Math.round((horasMaquina - h) * 60)
-    setHorasMaquinaRaw(m ? `${h}:${String(m).padStart(2, '0')}` : String(horasMaquina))
-  }, [horasMaquina])
-
   const {
     config,
     MATERIALES,
@@ -97,6 +87,16 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
     anticipoMonto,
     desglose,
   } = cotizador
+
+  // Estado local para el input de horas máquina (permite escribir "2:30" sin normalización instantánea)
+  const [horasMaquinaRaw, setHorasMaquinaRaw] = useState('')
+
+  useEffect(() => {
+    if (!horasMaquina) { setHorasMaquinaRaw(''); return }
+    const h = Math.floor(horasMaquina)
+    const m = Math.round((horasMaquina - h) * 60)
+    setHorasMaquinaRaw(m ? `${h}:${String(m).padStart(2, '0')}` : String(horasMaquina))
+  }, [horasMaquina])
 
   // ─── Inventario extra (tira LED, focos, etc.) ──────────────────────────────
   const [inventario, setInventario] = useState([])
