@@ -184,6 +184,21 @@ export default function CotizacionesEspera() {
     }
   }
 
+  const autorizarVenta = async (id) => {
+    if (!confirm('¿Autorizar venta de esta cotización? Se creará un producto y desaparecerá del pipeline.')) return
+    try {
+      const r = await api('/cotizaciones-en-espera/autorizar-venta', {
+        method: 'POST',
+        body: JSON.stringify({ ids: [id] }),
+      })
+      if (!r.ok) throw new Error((await r.json()).detail || 'Error al autorizar')
+      alert('Venta autorizada. Producto creado.')
+      load()
+    } catch (err) {
+      alert(err.message || 'Error de conexión')
+    }
+  }
+
   const formatDate = (d) => {
     if (!d) return '—'
     try {
@@ -287,6 +302,15 @@ export default function CotizacionesEspera() {
                         </button>
                       ) : (
                         <span />
+                      )}
+                      {(user?.role === 'administrador' || user?.role === 'vendedor') && (
+                        <button
+                          type="button"
+                          onClick={() => autorizarVenta(c.id)}
+                          className="text-xs px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400"
+                        >
+                          Autorizar venta
+                        </button>
                       )}
                       <button
                         type="button"
