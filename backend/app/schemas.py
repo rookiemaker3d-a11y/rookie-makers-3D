@@ -395,3 +395,65 @@ class AlertaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ----- Ventas -----
+class VentaProductoItem(BaseModel):
+    """Un producto dentro de una venta."""
+    descripcion: str
+    cantidad: float = 1
+    costo_unitario: float = 0
+    precio_unitario: float = 0
+    subtotal: float = 0
+
+
+class VentaCreate(BaseModel):
+    cliente_id: Optional[int] = None
+    cliente_nombre: Optional[str] = None
+    productos: list[VentaProductoItem]
+    total: float
+    ganancia_neta: Optional[float] = 0
+    vendedor: Optional[str] = None
+    fecha: Optional[str] = None
+    notas: Optional[str] = None
+
+
+class VentaUpdate(BaseModel):
+    cliente_id: Optional[int] = None
+    cliente_nombre: Optional[str] = None
+    productos: Optional[list[VentaProductoItem]] = None
+    total: Optional[float] = None
+    ganancia_neta: Optional[float] = None
+    vendedor: Optional[str] = None
+    fecha: Optional[str] = None
+    notas: Optional[str] = None
+
+
+class VentaResponse(BaseModel):
+    id: int
+    cliente_id: Optional[int] = None
+    cliente_nombre: Optional[str] = None
+    productos: list[VentaProductoItem]
+    total: float
+    ganancia_neta: Optional[float] = 0
+    vendedor: str
+    fecha: Optional[str] = None
+    notas: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class VentaResumenMes(BaseModel):
+    mes: str
+    total_ventas: float
+    total_ganancia: float
+    cantidad: int
+
+
+class VentaResumenVendedor(BaseModel):
+    vendedor: str
+    total_ventas: float
+    total_ganancia: float
+    cantidad: int

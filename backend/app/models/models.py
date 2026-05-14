@@ -75,6 +75,21 @@ class Producto(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class Venta(Base):
+    """Registro de venta real (orden de venta). Una vez autorizado, se convierte en venta."""
+    __tablename__ = "ventas"
+    id = Column(Integer, primary_key=True, index=True)
+    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=True)
+    cliente_nombre = Column(String(255), nullable=True)
+    productos = Column(JSON, default=list)  # [{descripcion, cantidad, costo_unitario, precio_unitario, subtotal}]
+    total = Column(Float, default=0)
+    ganancia_neta = Column(Float, default=0)
+    vendedor = Column(String(255), nullable=False)
+    fecha = Column(String(20), nullable=False)  # ISO 8601 YYYY-MM-DD
+    notas = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class CotizacionEnEspera(Base):
     __tablename__ = "cotizaciones_en_espera"
     id = Column(Integer, primary_key=True, index=True)
