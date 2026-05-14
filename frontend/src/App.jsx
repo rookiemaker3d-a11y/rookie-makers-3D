@@ -23,6 +23,7 @@ import PerfilesAdmin from './pages/PerfilesAdmin'
 import AlertasAdmin from './pages/AlertasAdmin'
 import EditorWebPublica from './pages/EditorWebPublica'
 import EditorGaleriaWeb from './pages/EditorGaleriaWeb'
+import Ventas from './pages/Ventas'
 import Chatbot from './components/Chatbot'
 import './index.css'
 
@@ -52,6 +53,7 @@ function AppRoutes() {
         <Route path="configuracion" element={<Configuracion />} />
         <Route path="seguridad" element={<Seguridad />} />
         <Route path="analisis" element={<Analisis />} />
+        <Route path="ventas" element={<Ventas />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

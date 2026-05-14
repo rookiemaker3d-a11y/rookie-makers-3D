@@ -19,6 +19,7 @@ import {
   Bell,
   Settings,
   FileEdit,
+  ShoppingCart,
   Menu,
   X as CloseIcon,
 } from 'lucide-react'
@@ -43,6 +44,7 @@ const NAV = [
   { to: '/editor-web', label: 'Editor web (archivos)', icon: FileEdit, adminOnly: true },
   { to: '/editor-galeria', label: 'Editor galería web', icon: FileEdit, adminOnly: true },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
+  { to: '/ventas', label: 'Ventas', icon: ShoppingCart },
   { href: '/', label: 'Web pública', icon: Globe, external: true },
 ]
 
@@ -54,6 +56,7 @@ const NAV_VENDEDOR_VENTAS = [
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
   { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
+  { to: '/ventas', label: 'Ventas', icon: ShoppingCart },
 ]
 
 export default function Layout() {
