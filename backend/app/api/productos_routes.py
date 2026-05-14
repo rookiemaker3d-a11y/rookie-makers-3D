@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
 
 from app.database import get_db
 from app.auth import require_user, get_vendedor_from_user, require_admin
@@ -17,12 +17,30 @@ async def list_productos(
     user=Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    """Lista productos. Admin ve todos. Vendedor (diseñador) y vendedor_ventas solo los suyos."""
+    """Lista productos. Admin ve todos. Vendedor ve generales + propios; for_analysis filtra solo propios."""
     q = select(Producto).order_by(Producto.id.desc())
-    if user.role == "vendedor" and vendedor and for_analysis:
-        q = q.where(Producto.vendedor == vendedor.nombre)
+    if user.role == "administrador":
+        pass  # ve todo
+    elif user.role == "vendedor" and vendedor:
+        if for_analysis:
+            q = q.where(Producto.vendedor == vendedor.nombre)
+        else:
+            q = q.where(
+                or_(
+                    func.coalesce(func.json_extract(Producto.detalles, "$.catalogo"), "general") == "general",
+                    Producto.vendedor == vendedor.nombre,
+                )
+            )
     elif user.role == "vendedor_ventas":
-        q = q.where(Producto.vendedor == user.email)
+        if for_analysis:
+            q = q.where(Producto.vendedor == user.email)
+        else:
+            q = q.where(
+                or_(
+                    func.coalesce(func.json_extract(Producto.detalles, "$.catalogo"), "general") == "general",
+                    Producto.vendedor == user.email,
+                )
+            )
     result = await db.execute(q)
     return result.scalars().all()
 

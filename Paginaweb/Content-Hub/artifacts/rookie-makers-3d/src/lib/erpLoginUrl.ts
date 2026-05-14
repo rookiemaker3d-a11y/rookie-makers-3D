@@ -12,5 +12,5 @@ export function erpLoginUrl(): string {
     return `${protocol}//${hostname}:5173/login`;
   }
   if (import.meta.env.DEV) return "http://localhost:5173/login";
-  return "/app/login";
+  return "https://api.rookiemakers3d.com/app/login";
 }
