@@ -6,7 +6,7 @@ from sqlalchemy import select, delete
 
 from app.database import get_db
 from app.auth import require_user, get_vendedor_from_user
-from app.models import CotizacionEnEspera, Producto, Vendedor, ArchivoCotizacion
+from app.models import CotizacionEnEspera, Producto, Vendedor, ArchivoCotizacion, InventarioFilamento, InventarioItem
 from app.schemas import CotizacionEnEsperaCreate, CotizacionEnEsperaResponse
 from app.config import get_settings
 from app.email_service import send_cotizacion_lista_notification
@@ -179,15 +179,115 @@ async def create_cotizacion(
     return c
 
 
+
+async def _descontar_inventario(db: AsyncSession, detalles: dict, vendedor_nombre: str) -> list[str]:
+    """Descuenta materiales extra y filamento del inventario al autorizar una venta.
+    Retorna una lista de advertencias (stock insuficiente, item no encontrado, etc.).
+    """
+    warnings: list[str] = []
+    if not isinstance(detalles, dict):
+        return warnings
+
+    # --- 1. Buscar vendedor por nombre para obtener su ID ---
+    vendedor_id: int | None = None
+    vend_result = await db.execute(select(Vendedor).where(Vendedor.nombre == vendedor_nombre))
+    vend = vend_result.scalar_one_or_none()
+    if vend:
+        vendedor_id = vend.id
+
+    # --- 2. Descontar materiales extra (InventarioItem) ---
+    materiales_extra = detalles.get("materiales_extra")
+    if isinstance(materiales_extra, list):
+        for m in materiales_extra:
+            if not isinstance(m, dict):
+                continue
+            inv_id = m.get("inventario_id")
+            cantidad = float(m.get("cantidad") or 0)
+            nombre = m.get("nombre") or "Material"
+            if not inv_id or cantidad <= 0:
+                continue
+            item_result = await db.execute(select(InventarioItem).where(InventarioItem.id == int(inv_id)))
+            item = item_result.scalar_one_or_none()
+            if not item:
+                warnings.append(f"Material extra '{nombre}' (ID {inv_id}) no encontrado en inventario.")
+                continue
+            stock_actual = float(item.cantidad or 0)
+            if stock_actual < cantidad:
+                warnings.append(
+                    f"Stock insuficiente para '{nombre}': hay {stock_actual} {item.unidad or 'pza'}, "
+                    f"se requieren {cantidad}. Se descontó lo disponible y quedó en 0."
+                )
+                item.cantidad = 0
+            else:
+                item.cantidad = round(stock_actual - cantidad, 2)
+
+    # --- 3. Descontar filamento (InventarioFilamento) ---
+    # Extraer consumos de filamento: cotización simple o líneas de producto
+    consumos_filamento: list[tuple[str, float]] = []  # [(tipo, gramos), ...]
+
+    lineas = detalles.get("lineas")
+    if isinstance(lineas, list) and len(lineas) > 0:
+        for ln in lineas:
+            if not isinstance(ln, dict):
+                continue
+            tipo = (ln.get("tipo_material") or "").strip()
+            gramos = float(ln.get("gramos_estimados") or 0)
+            if tipo and gramos > 0:
+                consumos_filamento.append((tipo, gramos))
+    else:
+        # Cotización simple
+        tipo = (detalles.get("tipo_material") or "").strip()
+        gramos = float(detalles.get("gramos") or 0)
+        if tipo and gramos > 0:
+            consumos_filamento.append((tipo, gramos))
+
+    for tipo, gramos in consumos_filamento:
+        # Buscar filamento del vendedor o del grupo compartido
+        q = (
+            select(InventarioFilamento)
+            .where(
+                InventarioFilamento.activo == True,
+                InventarioFilamento.tipo.ilike(tipo),
+            )
+            .order_by(InventarioFilamento.cantidad_gramos.desc())
+        )
+        if vendedor_id:
+            # Si conocemos al vendedor, priorizar sus filamentos; si no, usar grupo compartido
+            q = q.where(InventarioFilamento.vendedor_id == vendedor_id)
+        else:
+            # Fallback: grupo compartido (Norberto + Daniel)
+            q = q.where(InventarioFilamento.vendedor_id.in_([1, 3]))
+
+        result = await db.execute(q)
+        filamento = result.scalar_one_or_none()
+        if not filamento:
+            warnings.append(f"No hay filamento '{tipo}' en inventario para descontar {gramos} g.")
+            continue
+        stock_actual = float(filamento.cantidad_gramos or 0)
+        if stock_actual < gramos:
+            warnings.append(
+                f"Stock insuficiente de filamento '{tipo}' ({filamento.nombre}): "
+                f"hay {stock_actual} g, se requieren {gramos} g. Se descontó lo disponible y quedó en 0."
+            )
+            filamento.cantidad_gramos = 0
+        else:
+            filamento.cantidad_gramos = round(stock_actual - gramos, 2)
+
+    return warnings
+
+
 @router.post("/autorizar-venta")
 async def autorizar_venta(
     body: AutorizarVentaRequest,
     db: AsyncSession = Depends(get_db),
     _user=Depends(require_user),
 ):
-    """Mueve las cotizaciones seleccionadas a productos (autorizar venta)."""
+    """Mueve las cotizaciones seleccionadas a productos (autorizar venta).
+    Descuenta automáticamente materiales extra e InventarioFilamento.
+    """
     ids = body.ids
     catalogo = (body.catalogo or "").strip().lower() or "general"
+    all_warnings: list[str] = []
     for cid in ids:
         result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cid))
         c = result.scalar_one_or_none()
@@ -197,6 +297,10 @@ async def autorizar_venta(
             modo = (d.get("modoProductos") or "unico") if isinstance(d, dict) else "unico"
             kit_nombre = (d.get("kitNombre") or "").strip() if isinstance(d, dict) else ""
             detalles_producto = {**d, "catalogo": catalogo}
+
+            # Descuento automático de inventario
+            warnings = await _descontar_inventario(db, d, c.vendedor or "")
+            all_warnings.extend(warnings)
 
             # Si la cotización trae múltiples partidas (Nueva cotización), decidir si se autoriza como kit o por partida
             if isinstance(lineas, list) and len(lineas) > 0:
@@ -243,7 +347,7 @@ async def autorizar_venta(
                 db.add(p)
                 await db.delete(c)
     await db.commit()
-    return {"ok": True, "count": len(ids)}
+    return {"ok": True, "count": len(ids), "warnings": all_warnings or None}
 
 
 @router.patch("/{cotizacion_id}", response_model=CotizacionEnEsperaResponse)
