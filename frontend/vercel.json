@@ -11,6 +11,10 @@
     { "source": "/api/:path*", "destination": "https://api.rookiemakers3d.com/api/:path*" },
     { "source": "/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/logos/:path*", "destination": "/logos/:path*" },
+    { "source": "/portfolio/:path*", "destination": "/portfolio/:path*" },
+    { "source": "/images/:path*", "destination": "/images/:path*" },
+    { "source": "/favicon.svg", "destination": "/favicon.svg" },
+    { "source": "/opengraph.jpg", "destination": "/opengraph.jpg" },
     { "source": "/((?!app/).*)", "destination": "/index.html" }
   ]
 }
