@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rookie Makers 3D — ERP | Presentación de Ventas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --bg-2: #111827;
+      --panel: rgba(30, 41, 59, 0.7);
+      --panel-hover: rgba(51, 65, 85, 0.8);
+      --accent: #a5cffb;
+      --accent-2: #b7e4c7;
+      --accent-3: #fde68a;
+      --text: #f1f5f9;
+      --text-dim: #94a3b8;
+      --border: rgba(71, 85, 105, 0.4);
+    }
+    html.light-mode {
+      --bg: #f8fafc;
+      --bg-2: #f1f5f9;
+      --panel: rgba(255, 255, 255, 0.8);
+      --panel-hover: rgba(248, 250, 252, 0.9);
+      --text: #334155;
+      --text-dim: #64748b;
+      --border: rgba(203, 213, 224, 0.6);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background:
+        radial-gradient(circle at 0% 0%, rgba(165,207,251,.05) 0%, transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(183,228,199,.05) 0%, transparent 40%),
+        var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes glowBorder {
+      0%, 100% { border-color: var(--border); box-shadow: 0 0 0 0 rgba(96,165,250,0); }
+      50% { border-color: var(--accent); box-shadow: 0 0 15px 2px rgba(96,165,250,0.3); }
+    }
+    @keyframes softFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-15px) rotate(1deg); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(79,142,247,.15); }
+      50% { box-shadow: 0 0 45px rgba(79,142,247,.45); }
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes fadeScaleIn {
+      from { opacity: 0; transform: scale(.85) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-60px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(60px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    .anim-float-soft { animation: softFloat 6s ease-in-out infinite; }
+    .anim-glow-border { animation: glowBorder 4s ease-in-out infinite; }
+    .anim-float { animation: float 4s ease-in-out infinite; }
+    .anim-pulse-glow { animation: pulseGlow 3s ease-in-out infinite; }
+    .anim-fade-scale {
+      opacity: 0;
+      animation: fadeScaleIn .8s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    .reveal-left {
+      opacity: 0;
+      transform: translateX(-60px);
+      transition: all .8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .reveal-left.active { opacity: 1; transform: translateX(0); }
+    .reveal-right {
+      opacity: 0;
+      transform: translateX(60px);
+      transition: all .8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .reveal-right.active { opacity: 1; transform: translateX(0); }
+    .reveal-scale {
+      opacity: 0;
+      transform: scale(.9);
+      transition: all .8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .reveal-scale.active { opacity: 1; transform: scale(1); }
+    .anim-fade-up {
+      opacity: 0;
+      animation: fadeUp .8s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    .anim-delay-1 { animation-delay: .15s; }
+    .anim-delay-2 { animation-delay: .3s; }
+    .anim-delay-3 { animation-delay: .45s; }
+    .anim-delay-4 { animation-delay: .6s; }
+    .reveal-scale:nth-child(1) { transition-delay: 0s; }
+    .reveal-scale:nth-child(2) { transition-delay: .1s; }
+    .reveal-scale:nth-child(3) { transition-delay: .2s; }
+    .reveal-scale:nth-child(4) { transition-delay: .3s; }
+    .reveal-scale:nth-child(5) { transition-delay: .4s; }
+    .reveal-scale:nth-child(6) { transition-delay: .5s; }
+    .reveal-left:nth-child(1) { transition-delay: 0s; }
+    .reveal-left:nth-child(2) { transition-delay: .1s; }
+    .reveal-right:nth-child(1) { transition-delay: 0s; }
+    .reveal-right:nth-child(2) { transition-delay: .1s; }
+    .reveal-left:nth-child(3) { transition-delay: .2s; }
+    .reveal-right:nth-child(3) { transition-delay: .2s; }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all .7s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .reveal.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 20%, rgba(79,142,247,.18), transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 80%, rgba(34,197,94,.12), transparent 60%),
+        radial-gradient(ellipse 50% 50% at 50% 50%, rgba(245,158,11,.06), transparent 60%),
+        var(--bg);
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(96,165,250,0.12);
+      color: var(--accent);
+      padding: .4rem 1.2rem;
+      border-radius: 999px;
+      font-size: .85rem;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(96,165,250,0.3);
+      backdrop-filter: blur(12px);
+      animation: softFloat 5s ease-in-out infinite;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .hero h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 8vw, 7rem);
+      letter-spacing: 3px;
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+    .hero .subtitle {
+      font-size: clamp(1.2rem, 2vw, 1.6rem);
+      color: var(--text-dim);
+      max-width: 700px;
+      line-height: 1.6;
+    }
+    .hero-features {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 2.5rem;
+    }
+    .hero-chip {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: .7rem 1.2rem;
+      border-radius: 12px;
+      font-size: .9rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      transition: all .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    }
+    .hero-chip:hover {
+      transform: translateY(-5px) scale(1.05);
+      border-color: var(--accent);
+      box-shadow: 0 10px 25px rgba(96,165,250,0.3);
+    }
+
+    .nav-dots {
+      position: fixed;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      z-index: 100;
+    }
+    .nav-dots a {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all .3s;
+      position: relative;
+    }
+    .nav-dots a:hover, .nav-dots a.active {
+      background: var(--accent);
+      transform: scale(1.4);
+    }
+    .nav-dots a::before {
+      content: attr(data-label);
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--panel);
+      padding: .3rem .7rem;
+      border-radius: 6px;
+      font-size: .75rem;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .nav-dots a:hover::before { opacity: 1; }
+
+    section {
+      padding: 5rem 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .section-header h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 4vw, 3rem);
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: .5rem;
+      text-shadow: 0 0 40px rgba(79,142,247,.25);
+    }
+    .section-header p {
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      max-width: 700px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .row.reverse { direction: rtl; }
+    .row.reverse > * { direction: ltr; }
+    @media (max-width: 900px) {
+      .row { grid-template-columns: 1fr; gap: 2rem; }
+      .row.reverse { direction: ltr; }
+    }
+
+    .text-block h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      letter-spacing: 1px;
+    }
+    .text-block p {
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 1rem;
+      font-size: 1.05rem;
+    }
+    .text-block ul {
+      list-style: none;
+    }
+    .text-block ul li {
+      padding: .5rem 0;
+      display: flex;
+      align-items: flex-start;
+      gap: .7rem;
+      color: var(--text-dim);
+      font-size: 1rem;
+    }
+    .text-block ul li::before {
+      content: "✓";
+      color: var(--accent-2);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1.5rem;
+    }
+    .thumb-grid.compact {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+    .thumb {
+      aspect-ratio: 16/10;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: zoom-in;
+      border: 2px solid var(--border);
+      transition: all .4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      background: var(--panel);
+      box-shadow: 0 10px 20px -5px rgba(0,0,0,0.3);
+    }
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .5s cubic-bezier(.4,0,.2,1);
+    }
+    .thumb:hover {
+      transform: translateY(-10px) scale(1.05);
+      border-color: var(--accent);
+      box-shadow: 0 25px 50px -10px rgba(96,165,250,0.4);
+      z-index: 2;
+    }
+    .thumb:hover img { transform: scale(1.12); }
+    .thumb-label { display: none !important; }
+    .thumb:hover .thumb-label { display: none !important; }
+    .thumb::after {
+      content: "🔍";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -40%) scale(.8);
+      font-size: 1.6rem;
+      opacity: 0;
+      transition: all .35s cubic-bezier(.4,0,.2,1);
+      pointer-events: none;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+    }
+    .thumb:hover::after {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .lightbox.open {
+      display: flex;
+      opacity: 1;
+    }
+    .lightbox.open #lbImg {
+      animation: fadeScaleIn .4s cubic-bezier(.4,0,.2,1) forwards;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      font-size: 2rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      z-index: 1001;
+      background: none;
+      border: none;
+      transition: color .2s;
+    }
+    .lightbox-close:hover { color: var(--text); }
+    .lightbox-img-wrap {
+      width: 90vw;
+      height: 85vh;
+      overflow: auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .lightbox-img-wrap img {
+      max-width: 90%;
+      max-height: 85vh;
+      object-fit: contain;
+      border: 3px solid var(--accent);
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.8);
+      transition: transform 0.3s ease-out;
+      display: block;
+    }
+    .lightbox-controls {
+      position: absolute;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: .5rem;
+      background: var(--panel);
+      padding: .5rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+    }
+    .lightbox-controls button {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: .2rem .6rem;
+      transition: color .2s;
+    }
+    .lightbox-controls button:hover { color: var(--text); }
+    .lightbox-title {
+      position: absolute;
+      bottom: 4rem;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--text-dim);
+      font-size: .85rem;
+      background: var(--panel);
+      padding: .3rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    .info-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+      margin-top: 2rem;
+    }
+    .info-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      transition: all .4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+    }
+    .info-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: var(--accent);
+      box-shadow: 0 20px 40px -10px rgba(96,165,250,0.3);
+    }
+    .info-card .icon { font-size: 2rem; margin-bottom: .8rem; }
+    .info-card h4 { font-size: 1.1rem; margin-bottom: .4rem; }
+    .info-card p { font-size: .9rem; color: var(--text-dim); line-height: 1.5; }
+
+    .price-section {
+      background: var(--bg-2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 5rem 1.5rem;
+    }
+    .price-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1000px;
+      margin: 2rem auto 0;
+    }
+    .price-card {
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 28px;
+      padding: 2rem;
+      text-align: center;
+      transition: all .4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 15px 35px -10px rgba(0,0,0,0.3);
+    }
+    .price-card:hover { transform: translateY(-10px) scale(1.03); box-shadow: 0 30px 60px -15px rgba(96,165,250,0.3); }
+    .price-card.highlight {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, var(--panel), rgba(96,165,250,0.1));
+      box-shadow: 0 0 30px rgba(96,165,250,0.2);
+      animation: glowBorder 4s ease-in-out infinite;
+    }
+    .price-card .amount {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      color: var(--accent);
+      line-height: 1;
+      margin: 1rem 0;
+    }
+    .price-card .amount.green { color: var(--accent-2); }
+    .price-card .label {
+      font-size: .85rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .price-card ul {
+      list-style: none;
+      text-align: left;
+      margin-top: 1.5rem;
+    }
+    .price-card ul li {
+      padding: .4rem 0;
+      font-size: .9rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+    }
+    .price-card ul li::before {
+      content: "✓";
+      color: var(--accent-2);
+      font-weight: 700;
+    }
+
+    table.costs {
+      width: 100%;
+      max-width: 900px;
+      margin: 2rem auto 0;
+      border-collapse: collapse;
+      font-size: .95rem;
+    }
+    table.costs th, table.costs td {
+      padding: .9rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    table.costs th {
+      color: var(--accent);
+      font-weight: 600;
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: rgba(79,142,247,.08);
+    }
+    table.costs tr:hover td { background: rgba(79,142,247,.04); }
+    table.costs td:nth-child(2), table.costs td:nth-child(3) {
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    table.costs .total-row td {
+      font-weight: 700;
+      color: var(--text);
+      border-top: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      max-width: 900px;
+      margin: 2rem auto 0;
+    }
+    @media (max-width: 768px) {
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+    .compare-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+    .compare-card h4 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    .compare-card ul {
+      list-style: none;
+    }
+    .compare-card ul li {
+      padding: .4rem 0;
+      color: var(--text-dim);
+      font-size: .95rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+    }
+    .compare-card ul li::before {
+      content: "✓";
+      color: var(--accent-2);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 4rem 1.5rem;
+    }
+    footer h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 5vw, 4rem);
+      margin-bottom: 1rem;
+      text-shadow: 0 0 50px rgba(79,142,247,.3);
+    }
+    footer .contact-grid {
+      display: flex;
+      gap: 1.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2rem;
+    }
+    footer .contact-chip {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      font-size: 1rem;
+      transition: border-color .2s;
+    }
+    footer .contact-chip:hover { border-color: var(--accent); }
+
+    @media print {
+      .nav-dots, .lightbox, .hero-chip { display: none !important; }
+      section { page-break-inside: avoid; padding: 2rem 1rem; }
+      .thumb-grid { grid-template-columns: repeat(3, 1fr); }
+      .thumb { break-inside: avoid; }
+    }
+
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+  
+    .scroll-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+      z-index: 300;
+      transition: width .1s linear;
+      box-shadow: 0 0 12px rgba(96, 165, 250, 0.45);
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<nav class="nav-dots">
+  <a href="#inicio" data-label="Inicio" class="active"></a>
+  <a href="#landing" data-label="Web Pública"></a>
+  <a href="#dashboard" data-label="Dashboard"></a>
+  <a href="#cotizador" data-label="Cotizador"></a>
+  <a href="#espera" data-label="Espera"></a>
+  <a href="#productos" data-label="Productos"></a>
+  <a href="#inventario" data-label="Inventario"></a>
+  <a href="#clientes" data-label="Clientes"></a>
+  <a href="#suscripcion" data-label="Suscripción"></a>
+  <a href="#config" data-label="Configuración"></a>
+  <a href="#editorweb" data-label="Editor Web"></a>
+  <a href="#analisis" data-label="Análisis"></a>
+  <a href="#capacidades" data-label="Capacidades"></a>
+  <a href="#costos" data-label="Costos"></a>
+  <a href="#precios" data-label="Precios"></a>
+</nav>
+
+<button id="themeToggle" onclick="toggleTheme()" style="position:fixed;top:1rem;right:1rem;z-index:200;background:rgba(17,24,39,.75);border:1px solid var(--border);color:var(--text);padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-size:1.2rem;backdrop-filter:blur(12px);transition:background .2s,border-color .2s,box-shadow .2s,transform .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.boxShadow='0 8px 25px rgba(79,142,247,.25)';this.style.transform='scale(1.05)'" onmouseout="this.style.borderColor='var(--border)';this.style.boxShadow='none';this.style.transform='scale(1)'" title="Cambiar modo claro/oscuro">🌙</button>
+
+<header class="hero" id="inicio">
+  <div class="hero-badge anim-fade-up">Software de Gestión para Impresión 3D</div>
+  <h1 class="anim-fade-up anim-delay-1">Rookie Makers 3D</h1>
+  <p class="subtitle anim-fade-up anim-delay-2">ERP completo para talleres de impresión 3D personalizada. Desde la cotización hasta la entrega: control de inventario, costos, ventas, vendedores y análisis en un solo sistema.</p>
+  <div class="hero-features anim-fade-up anim-delay-3">
+    <div class="hero-chip">🧮 Cotizador inteligente</div>
+    <div class="hero-chip">📦 Inventario multi-nivel</div>
+    <div class="hero-chip">👥 Gestión de vendedores</div>
+    <div class="hero-chip">📈 Análisis de métricas</div>
+    <div class="hero-chip">📄 PDF profesional</div>
+    <div class="hero-chip">🔐 Seguridad MFA</div>
+  </div>
+  <div style="margin-top:3rem;font-size:.85rem;color:var(--text-dim)" class="anim-fade-up anim-delay-4">
+    Desplázate para explorar cada módulo ↓
+  </div>
+</header>
+
+<!-- WEB PÚBLICA -->
+<section id="landing">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 1 — Web Pública (Landing)</h2>
+    <p>Tu vitrina digital. Genera credibilidad, captura leads y filtra curiosos antes de que entren al ERP.</p>
+  </div>
+  <div class="row reveal">
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>El cliente potencial llega a <strong>www.rookiemakers3d.com</strong> y encuentra una experiencia inmersiva:</p>
+      <ul>
+        <li><strong>Hero impactante:</strong> "Hacemos Real lo que Imaginas" con CTA directo a cotizar o ver proyectos.</li>
+        <li><strong>Servicios técnicos:</strong> FDM, SLA, prototipado industrial y figuras custom. Cada tarjeta genera confianza.</li>
+        <li><strong>Smart Quote Calculator:</strong> El visitante sube su STL, elige material y obtiene estimado en segundos. Reduce llamadas de cotización innecesarias.</li>
+        <li><strong>Galería de proyectos reales:</strong> Funkos, prototipos, piezas mecánicas. Demuestra calidad y versatilidad.</li>
+        <li><strong>Testimonios (Comunidad Maker):</strong> Reviews con estrellas que aumentan conversión.</li>
+        <li><strong>Responsive + modo claro/oscuro:</strong> Se ve perfecto en móvil y desktop.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Filtra curiosos de compradores serios. El que llega al ERP ya está calificado.</p>
+    </div>
+    <div class="thumb-grid">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Hero oscuro')"><img src="inicio.png" alt="Hero"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Menú y navegación')"><img src="inicio2.png" alt="Menú"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Servicios técnicos')"><img src="incio-03.png" alt="Servicios"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Smart Quote Calculator')"><img src="inicio-04.png" alt="Cotizador público"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Galería de proyectos')"><img src="incio-05.png" alt="Galería"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Cotizador en línea')"><img src="inicio-06.png" alt="Cotizador online"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Comunidad Maker')"><img src="inicio-07.png" alt="Comunidad"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Fotos de proyectos')"><img src="inicio-08.png" alt="Fotos"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Landing — Modo claro / Responsive')"><img src="inicio-40.png" alt="Modo claro"></div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD -->
+<section id="dashboard" style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 2 — Dashboard Principal</h2>
+    <p>Vista de 360° del negocio al entrar. Datos, no opiniones.</p>
+  </div>
+  <div class="row reverse reveal">
+    <div class="thumb-grid compact">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Dashboard con menú lateral')"><img src="dasboard.png" alt="Dashboard"></div>
+    </div>
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>Cada usuario ve un resumen adaptado a su rol desde el primer segundo:</p>
+      <ul>
+        <li><strong>Admin:</strong> Ventas del mes, margen bruto, pedidos pendientes, alertas de stock bajo.</li>
+        <li><strong>Vendedor:</strong> Cotizaciones recientes, productos propios vendidos, comisiones estimadas.</li>
+        <li><strong>Diseñador:</strong> Archivos entregados, pagos pendientes por diseño.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Toma de decisiones en segundos. Identifica qué vendedor performa y qué productos dejan más ganancia sin abrir Excel.</p>
+    </div>
+  </div>
+</section>
+
+<!-- COTIZADOR -->
+<section id="cotizador">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 3 — Cotizador Inteligente (6 pasos)</h2>
+    <p>El corazón del ERP. De 30 minutos a 5 minutos por cotización. Sin errores de cálculo.</p>
+  </div>
+  <div class="row reveal">
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>Proceso paso a paso que cualquier vendedor domina en su primer día:</p>
+      <ul>
+        <li><strong>Paso 1 (Cliente):</strong> Selecciona cliente existente o crea uno nuevo. El sistema ya conoce su historial.</li>
+        <li><strong>Paso 2 (Proyecto):</strong> Elige categoría: Prototipo funcional, Maqueta, Refacción, Decorativo, Gaming/Setup, Funko u Otro. Esto clasifica el trabajo para análisis posterior.</li>
+        <li><strong>Paso 3 (Costos):</strong> Selecciona material (ej. PLA $400/kg), gramos estimados, horas máquina en formato HH:MM, costo de diseño y extras. El sistema calcula automáticamente el costo de producción.</li>
+        <li><strong>Paso 4 (Resumen con margen):</strong> Slider para ajustar % de ganancia deseada. En tiempo real ves: precio cliente, ganancia neta, anticipo (50%).</li>
+        <li><strong>Paso 5 (Vista previa):</strong> Tabla profesional con productos, materiales, cantidades, costos y totales. El cliente no ve costos internos.</li>
+        <li><strong>Paso 6 (PDF + WhatsApp):</strong> Genera PDF con folio único, datos del vendedor y cliente. Comparte directo por WhatsApp o descarga.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Reduce tiempo de cotización 6x. Elimina errores de cálculo. Da imagen profesional al cliente con PDF con folio.</p>
+    </div>
+    <div class="thumb-grid">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 1 — Selección de cliente')"><img src="cotizacion-1.png" alt="Paso 1"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 2 — Descripción del proyecto')"><img src="cotzacion 2.png" alt="Paso 2"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 3 — Costos de impresión')"><img src="cotizacion-3.png" alt="Paso 3"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 4 — Resumen y margen')"><img src="cotizacion-4.png" alt="Paso 4"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 5 — Vista previa de cotización')"><img src="cotizacion-5.png" alt="Paso 5"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 5 — Tabla de productos')"><img src="cotizacion-6.png" alt="Tabla"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 6 — Generar PDF')"><img src="cotizacion-7.png" alt="PDF"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 6 — Vista previa del PDF')"><img src="cotizacion-8.png" alt="Vista PDF"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'Paso 6 — Confirmar y registrar')"><img src="cotizacion-9.png" alt="Confirmar"></div>
+    </div>
+  </div>
+</section>
+
+<!-- COTIZACIONES EN ESPERA -->
+<section id="espera" style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 4 — Cotizaciones en Espera</h2>
+    <p>No pierdas ninguna oportunidad de venta. Guarda, gestiona y convierte cuando el cliente esté listo.</p>
+  </div>
+  <div class="row reverse reveal">
+    <div class="thumb-grid compact">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Cotizaciones en espera')"><img src="cotizacion en espera.png" alt="Espera"></div>
+    </div>
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>El cliente dice "déjame pensarlo". Antes se perdía la cotización en el chat. Ahora:</p>
+      <ul>
+        <li><strong>Guarda con un clic:</strong> La cotización queda en estado "En espera" con todos los datos intactos.</li>
+        <li><strong>Autorizar venta:</strong> Cuando confirma, convierte en producto del catálogo.<br>• <strong>General:</strong> Visible para todo el equipo (venta recurrente).<br>• <strong>Propio:</strong> Visible solo para el vendedor creador (exclusividad comercial).</li>
+        <li><strong>Historial completo:</strong> Fecha, cliente, vendedor, estado y total. Filtros por rango de fechas.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Recupera ventas que antes se perdían por desorganización. Construye catálogo reutilizable sin esfuerzo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCTOS -->
+<section id="productos">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 5 — Catálogo de Productos</h2>
+    <p>Repositorio inteligente de todo lo que puedes vender, organizado por visibilidad.</p>
+  </div>
+  <div class="row reveal">
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>Cuando una cotización se autoriza, el producto entra al catálogo y alimenta automáticamente Análisis:</p>
+      <ul>
+        <li><strong>Generales:</strong> Piezas estándar que cualquier vendedor puede vender (ej: soportes, llaveros). Agiliza repetición de pedidos.</li>
+        <li><strong>Propios:</strong> Diseños exclusivos de un vendedor. Protege la cartera comercial de cada persona.</li>
+        <li><strong>Expandible:</strong> Cada producto muestra material, gramos, horas impresión, costo producción, costo final, ganancia neta y margen %.</li>
+        <li><strong>Importar venta:</strong> Registra ventas manuales de productos existentes sin pasar por el cotizador.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Construye catálogo reutilizable que reduce cotizar desde cero cada vez. Fomenta competencia sana entre vendedores.</p>
+    </div>
+    <div class="thumb-grid compact">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Catálogo de productos')"><img src="productos.png" alt="Productos"></div>
+    </div>
+  </div>
+</section>
+
+<!-- INVENTARIO -->
+<section id="inventario" style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 6 — Inventario</h2>
+    <p>Control total de materiales de impresión y consumibles complementarios.</p>
+  </div>
+  <div class="row reverse reveal">
+    <div class="thumb-grid">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Inventario de filamentos')"><img src="inventario.png" alt="Filamentos"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Inventario de items')"><img src="inventario-2.png" alt="Items"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Agregar item')"><img src="inventario-3.png" alt="Agregar"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Detalle de inventario')"><img src="inentario-4.png" alt="Detalle"></div>
+    </div>
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>Evita quedarte sin filamento a mitad de un pedido urgente. Dos niveles de control:</p>
+      <ul>
+        <li><strong>Filamentos:</strong> Registro por color, marca, tipo (PLA, PETG, ABS) y gramos disponibles. El cotizador consulta este stock en tiempo real.</li>
+        <li><strong>Items / Consumibles:</strong> Todo lo que no es filamento pero sí cuesta dinero: cajas, tornillos, inserts, tiras LED, pinturas. Cada item lleva foto, costo unitario, cantidad y unidad de medida.</li>
+        <li><strong>Asignación a cotización:</strong> Al cotizar, el vendedor asocia items del inventario. Próximamente: descuento automático de stock al autorizar venta.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Elimina pérdidas por "se me acabó el material". Calcula el verdadero costo de cada trabajo incluyendo consumibles que antes se ignoraban.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CLIENTES -->
+<section id="clientes">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 7 — Clientes y Diseñadores</h2>
+    <p>Cartera de contactos organizada y base de colaboradores.</p>
+  </div>
+  <div class="row reveal">
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>No más buscar el teléfono del cliente en WhatsApp:</p>
+      <ul>
+        <li><strong>Ficha de cliente:</strong> Nombre, teléfono, email, empresa y historial completo de cotizaciones anteriores.</li>
+        <li><strong>Recompra:</strong> Al ver el historial, el vendedor puede ofrecer "¿quiere el mismo pedido que hizo hace 3 meses?".</li>
+        <li><strong>Diseñadores externos:</strong> Registro de freelancers o colaboradores con tarifa por archivo. El sistema calcula automáticamente el pago al diseñador en cada cotización.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Fidelización. Venderle al mismo cliente cuesta 5x menos que conseguir uno nuevo.</p>
+    </div>
+    <div class="thumb-grid compact">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Gestión de clientes')"><img src="clientes.png" alt="Clientes"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Diseñadores y perfiles')"><img src="disenadores perfiles.png" alt="Diseñadores"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SUSCRIPCIÓN -->
+<section id="suscripcion" style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 8 — Suscripción y Pagos</h2>
+    <p>Gestión de planes, roles y cobros recurrentes integrados con Mercado Pago.</p>
+  </div>
+  <div class="row reverse reveal">
+    <div class="thumb-grid compact">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Planes de suscripción')"><img src="suscripcion.png" alt="Planes"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Admin de usuarios y cobros')"><img src="suscripcion-2.png" alt="Admin usuarios"></div>
+    </div>
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>Si vendes el ERP como SaaS, necesitas cobrar a tus clientes. Este módulo lo hace automático:</p>
+      <ul>
+        <li><strong>Planes configurables:</strong> Define precios por rol (vendedor $500/mes, diseñador $650/mes, admin $0/mes). Períodos de 30 días.</li>
+        <li><strong>Mercado Pago:</strong> Integración para cobro automático de suscripciones.</li>
+        <li><strong>Gestión de usuarios:</strong> Tabla completa con rol, horas trabajadas, vencimiento de suscripción, cobro MP y activación/desactivación.</li>
+        <li><strong>Recordatorios automáticos:</strong> Correos de suscripción/pago a usuario y admin si no se desactivan en Perfiles.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Automatiza el cobro de licencias del ERP. El admin no tiene que perseguir clientes para que paguen.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONFIGURACIÓN -->
+<section id="config">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 9 — Configuración y Seguridad</h2>
+    <p>Panel de control del administrador del taller.</p>
+  </div>
+  <div class="row reveal">
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>El dueño del taller tiene control total sin necesidad de un técnico:</p>
+      <ul>
+        <li><strong>Configuración personal:</strong> Edita nombre, correo, contraseña (mín. 12 caracteres con mayúscula, minúscula, número y símbolo). Cambios se actualizan en todos los perfiles.</li>
+        <li><strong>Porcentaje para inversión:</strong> Define qué % de la ganancia neta se considera reinversión (por defecto 10%). Se aplica en Dashboard y Productos.</li>
+        <li><strong>Alarmas y alertas:</strong> Programa alertas manuales o activa recordatorios automáticos de suscripción/pago vía correo SMTP del servidor.</li>
+        <li><strong>Seguridad:</strong> Panel de seguridad con logs de acceso, intentos fallidos y gestión de sesiones.</li>
+        <li><strong>Videos promocionales:</strong> Sube enlaces de TikTok/Instagram/YouTube y aprueba solicitudes de vendedores. Aparecen automáticamente en la landing.</li>
+        <li><strong>Costos calculadora pública:</strong> Configura los precios por kg que muestra la calculadora pública de la landing sin revelar tu margen real.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Centraliza el control. Un solo admin puede gestionar 10 vendedores sin perder el norte.</p>
+    </div>
+    <div class="thumb-grid">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Configuración personal')"><img src="configuracion.png" alt="Config"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Cambiar contraseña')"><img src="configuracion-2.png" alt="Password"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Alarmas y alertas')"><img src="alertas gneerales.png" alt="Alarmas"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Panel de seguridad')"><img src="seguridad.png" alt="Seguridad"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Videos promocionales')"><img src="videos promocionales.png" alt="Videos"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Costos calculadora pública')"><img src="costos claculadora publica.png" alt="Costos públicos"></div>
+    </div>
+  </div>
+</section>
+
+<!-- EDITOR WEB -->
+<section id="editorweb" style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 10 — Editor Web Pública</h2>
+    <p>Modifica tu landing page sin tocar código. Desde el ERP.</p>
+  </div>
+  <div class="row reverse reveal">
+    <div class="thumb-grid compact">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Editor web pública (JSON)')"><img src="programacion de pagina web.png" alt="Editor web"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Editor de galería web')"><img src="editor de galeria web.png" alt="Editor galería"></div>
+    </div>
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>No necesitas un programador para cambiar el texto de tu web:</p>
+      <ul>
+        <li><strong>Editor JSON:</strong> Modifica textos, colores, CTAs y estadísticas de la landing directamente desde el ERP. Guarda y se publica al instante.</li>
+        <li><strong>Subir archivos estáticos:</strong> Sube imágenes, PDFs u otros archivos que se sirven públicamente vía nginx.</li>
+        <li><strong>Editor de galería:</strong> Crea categorías y sube imágenes de proyectos para la galería pública. Sin FTP, sin Git.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Agiliza cambios de marketing. Un nuevo producto o promoción se publica en minutos, no en días.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ANÁLISIS -->
+<section id="analisis">
+  <div class="section-header reveal-scale">
+    <h2>Módulo 11 — Análisis y Reportes</h2>
+    <p>Dashboard ejecutivo. Números claros para decisiones estratégicas.</p>
+  </div>
+  <div class="row reveal">
+    <div class="text-block">
+      <h3>Explicación de ventas</h3>
+      <p>¿Tu taller gana dinero o solo trabaja mucho? Este módulo responde:</p>
+      <ul>
+        <li><strong>Ingresos totales:</strong> Suma de todas las ventas del periodo.</li>
+        <li><strong>Pedidos completados:</strong> Volumen de operación.</li>
+        <li><strong>Ticket promedio:</strong> Cuánto gasta cada cliente (ideal para upselling).</li>
+        <li><strong>Margen bruto %:</strong> Rentabilidad del negocio. Alerta si baja de 20%.</li>
+        <li><strong>Ingresos por periodo:</strong> Gráfica de tendencia para identificar temporadas altas.</li>
+        <li><strong>Productos del periodo:</strong> Tabla detallada: producto, cantidad, venta, costo, ganancia, margen % y descuento.</li>
+        <li><strong>Desglose de costos:</strong> Cuánto se gastó en material, tiempo máquina, diseño, extras, empaque y envío.</li>
+      </ul>
+      <p><strong>Beneficio comercial:</strong> Identifica qué productos dejan más ganancia y cuáles solo generan trabajo. Ajusta precios con datos, no con corazonadas.</p>
+    </div>
+    <div class="thumb-grid">
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Dashboard de análisis')"><img src="analisis y reportes.png" alt="Análisis"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Ingresos por periodo')"><img src="analisis y reportes-2.png" alt="Ingresos"></div>
+      <div class="thumb" onclick="openLightbox(this.querySelector('img').src,'ERP — Productos del periodo')"><img src="analisis y reportes-3.png" alt="Productos"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ARQUITECTURA -->
+<section style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Ingeniería de Software & Stack</h2>
+    <p>Sistemas diseñados para la alta disponibilidad, seguridad y escalabilidad empresarial.</p>
+  </div>
+  <div class="info-cards reveal-scale">
+    <div class="info-card"><div class="icon">⚛️</div><h4>Frontend de Próxima Gen</h4><p>React 19 + Vite 7 + Tailwind CSS v4. Arquitectura basada en componentes, renderizado optimizado y experiencia de usuario fluida en cualquier dispositivo.</p></div>
+    <div class="info-card"><div class="icon">🐍</div><h4>Backend de Alto Rendimiento</h4><p>FastAPI + SQLAlchemy async + Pydantic v2. API REST asíncrona optimizada para baja latencia y validación de datos estricta.</p></div>
+    <div class="info-card"><div class="icon">🗄️</div><h4>Persistencia de Datos</h4><p>PostgreSQL listo para producción. Modelo relacional normalizado para integridad total de la información y consultas complejas eficientes.</p></div>
+    <div class="info-card"><div class="icon">🐳</div><h4>Infraestructura Cloud</h4><p>Docker + Docker Compose en VPS Hostinger. Cloudflare Tunnel para exposición segura sin abrir puertos y Nginx como reverse proxy.</p></div>
+    <div class="info-card"><div class="icon">🔒</div><h4>Capa de Seguridad</h4><p>Implementación de MFA vía email, hashing bcrypt para contraseñas, tokens JWT de sesión y tráfico HTTPS forzado mediante SSL.</p></div>
+    <div class="info-card"><div class="icon">🚀</div><h4>Ciclo de Despliegue</h4><p>Frontend en Vercel (Edge Network) y Backend en VPS dedicado. Pipeline de deploy continuo mediante Git + Docker para actualizaciones sin downtime.</p></div>
+  </div>
+</section>
+
+<!-- CAPACIDADES DE DESARROLLO -->
+<section id="capacidades" style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Capacidades de Desarrollo & Ingeniería</h2>
+    <p>No solo entrego un ERP, entrego la capacidad de escalar tu visión de negocio mediante software de grado industrial.</p>
+  </div>
+  <div class="row reveal">
+    <div class="text-block">
+      <h3>Arquitectura a Medida</h3>
+      <p>Mi enfoque de desarrollo garantiza que el software no sea solo una herramienta, sino un activo estratégico:</p>
+      <ul>
+        <li><strong>Fullstack Mastery:</strong> Dominio total del ciclo de vida del software, desde el diseño de interfaces (UI/UX) hasta la optimización de bases de datos y lógica de servidor.</li>
+        <li><strong>Sistemas de Alto Rendimiento:</strong> Implementación de APIs asíncronas con FastAPI y React 19 para tiempos de respuesta instantáneos.</li>
+        <li><strong>Infraestructura Cloud & DevOps:</strong> Especialista en despliegues con Docker, VPS Hostinger, Cloudflare Tunnels y CI/CD, asegurando que el sistema esté online 24/7.</li>
+         la seguridad es prioridad: MFA, hashing bcrypt, JWT y tráfico HTTPS forzado.</li>
+        <li><strong>Capacidad de Customización:</strong> Desarrollo de módulos específicos según la necesidad del cliente (Integraciones con APIs externas, automatizaciones, reportes avanzados).</li>
+      </ul>
+      <p><strong>El valor agregado:</strong> Traduzco problemas operativos reales en soluciones técnicas elegantes y eficientes. Si puedes imaginar el flujo de trabajo, puedo programarlo.</p>
+    </div>
+    <div class="info-cards" style="margin-top:0">
+      <div class="info-card anim-glow-border"><div class="icon">🛠️</div><h4>Fullstack</h4><p>Frontend moderno + Backend robusto.</p></div>
+      <div class="info-card anim-glow-border"><div class="icon">☁️</div><h4>DevOps</h4><p>Docker, VPS y Cloudflare.</p></div>
+      <div class="info-card anim-glow-border"><div class="icon">🛡️</div><h4>Seguridad</h4><p>MFA, JWT y Cifrado.</p></div>
+      <div class="info-card anim-glow-border"><div class="icon">🎨</div><h4>UI/UX</h4><p>Diseño centrado en la conversión.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- COSTOS REALES -->
+<section id="costos">
+  <div class="section-header reveal-scale">
+    <h2>Costos Reales de Desarrollo e Infraestructura</h2>
+    <p>Inversión real para crear y mantener el ERP. Estos son los números que sustentan el precio de venta.</p>
+  </div>
+
+  <div class="reveal">
+    <table class="costs">
+      <thead>
+        <tr><th>Concepto</th><th>Mensual</th><th>Anual</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>VPS Hostinger (2vCPU, 4GB RAM, 50GB SSD)</td><td>~$350 MXN</td><td>$4,200 MXN</td></tr>
+        <tr><td>Dominio .com (rookiemakers3d.com)</td><td>~$15 MXN</td><td>$180 MXN</td></tr>
+        <tr><td>Vercel (frontend estático)</td><td>$0</td><td>$0</td></tr>
+        <tr><td>Cloudflare (DNS + Tunnel + SSL)</td><td>$0</td><td>$0</td></tr>
+        <tr><td>Respaldo y monitoreo (estimado)</td><td>~$50 MXN</td><td>$600 MXN</td></tr>
+        <tr class="total-row"><td>Subtotal infraestructura</td><td>~$415 MXN</td><td>~$4,980 MXN</td></tr>
+      </tbody>
+    </table>
+
+    <table class="costs" style="margin-top:2rem">
+      <thead>
+        <tr><th>Mano de obra</th><th>Horas</th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Desarrollo backend (FastAPI, DB, API REST)</td><td>~120 h</td><td>~$48,000 MXN</td></tr>
+        <tr><td>Desarrollo frontend ERP (React, cotizador, PDF)</td><td>~140 h</td><td>~$56,000 MXN</td></tr>
+        <tr><td>Landing page pública (React + Vite)</td><td>~60 h</td><td>~$24,000 MXN</td></tr>
+        <tr><td>Diseño UI/UX y branding</td><td>~40 h</td><td>~$16,000 MXN</td></tr>
+        <tr><td>Infraestructura (Docker, VPS, Nginx, Cloudflare)</td><td>~30 h</td><td>~$12,000 MXN</td></tr>
+        <tr><td>Ajustes, fixes, deploys y refinamiento</td><td>~50 h</td><td>~$20,000 MXN</td></tr>
+        <tr class="total-row"><td>Subtotal mano de obra</td><td>~440 h</td><td>~$176,000 MXN</td></tr>
+      </tbody>
+    </table>
+
+    <table class="costs" style="margin-top:2rem">
+      <thead>
+        <tr><th>Resumen</th><th></th><th>Total</th></tr>
+      </thead>
+      <tbody>
+        <tr class="total-row"><td colspan="2"><strong>INVERSIÓN TOTAL ESTIMADA (desarrollo + 1 año infraestructura)</strong></td><td><strong>~$180,980 MXN</strong></td></tr>
+        <tr><td colspan="2">Tiempo de desarrollo total</td><td>~5–6 meses</td></tr>
+      </tbody>
+    </table>
+
+    <table class="costs" style="margin-top:2rem">
+      <thead>
+        <tr><th>Producto</th><th>Precio regular</th><th>Precio Emprendedor</th><th>Descuento</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Licencia Local (On-premise)</td><td style="text-decoration:line-through;color:var(--text-dim)">$65,000 MXN</td><td><strong style="color:var(--accent)">$38,500 MXN</strong></td><td><span style="display:inline-block;background:rgba(245,158,11,.15);color:var(--accent-3);padding:.15rem .5rem;border-radius:4px;font-size:.8rem;font-weight:600">46% OFF</span></td></tr>
+        <tr><td>SaaS En Línea (Hosting incluido)</td><td style="text-decoration:line-through;color:var(--text-dim)">$2,500/mes</td><td><strong style="color:var(--accent-2)">$1,650/mes</strong></td><td><span style="display:inline-block;background:rgba(245,158,11,.15);color:var(--accent-3);padding:.15rem .5rem;border-radius:4px;font-size:.8rem;font-weight:600">40% OFF</span></td></tr>
+        <tr><td>Desarrollo desde Cero (Custom)</td><td style="text-decoration:line-through;color:var(--text-dim)">$120,000 MXN</td><td><strong style="color:var(--accent)">$71,500 MXN</strong></td><td><span style="display:inline-block;background:rgba(245,158,11,.15);color:var(--accent-3);padding:.15rem .5rem;border-radius:4px;font-size:.8rem;font-weight:600">46% OFF</span></td></tr>
+      </tbody>
+    </table>
+
+    <p style="text-align:center;color:var(--text-dim);margin-top:1.5rem;font-size:.9rem">
+      💡 <strong>Nota:</strong> Los costos de mano de obra se calculan a ~$400 MXN/hora (rate fullstack junior–mid en México 2026).
+      Si contratas una agencia, el costo puede duplicarse ($300,000–$400,000 MXN).
+    </p>
+  </div>
+</section>
+
+<!-- LOCAL VS EN LÍNEA -->
+<section style="background:var(--bg-2)">
+  <div class="section-header reveal-scale">
+    <h2>Modalidades de Entrega</h2>
+    <p>Dos formas de adquirir el ERP según tu infraestructura y presupuesto.</p>
+  </div>
+  <div class="compare-grid reveal-scale">
+    <div class="compare-card">
+      <h4>🏠 Módulo Local (On-premise)</h4>
+      <ul>
+        <li>Se instala en tu propio servidor o computadora</li>
+        <li>Código fuente completo entregado</li>
+        <li>Tú controlas el servidor y los datos</li>
+        <li>Requiere VPS o PC dedicada (mín. 4GB RAM)</li>
+        <li>Sin pagos mensuales a terceros por el ERP</li>
+        <li>Tú haces los backups y mantenimiento</li>
+        <li>Ideal para talleres con técnico propio</li>
+      </ul>
+    </div>
+    <div class="compare-card">
+      <h4>🌐 Módulo En Línea (SaaS)</h4>
+      <ul>
+        <li>Nosotros hosteamos todo en nuestro VPS</li>
+        <li>Acceso vía web desde cualquier dispositivo</li>
+        <li>Backups automáticos diarios</li>
+        <li>SSL, dominio y Cloudflare incluidos</li>
+        <li>Actualizaciones y fixes sin costo extra</li>
+        <li>Soporte técnico incluido</li>
+        <li>Ideal para talleres sin conocimientos técnicos</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- PRECIOS DE VENTA -->
+<section class="price-section" id="precios">
+  <div class="section-header reveal-scale">
+    <h2>Precios de Venta al Público</h2>
+    <p>Inversión recuperable en 3–6 meses según el volumen de tu taller.</p>
+  </div>
+  <div class="price-grid reveal-scale">
+    <div class="price-card">
+      <div style="display:inline-block;background:rgba(245,158,11,.15);color:var(--accent-3);padding:.2rem .7rem;border-radius:6px;font-size:.75rem;font-weight:600;margin-bottom:.5rem;border:1px solid rgba(245,158,11,.3)">PRECIO EMPRENDEDOR — 46% OFF</div>
+      <div class="label">Licencia Local (On-premise)</div>
+      <div style="text-decoration:line-through;color:var(--text-dim);font-size:1.2rem;margin-top:.5rem">$65,000 MXN</div>
+      <div class="amount">$38,500 MXN</div>
+      <div style="font-size:.85rem;color:var(--text-dim)">Pago único + instalación</div>
+      <ul>
+        <li>Código fuente completo</li>
+        <li>Manual de instalación</li>
+        <li>Personalización de marca</li>
+        <li>3 meses de soporte técnico</li>
+        <li>Instalación en tu VPS/PC</li>
+        <li>Tú pagas el hosting ($350/mes)</li>
+      </ul>
+    </div>
+    <div class="price-card highlight">
+      <div style="display:inline-block;background:rgba(245,158,11,.15);color:var(--accent-3);padding:.2rem .7rem;border-radius:6px;font-size:.75rem;font-weight:600;margin-bottom:.5rem;border:1px solid rgba(245,158,11,.3)">PRECIO EMPRENDEDOR — 40% OFF</div>
+      <div class="label">SaaS En Línea (Hosting incluido)</div>
+      <div style="text-decoration:line-through;color:var(--text-dim);font-size:1.2rem;margin-top:.5rem">$2,500/mes</div>
+      <div class="amount green">$1,650 MXN/mes</div>
+      <div style="font-size:.85rem;color:var(--text-dim)">Todo incluido, sin sorpresas</div>
+      <ul>
+        <li>Hosting en VPS dedicado</li>
+        <li>Dominio y SSL incluidos</li>
+        <li>Backups automáticos</li>
+        <li>Actualizaciones sin costo</li>
+        <li>Soporte técnico prioritario</li>
+        <li>Cancelación sin penalización</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <div style="display:inline-block;background:rgba(245,158,11,.15);color:var(--accent-3);padding:.2rem .7rem;border-radius:6px;font-size:.75rem;font-weight:600;margin-bottom:.5rem;border:1px solid rgba(245,158,11,.3)">PRECIO EMPRENDEDOR — 46% OFF</div>
+      <div class="label">Desarrollo desde Cero (Custom)</div>
+      <div style="text-decoration:line-through;color:var(--text-dim);font-size:1.2rem;margin-top:.5rem">$120,000 MXN</div>
+      <div class="amount">$71,500 MXN</div>
+      <div style="font-size:.85rem;color:var(--text-dim)">ERP a tu medida + funciones extra</div>
+      <ul>
+        <li>Todo lo del ERP actual</li>
+        <li>Módulos personalizados</li>
+        <li>Integraciones adicionales</li>
+        <li>Branding 100% personalizado</li>
+        <li>6 meses de soporte</li>
+        <li>Código fuente entregado</li>
+      </ul>
+    </div>
+  </div>
+  <div style="text-align:center;margin-top:3rem" class="reveal">
+    <div style="display:inline-block;background:var(--panel);padding:1.5rem 2rem;border-radius:16px;border:1px solid var(--border);text-align:left;max-width:700px">
+      <div style="font-size:.85rem;color:var(--text-dim);margin-bottom:.5rem">📊 Comparativa de retorno</div>
+      <p style="color:var(--text-dim);font-size:.95rem;line-height:1.6">
+        Si tu taller vende <strong>$20,000 MXN/mes</strong>, el ERP te ayuda a subir el margen de un 15% a un 25% al controlar costos reales.
+        Eso significa <strong>+$2,000 MXN/mes</strong> de ganancia neta adicional.
+        <br><br>
+        <strong>Payback:</strong> La licencia local se paga sola en ~17 meses. El SaaS se paga solo en el primer mes.
+        <strong>El descuento es por tiempo limitado</strong> mientras construimos portafolio de clientes.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <h2 class="reveal">¿Listo para profesionalizar tu taller?</h2>
+  <p class="reveal" style="color:var(--text-dim);max-width:600px;margin:0 auto;line-height:1.6">Transforma tu taller de impresión 3D con tecnología de nivel empresarial. Controla costos, acelera cotizaciones y toma decisiones con datos.</p>
+  <div class="contact-grid reveal">
+    <div class="contact-chip anim-fade-scale anim-delay-1">📧 norbertomoro4@gmail.com</div>
+    <div class="contact-chip anim-fade-scale anim-delay-2">📱 472 148 8913</div>
+    <div class="contact-chip anim-fade-scale anim-delay-3">🌐 www.rookiemakers3d.com</div>
+  </div>
+  <p style="margin-top:3rem;font-size:.8rem;color:var(--text-dim)">Rookie Makers 3D — Irapuato, Gto. | 2026</p>
+</footer>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightboxBtn()">✕</button>
+  <div class="lightbox-img-wrap" id="lbWrap">
+    <img id="lbImg" src="" alt="">
+  </div>
+  <div class="lightbox-controls">
+    <button onclick="zoom(-.2)" title="Alejar">−</button>
+    <button onclick="zoom(.2)" title="Acercar">+</button>
+    <button onclick="resetZoom()" title="Restablecer">⟲</button>
+  </div>
+  <div class="lightbox-title" id="lbTitle"></div>
+</div>
+
+<script>
+  
+  const scrollProgress = document.getElementById('scrollProgress');
+  window.addEventListener('scroll', () => {
+    const h = document.documentElement.scrollHeight - window.innerHeight;
+    if (scrollProgress && h > 0) {
+      scrollProgress.style.width = (window.scrollY / h * 100) + '%';
+    }
+  }, { passive: true });
+
+  const reveals = document.querySelectorAll('.reveal, .reveal-scale, .reveal-left, .reveal-right');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+  }, { threshold: .15 });
+  reveals.forEach(r => observer.observe(r));
+
+  const sections = document.querySelectorAll('section, header');
+  const dots = document.querySelectorAll('.nav-dots a');
+  const secObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const id = e.target.id;
+        dots.forEach(d => d.classList.toggle('active', d.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { threshold: .3 });
+  sections.forEach(s => secObserver.observe(s));
+
+  // Theme toggle
+  const html = document.documentElement;
+  const themeBtn = document.getElementById('themeToggle');
+  const savedTheme = localStorage.getItem('presentation-theme');
+  if (savedTheme === 'light') {
+    html.classList.add('light-mode');
+    themeBtn.textContent = '☀️';
+  }
+  function toggleTheme() {
+    const isLight = html.classList.toggle('light-mode');
+    themeBtn.textContent = isLight ? '☀️' : '🌙';
+    localStorage.setItem('presentation-theme', isLight ? 'light' : 'dark');
+  }
+
+  let currentZoom = 1;
+
+  function openLightbox(src, title) {
+    const lb = document.getElementById('lightbox');
+    const img = document.getElementById('lbImg');
+    const t = document.getElementById('lbTitle');
+    if (!lb || !img || !t) return;
+    img.src = src;
+    t.textContent = title || '';
+    lb.style.display = 'flex';
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    resetZoom();
+  }
+
+  function closeLightboxBtn() {
+    const lb = document.getElementById('lightbox');
+    const img = document.getElementById('lbImg');
+    if (!lb || !img) return;
+    lb.style.display = 'none';
+    lb.classList.remove('open');
+    document.body.style.overflow = '';
+    img.src = '';
+  }
+
+  function closeLightbox(e) {
+    const lb = document.getElementById('lightbox');
+    const lbWrap = document.getElementById('lbWrap');
+    if (e.target === lb || e.target === lbWrap) closeLightboxBtn();
+  }
+
+  function zoom(delta) {
+    currentZoom = Math.max(0.3, Math.min(4, currentZoom + delta));
+    const lbImg = document.getElementById('lbImg');
+    if (lbImg) lbImg.style.transform = 'scale(' + currentZoom + ')';
+    updateCursor();
+  }
+
+  function resetZoom() {
+    currentZoom = 1;
+    const lbImg = document.getElementById('lbImg');
+    if (lbImg) lbImg.style.transform = 'scale(1)';
+    updateCursor();
+  }
+
+  function updateCursor() {
+    const lbWrap = document.getElementById('lbWrap');
+    if (lbWrap) lbWrap.style.cursor = currentZoom > 1 ? 'grab' : 'default';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightboxBtn();
+    if (e.key === '+' || e.key === '=') zoom(0.2);
+    if (e.key === '-') zoom(-0.2);
+  });
+
+  const lbWrapGlobal = document.getElementById('lbWrap');
+  if (lbWrapGlobal) {
+    let isDragging = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    lbWrapGlobal.addEventListener('mousedown', e => {
+      if (currentZoom <= 1) return;
+      isDragging = true;
+      lbWrapGlobal.style.cursor = 'grabbing';
+      startX = e.pageX - lbWrapGlobal.offsetLeft;
+      startY = e.pageY - lbWrapGlobal.offsetTop;
+      scrollLeft = lbWrapGlobal.scrollLeft;
+      scrollTop = lbWrapGlobal.scrollTop;
+    });
+
+    lbWrapGlobal.addEventListener('mouseleave', () => {
+      isDragging = false;
+      updateCursor();
+    });
+
+    lbWrapGlobal.addEventListener('mouseup', () => {
+      isDragging = false;
+      updateCursor();
+    });
+
+    lbWrapGlobal.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.pageX - lbWrapGlobal.offsetLeft;
+      const y = e.pageY - lbWrapGlobal.offsetTop;
+      lbWrapGlobal.scrollLeft = scrollLeft - (x - startX) * 1.5;
+      lbWrapGlobal.scrollTop = scrollTop - (y - startY) * 1.5;
+    });
+
+    lbWrapGlobal.addEventListener('wheel', e => {
+      e.preventDefault();
+      zoom(e.deltaY > 0 ? -0.1 : 0.1);
+    });
+  }
+</script>
+
+</body>
+</html>

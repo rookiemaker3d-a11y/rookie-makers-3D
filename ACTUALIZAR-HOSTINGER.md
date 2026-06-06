@@ -17,6 +17,7 @@ git pull
 docker compose build --no-cache backend
 docker compose up -d backend
 docker compose restart frontend
+docker compose logs backend --tail 20
 ```
 
 ## 3. Verificar que el backend arrancó bien
@@ -36,7 +37,22 @@ npx vercel --prod --yes --archive=tgz
 
 Esto sube el frontend/landing-dist actualizado (incluye el cambio de contacto).
 
-## 5. Verificar cambios en produccion
+## 5. Reiniciar contraseñas de emergencia (en el VPS)
+
+Si olvidaste las contraseñas o necesitas resetearlas:
+```bash
+cd /root/rookie-makers-3D
+docker compose exec backend python -m app.reset_passwords
+```
+
+Este comando muestra en consola las nuevas contraseñas por usuario.
+
+## Contraseñas por defecto despues del reset:
+- **Administrador**: `AdminRookie2025!`
+- **Vendedor (diseñador)**: `VendedorRookie2025!`
+- **Vendedor de ventas**: `VentasRookie2025!`
+
+## 6. Verificar cambios en produccion
 
 - Landing: https://www.rookiemakers3d.com → contacto debe mostrar el nuevo email y telefono
 - ERP: https://www.rookiemakers3d.com/app/ → input de horas maquina debe aceptar 2:30
