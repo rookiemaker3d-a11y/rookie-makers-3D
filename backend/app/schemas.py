@@ -457,3 +457,29 @@ class VentaResumenVendedor(BaseModel):
     total_ventas: float
     total_ganancia: float
     cantidad: int
+
+
+# ----- OrdenCompra (landing pública) -----
+class OrdenCompraCreate(BaseModel):
+    """Datos que envía el cliente desde la landing."""
+    producto_id: Optional[int] = None
+    producto_descripcion: str
+    precio_unitario: float
+    precio_ingresado_por_cliente: bool = False
+    cliente_nombre: str
+    cliente_mensaje: Optional[str] = None
+    user_agent: Optional[str] = None
+
+
+class OrdenCompraResponse(BaseModel):
+    """Respuesta al cliente. Incluye el link wa.me pre-armado para que pueda escribir por WhatsApp."""
+    id: int
+    producto_descripcion: str
+    precio_unitario: float
+    cliente_nombre: str
+    estado: str
+    created_at: Optional[datetime] = None
+    whatsapp_url: str
+
+    class Config:
+        from_attributes = True

@@ -281,3 +281,22 @@ class WebGalleryImage(Base):
     orden = Column(Integer, default=0)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class OrdenCompra(Base):
+    """Órdenes de compra que llegan desde la landing pública (www.rookiemakers3d.com).
+    El cliente llena un formulario con su nombre y, opcionalmente, un mensaje.
+    El backend guarda la orden y manda email a Norberto + Rookie Makers 3D.
+    """
+    __tablename__ = "ordenes_compra"
+    id = Column(Integer, primary_key=True, index=True)
+    producto_id = Column(Integer, ForeignKey("productos.id", ondelete="SET NULL"), nullable=True)
+    producto_descripcion = Column(String(500), nullable=False)  # snapshot al momento de la compra
+    precio_unitario = Column(Float, nullable=False, default=0)  # MXN
+    precio_ingresado_por_cliente = Column(Boolean, default=False)  # True si el producto no tenía precio y el cliente lo ingresó
+    cliente_nombre = Column(String(255), nullable=False)
+    cliente_mensaje = Column(Text, nullable=True)  # mensaje libre del cliente (opcional)
+    user_agent = Column(String(500), nullable=True)  # para debug / anti-spam
+    ip = Column(String(50), nullable=True)
+    estado = Column(String(20), default="nueva")  # "nueva" | "contactado" | "cerrada"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

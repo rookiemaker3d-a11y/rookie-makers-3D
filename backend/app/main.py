@@ -31,6 +31,7 @@ from app.api.suscripciones_routes import router as suscripciones_router
 from app.api.web_assets_routes import router as web_assets_router
 from app.api.web_gallery_routes import router as web_gallery_router
 from app.api.ventas_routes import router as ventas_router
+from app.api.compras_routes import router as compras_router
 
 settings = get_settings()
 
@@ -87,6 +88,7 @@ app.include_router(suscripciones_router, prefix="/api")
 app.include_router(web_assets_router, prefix="/api")
 app.include_router(web_gallery_router, prefix="/api")
 app.include_router(ventas_router, prefix="/api")
+app.include_router(compras_router, prefix="/api")
 
 # Archivos estáticos subidos por admin (volumen docker recomendado)
 _assets_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "web-assets"))
