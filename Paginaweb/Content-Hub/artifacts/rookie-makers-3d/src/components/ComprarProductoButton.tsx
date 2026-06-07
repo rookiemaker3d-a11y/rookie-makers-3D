@@ -48,7 +48,7 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim()) {
-      toast.error("Por favor escribe tu nombre");
+      toast.error("Por favor, ingrese su nombre para continuar");
       return;
     }
     let precioFinal: number;
@@ -57,7 +57,7 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
     } else {
       const p = parseFloat(precioCliente);
       if (!precioCliente || isNaN(p) || p <= 0) {
-        toast.error("Por favor indica el precio que esperabas");
+        toast.error("Por favor, indique el precio estimado que tiene en mente");
         return;
       }
       precioFinal = p;
@@ -80,10 +80,10 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
       if (!res.ok) throw new Error(`Error ${res.status}`);
       const data = await res.json();
       setWhatsappUrl(data.whatsapp_url);
-      toast.success("¡Solicitud enviada! Te contactaremos pronto.");
+      toast.success("Su solicitud ha sido registrada. Nos pondremos en contacto a la brevedad.");
     } catch (err) {
       toast.error(
-        "No pudimos enviar la solicitud. Intenta de nuevo o escríbenos por WhatsApp."
+        "No fue posible registrar su solicitud. Por favor, intente nuevamente o contáctenos directamente por WhatsApp."
       );
     } finally {
       setEnviando(false);
@@ -148,22 +148,22 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
               <form onSubmit={handleSubmit} className="space-y-4 mt-4">
                 <div>
                   <label className="block text-xs font-mono text-muted-foreground mb-1">
-                    Tu nombre *
+                    Nombre completo *
                   </label>
                   <Input
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    placeholder="¿Cómo te llamas?"
+                    placeholder="Ingrese su nombre completo"
                     required
                     disabled={enviando}
-                    className="bg-black/40 border-white/10"
+                    className="bg-black/60 border-white/20 text-white placeholder:text-white/40"
                   />
                 </div>
 
                 {producto.precio === null && (
                   <div>
                     <label className="block text-xs font-mono text-muted-foreground mb-1">
-                      Precio que esperabas (MXN) *
+                      Precio estimado (MXN) *
                     </label>
                     <Input
                       type="number"
@@ -171,13 +171,13 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
                       min="0"
                       value={precioCliente}
                       onChange={(e) => setPrecioCliente(e.target.value)}
-                      placeholder="Ej: 250"
+                      placeholder="Ejemplo: 250.00"
                       required
                       disabled={enviando}
-                      className="bg-black/40 border-white/10"
+                      className="bg-black/60 border-white/20 text-white placeholder:text-white/40"
                     />
                     <p className="text-xs text-amber-400/80 font-mono mt-1">
-                      Este producto no tiene precio fijo. Te contactaremos para confirmar.
+                      Este producto no cuenta con un precio público definido. Le solicitamos su propuesta para que podamos confirmar la viabilidad del pedido.
                     </p>
                   </div>
                 )}
@@ -189,17 +189,17 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
                   <Textarea
                     value={mensaje}
                     onChange={(e) => setMensaje(e.target.value)}
-                    placeholder="Cuéntanos detalles: color, tamaño, modificaciones..."
+                    placeholder="Detalle sus requerimientos: color, dimensiones, acabados, fecha de entrega, etc."
                     rows={3}
                     disabled={enviando}
-                    className="bg-black/40 border-white/10 resize-none"
+                    className="bg-black/60 border-white/20 text-white placeholder:text-white/40 resize-none"
                   />
                 </div>
 
                 {producto.precio !== null && (
                   <div className="bg-primary/10 border border-primary/30 rounded-lg p-3">
                     <p className="text-xs font-mono text-muted-foreground">
-                      Precio:
+                      Precio del producto:
                     </p>
                     <p className="text-lg font-bold text-primary">
                       {formatPrecio(producto.precio)}
@@ -222,7 +222,7 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
                     disabled={enviando}
                     className="flex-1 bg-primary text-primary-foreground font-mono uppercase tracking-wider"
                   >
-                    {enviando ? "Enviando..." : "Enviar solicitud"}
+                    {enviando ? "Enviando..." : "Confirmar solicitud"}
                   </Button>
                 </div>
               </form>
@@ -238,20 +238,21 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-white text-xl">
                   <CheckCircle2 className="w-6 h-6 text-green-400" />
-                  ¡Solicitud enviada!
+                  Solicitud registrada
                 </DialogTitle>
               </DialogHeader>
 
               <div className="space-y-4 mt-4">
                 <p className="text-sm text-white/90">
-                  Recibimos tu interés en{" "}
+                  Hemos recibido correctamente su interés en el producto{" "}
                   <strong className="text-primary">{producto.nombre}</strong>.
-                  Te contactaremos pronto.
+                  Nuestro equipo se pondrá en contacto con usted en breve para
+                  confirmar los detalles y coordinar la entrega.
                 </p>
 
                 <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
                   <p className="text-xs font-mono text-green-300 mb-3">
-                    Si prefieres, escríbenos directo por WhatsApp:
+                    Si lo prefiere, puede contactarnos directamente por WhatsApp para una atención más inmediata:
                   </p>
                   <a
                     href={whatsappUrl}
