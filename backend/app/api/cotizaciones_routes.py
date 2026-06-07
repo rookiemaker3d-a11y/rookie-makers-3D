@@ -241,8 +241,9 @@ async def _descontar_inventario(db: AsyncSession, detalles: dict, vendedor_nombr
         if tipo and gramos > 0:
             consumos_filamento.append((tipo, gramos))
 
-    for tipo, gramos in consumos_filamento:
-        # Buscar filamento del vendedor o del grupo compartido
+    for tipo, gramos_necesarios in consumos_filamento:
+        # Buscar TODOS los filamentos del vendedor o del grupo compartido.
+        # Puede haber varios rollos del mismo tipo; descontamos en orden de mayor a menor stock.
         q = (
             select(InventarioFilamento)
             .where(
@@ -259,19 +260,30 @@ async def _descontar_inventario(db: AsyncSession, detalles: dict, vendedor_nombr
             q = q.where(InventarioFilamento.vendedor_id.in_([1, 3]))
 
         result = await db.execute(q)
-        filamento = result.scalar_one_or_none()
-        if not filamento:
-            warnings.append(f"No hay filamento '{tipo}' en inventario para descontar {gramos} g.")
+        filamentos = result.scalars().all()
+        if not filamentos:
+            warnings.append(f"No hay filamento '{tipo}' en inventario para descontar {gramos_necesarios} g.")
             continue
-        stock_actual = float(filamento.cantidad_gramos or 0)
-        if stock_actual < gramos:
+
+        gramos_restantes = float(gramos_necesarios)
+        for filamento in filamentos:
+            if gramos_restantes <= 0:
+                break
+            stock_actual = float(filamento.cantidad_gramos or 0)
+            if stock_actual <= 0:
+                continue
+            if stock_actual >= gramos_restantes:
+                filamento.cantidad_gramos = round(stock_actual - gramos_restantes, 2)
+                gramos_restantes = 0
+            else:
+                filamento.cantidad_gramos = 0
+                gramos_restantes = round(gramos_restantes - stock_actual, 2)
+        if gramos_restantes > 0:
             warnings.append(
-                f"Stock insuficiente de filamento '{tipo}' ({filamento.nombre}): "
-                f"hay {stock_actual} g, se requieren {gramos} g. Se descontó lo disponible y quedó en 0."
+                f"Stock insuficiente de filamento '{tipo}': se requerían {gramos_necesarios} g "
+                f"y solo había {gramos_necesarios - gramos_restantes} g en inventario. "
+                f"Se descontó lo disponible y faltaron {gramos_restantes} g."
             )
-            filamento.cantidad_gramos = 0
-        else:
-            filamento.cantidad_gramos = round(stock_actual - gramos, 2)
 
     return warnings
 
