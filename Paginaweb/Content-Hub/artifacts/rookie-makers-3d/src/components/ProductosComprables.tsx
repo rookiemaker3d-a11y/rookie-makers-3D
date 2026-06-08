@@ -1,11 +1,33 @@
 import { ShoppingBag, PackageOpen } from "lucide-react";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
-import { PRODUCTOS_COMPRABLES } from "@/data/productosComprables";
+import {
+  fetchProductosCatalogo,
+  PRODUCTOS_COMPRABLES_FALLBACK,
+  type ProductoComprable,
+} from "@/data/productosComprables";
 import { ComprarProductoButton } from "@/components/ComprarProductoButton";
 
 export function ProductosComprables() {
-  const hayProductos = PRODUCTOS_COMPRABLES && PRODUCTOS_COMPRABLES.length > 0;
+  const [productos, setProductos] = useState<ProductoComprable[]>(PRODUCTOS_COMPRABLES_FALLBACK);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const data = await fetchProductosCatalogo();
+      if (!cancelado) {
+        setProductos(data);
+        setCargando(false);
+      }
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  const hayProductos = !cargando && productos && productos.length > 0;
 
   return (
     <section
@@ -38,7 +60,7 @@ export function ProductosComprables() {
 
         {hayProductos ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {PRODUCTOS_COMPRABLES.map((producto, idx) => (
+            {productos.map((producto, idx) => (
               <motion.div
                 key={producto.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -64,7 +86,7 @@ export function ProductosComprables() {
                     {producto.nombre}
                   </h3>
                   <p className="text-sm text-muted-foreground font-mono mb-4 flex-1">
-                    {producto.descripcion}
+                    {producto.descripcion || `Pieza impresa en 3D de la categoría ${producto.categoria}.`}
                   </p>
 
                   {producto.precio !== null ? (

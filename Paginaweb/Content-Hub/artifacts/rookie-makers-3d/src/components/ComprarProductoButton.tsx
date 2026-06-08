@@ -69,6 +69,7 @@ export function ComprarProductoButton({ producto, variant = "card" }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           producto_id: null,
+          producto_catalogo_id: typeof producto.id === "number" ? producto.id : null,
           producto_descripcion: producto.nombre,
           precio_unitario: precioFinal,
           precio_ingresado_por_cliente: producto.precio === null,
