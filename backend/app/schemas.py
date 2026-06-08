@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Any
 from datetime import date, datetime
 
@@ -462,7 +462,8 @@ class VentaResumenVendedor(BaseModel):
 # ----- OrdenCompra (landing pública) -----
 class OrdenCompraCreate(BaseModel):
     """Datos que envía el cliente desde la landing."""
-    producto_id: Optional[int] = None
+    producto_id: Optional[int] = None  # FK a productos (cotizaciones internas)
+    producto_catalogo_id: Optional[int] = None  # FK a productos_catalogo (catálogo público)
     producto_descripcion: str
     precio_unitario: float
     precio_ingresado_por_cliente: bool = False
@@ -480,6 +481,45 @@ class OrdenCompraResponse(BaseModel):
     estado: str
     created_at: Optional[datetime] = None
     whatsapp_url: str
+
+    class Config:
+        from_attributes = True
+
+
+# ----- ProductoCatalogo (catálogo público landing) -----
+class ProductoCatalogoBase(BaseModel):
+    slug: str = Field(..., min_length=1, max_length=120, pattern=r"^[a-z0-9-]+$")
+    nombre: str = Field(..., min_length=1, max_length=255)
+    descripcion: Optional[str] = None
+    precio: float = 0  # 0 = precio a convenir
+    imagen_url: Optional[str] = None
+    categoria: Optional[str] = None
+    activo: bool = True
+    orden: int = 0
+
+
+class ProductoCatalogoCreate(ProductoCatalogoBase):
+    """Body para crear un producto del catálogo (admin)."""
+    pass
+
+
+class ProductoCatalogoUpdate(BaseModel):
+    """Body para editar un producto del catálogo (admin). Todos los campos son opcionales."""
+    slug: Optional[str] = Field(None, min_length=1, max_length=120, pattern=r"^[a-z0-9-]+$")
+    nombre: Optional[str] = Field(None, min_length=1, max_length=255)
+    descripcion: Optional[str] = None
+    precio: Optional[float] = None
+    imagen_url: Optional[str] = None
+    categoria: Optional[str] = None
+    activo: Optional[bool] = None
+    orden: Optional[int] = None
+
+
+class ProductoCatalogoResponse(ProductoCatalogoBase):
+    """Producto del catálogo que se muestra en la landing."""
+    id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

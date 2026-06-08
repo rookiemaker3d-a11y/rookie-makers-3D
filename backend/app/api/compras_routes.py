@@ -102,6 +102,7 @@ async def crear_orden_compra(
     ip = request.client.host if request.client else None
     orden = OrdenCompra(
         producto_id=body.producto_id,
+        producto_catalogo_id=body.producto_catalogo_id,
         producto_descripcion=body.producto_descripcion,
         precio_unitario=float(body.precio_unitario or 0),
         precio_ingresado_por_cliente=bool(body.precio_ingresado_por_cliente),

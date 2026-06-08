@@ -291,6 +291,8 @@ class OrdenCompra(Base):
     __tablename__ = "ordenes_compra"
     id = Column(Integer, primary_key=True, index=True)
     producto_id = Column(Integer, ForeignKey("productos.id", ondelete="SET NULL"), nullable=True)
+    # Si la orden viene del catálogo público, se guarda la referencia aquí.
+    producto_catalogo_id = Column(Integer, ForeignKey("productos_catalogo.id", ondelete="SET NULL"), nullable=True)
     producto_descripcion = Column(String(500), nullable=False)  # snapshot al momento de la compra
     precio_unitario = Column(Float, nullable=False, default=0)  # MXN
     precio_ingresado_por_cliente = Column(Boolean, default=False)  # True si el producto no tenía precio y el cliente lo ingresó
@@ -300,3 +302,22 @@ class OrdenCompra(Base):
     ip = Column(String(50), nullable=True)
     estado = Column(String(20), default="nueva")  # "nueva" | "contactado" | "cerrada"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ProductoCatalogo(Base):
+    """Catálogo público de productos mostrados en la landing (www.rookiemakers3d.com).
+    Norberto edita estos productos desde el ERP; la landing los consume en tiempo real.
+    NO es lo mismo que Producto (interno, para cotizaciones): éste es la vitrina pública.
+    """
+    __tablename__ = "productos_catalogo"
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String(120), unique=True, nullable=False, index=True)  # ej: 'funko-futbolista'
+    nombre = Column(String(255), nullable=False)
+    descripcion = Column(Text, nullable=True)
+    precio = Column(Float, default=0)  # 0 = "precio a convenir" (modal pide al cliente)
+    imagen_url = Column(String(500), nullable=True)  # ruta pública (/portfolio/...) o URL externa
+    categoria = Column(String(120), nullable=True)  # ej: 'Coleccionables', 'Hogar', 'Oficina'
+    activo = Column(Boolean, default=True)  # False = no se muestra en la landing
+    orden = Column(Integer, default=0)  # menor = aparece primero
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

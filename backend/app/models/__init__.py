@@ -22,6 +22,7 @@ from app.models.models import (
     WebGalleryCategory,
     WebGalleryImage,
     OrdenCompra,
+    ProductoCatalogo,
 )
 
 __all__ = [
@@ -48,4 +49,5 @@ __all__ = [
     "WebGalleryCategory",
     "WebGalleryImage",
     "OrdenCompra",
+    "ProductoCatalogo",
 ]
