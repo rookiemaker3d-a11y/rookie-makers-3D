@@ -20,6 +20,7 @@ import {
   Settings,
   FileEdit,
   ShoppingCart,
+  ShoppingBag,
   Menu,
   X as CloseIcon,
 } from 'lucide-react'
@@ -43,6 +44,7 @@ const NAV = [
   { to: '/pagina-publica', label: 'Página pública (costos)', icon: FileEdit, adminOnly: true },
   { to: '/editor-web', label: 'Editor web (archivos)', icon: FileEdit, adminOnly: true },
   { to: '/editor-galeria', label: 'Editor galería web', icon: FileEdit, adminOnly: true },
+  { to: '/catalogo-landing', label: 'Catálogo landing', icon: ShoppingBag, adminOnly: true },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
   { to: '/ventas', label: 'Ventas', icon: ShoppingCart },
   { href: '/', label: 'Web pública', icon: Globe, external: true },

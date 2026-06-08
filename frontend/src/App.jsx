@@ -24,6 +24,7 @@ import AlertasAdmin from './pages/AlertasAdmin'
 import EditorWebPublica from './pages/EditorWebPublica'
 import EditorGaleriaWeb from './pages/EditorGaleriaWeb'
 import Ventas from './pages/Ventas'
+import CatalogoLanding from './pages/CatalogoLanding'
 import Chatbot from './components/Chatbot'
 import './index.css'
 
@@ -47,6 +48,7 @@ function AppRoutes() {
         <Route path="pagina-publica" element={<AdminOnlyRoute><EditorPaginaPublica /></AdminOnlyRoute>} />
         <Route path="editor-web" element={<AdminOnlyRoute><EditorWebPublica /></AdminOnlyRoute>} />
         <Route path="editor-galeria" element={<AdminOnlyRoute><EditorGaleriaWeb /></AdminOnlyRoute>} />
+        <Route path="catalogo-landing" element={<AdminOnlyRoute><CatalogoLanding /></AdminOnlyRoute>} />
         <Route path="perfiles" element={<AdminOnlyRoute><PerfilesAdmin /></AdminOnlyRoute>} />
         <Route path="alertas" element={<AdminOnlyRoute><AlertasAdmin /></AdminOnlyRoute>} />
         <Route path="inventario" element={<Inventario />} />
