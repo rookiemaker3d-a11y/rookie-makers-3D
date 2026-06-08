@@ -56,7 +56,6 @@ export function Footer() {
             <li><a href="#services" className="hover:text-primary transition-colors">Servicios</a></li>
             <li><a href="#calculator" className="hover:text-primary transition-colors">Cotizador</a></li>
             <li><a href="#galeria" className="hover:text-primary transition-colors">Proyectos</a></li>
-            <li><a href="#redes" className="hover:text-primary transition-colors">Redes Sociales</a></li>
             <li><a href="#contact" className="hover:text-primary transition-colors">Contacto</a></li>
             <li>
               <a href={erpLoginUrl()} className="hover:text-primary transition-colors font-medium text-primary/90">

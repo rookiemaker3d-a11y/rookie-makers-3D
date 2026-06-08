@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ExternalLink, Play } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { SiInstagram, SiTiktok, SiFacebook } from "react-icons/si";
 
 const INSTAGRAM_URL = "https://www.instagram.com/rookiemakers3d";
@@ -39,36 +39,6 @@ const platforms = [
     border: "border-blue-500/30",
     followers: "Síguenos en Facebook",
     description: "Actualizaciones, precios, promociones y atención al cliente directa.",
-  },
-];
-
-const videoLinks = [
-  {
-    platform: "Instagram",
-    icon: SiInstagram,
-    color: "text-pink-500",
-    borderColor: "border-pink-500/40",
-    bgColor: "bg-pink-500/10",
-    label: "Ver Reels en Instagram",
-    url: `${INSTAGRAM_URL}/reels/`,
-  },
-  {
-    platform: "TikTok",
-    icon: SiTiktok,
-    color: "text-red-400",
-    borderColor: "border-red-400/40",
-    bgColor: "bg-red-400/10",
-    label: "Ver Videos en TikTok",
-    url: TIKTOK_URL,
-  },
-  {
-    platform: "Facebook",
-    icon: SiFacebook,
-    color: "text-blue-500",
-    borderColor: "border-blue-500/40",
-    bgColor: "bg-blue-500/10",
-    label: "Ver Videos en Facebook",
-    url: `${FACEBOOK_URL}&sk=videos`,
   },
 ];
 
@@ -117,7 +87,7 @@ export function SocialFeed() {
 
         {/* Platform Cards */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -161,52 +131,6 @@ export function SocialFeed() {
             );
           })}
         </motion.div>
-
-        {/* (Se quitó banner duplicado de redes; dejamos un solo apartado + links de videos) */}
-
-        {/* Video section — quick links */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-        >
-          <h3 className="text-xl font-bold font-sans text-foreground mb-6 flex items-center gap-3">
-            <Play className="text-primary w-5 h-5" />
-            Videos y Reels
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {videoLinks.map((v) => {
-              const Icon = v.icon;
-              return (
-                <motion.a
-                  key={v.platform}
-                  href={v.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-testid={`link-video-${v.platform.toLowerCase()}`}
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
-                  className={`flex items-center gap-4 p-5 rounded-xl border ${v.borderColor} ${v.bgColor} glass-panel group transition-all duration-200`}
-                >
-                  <div className={`p-3 rounded-lg ${v.bgColor} border ${v.borderColor}`}>
-                    <Icon className={`w-6 h-6 ${v.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-bold text-sm font-sans ${v.color}`}>{v.platform}</p>
-                    <p className="text-xs text-muted-foreground font-mono truncate">{v.label}</p>
-                  </div>
-                  <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary flex-shrink-0 transition-colors" />
-                </motion.a>
-              );
-            })}
-          </div>
-
-          <p className="text-center text-sm text-muted-foreground font-mono mt-8 max-w-xl mx-auto">
-            Haz click en cualquier red para ver nuestro contenido mas reciente de impresion 3D, time-lapses y proyectos especiales.
-          </p>
-        </motion.div>
-
       </div>
     </section>
   );
