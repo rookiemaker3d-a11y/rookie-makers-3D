@@ -79,7 +79,10 @@
       "Bash(cmdkey /list)",
       "Bash(findstr github *)",
       "PowerShell(cmdkey *)",
-      "PowerShell(gh *)"
+      "PowerShell(gh *)",
+      "Bash(dir package.json)",
+      "PowerShell(pnpm run *)",
+      "PowerShell(pnpm install *)"
     ]
   }
 }
