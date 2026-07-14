@@ -147,7 +147,7 @@ export default function EditorPaginaPublica() {
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={`${row.id}-${i}`} className="border-b border-white/5">
+                  <tr key={`row-${i}`} className="border-b border-white/5">
                     <td className="p-2">
                       <input
                         value={row.id}

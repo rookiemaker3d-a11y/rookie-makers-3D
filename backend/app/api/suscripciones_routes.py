@@ -87,7 +87,7 @@ async def solicitar_pago(body: dict, db: AsyncSession = Depends(get_db), _admin=
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
     rp = await db.execute(select(PlanSuscripcion).where(PlanSuscripcion.role == plan_role, PlanSuscripcion.activo == True))
-    plan = rp.scalar_one_or_none()
+    plan = rp.scalars().first()
     if not plan:
         raise HTTPException(status_code=400, detail="Plan no encontrado o inactivo para ese rol")
 

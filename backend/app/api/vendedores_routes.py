@@ -48,7 +48,7 @@ async def create_vendedor(
     if not correo:
         raise HTTPException(status_code=400, detail="El correo es obligatorio")
     existing_v = await db.execute(select(Vendedor).where(Vendedor.correo == correo))
-    if existing_v.scalar_one_or_none():
+    if existing_v.scalars().first():
         raise HTTPException(status_code=400, detail="Ya existe un diseñador/vendedor con ese correo")
     if body.password:
         existing_u = await db.execute(select(User).where(User.email == correo))
@@ -119,7 +119,7 @@ async def update_vendedor(
     await db.commit()
     await db.refresh(v)
     user_id = None
-    u = (await db.execute(select(User).where(User.vendedor_id == v.id))).scalar_one_or_none()
+    u = (await db.execute(select(User).where(User.vendedor_id == v.id))).scalars().first()
     if u:
         user_id = u.id
     return VendedorResponse(

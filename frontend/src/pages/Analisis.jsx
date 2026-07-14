@@ -62,13 +62,13 @@ export default function Analisis() {
   useEffect(() => {
     Promise.all([
       api('/dashboard/totals').then((r) => r.ok ? r.json() : {}),
-      api(isAdmin ? '/productos' : '/productos?for_analysis=1').then((r) => r.json()),
-      api('/cotizaciones-en-espera').then((r) => r.json()),
+      api(isAdmin ? '/productos' : '/productos?for_analysis=1').then((r) => (r.ok ? r.json() : [])),
+      api('/cotizaciones-en-espera').then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([t, p, c]) => {
         setTotals(t || {})
-        setProductos(p || [])
-        setCotizaciones(c || [])
+        setProductos(Array.isArray(p) ? p : [])
+        setCotizaciones(Array.isArray(c) ? c : [])
       })
       .finally(() => setLoading(false))
   }, [api, isAdmin])

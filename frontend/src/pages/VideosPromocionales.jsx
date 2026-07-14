@@ -32,36 +32,54 @@ export default function VideosPromocionales() {
       setMsg('Título y URL son obligatorios.')
       return
     }
+    if (!/^https?:\/\//i.test(form.url)) {
+      setError('La URL debe empezar con http:// o https://')
+      return
+    }
     setError('')
     setMsg('')
     try {
       if (editingId) {
-        await api(`/videos-promocionales/${editingId}`, {
+        const res = await api(`/videos-promocionales/${editingId}`, {
           method: 'PUT',
           body: JSON.stringify(form),
         })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          setError(res.status === 403 ? 'No tienes permiso para esta acción.' : (d.detail || 'Error al guardar.'))
+          return
+        }
         setMsg('Video actualizado.')
       } else {
-        await api('/videos-promocionales', {
+        const res = await api('/videos-promocionales', {
           method: 'POST',
           body: JSON.stringify(form),
         })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          setError(res.status === 403 ? 'No tienes permiso para esta acción.' : (d.detail || 'Error al guardar.'))
+          return
+        }
         setMsg(isAdmin ? 'Video agregado (aprobado).' : 'Solicitud enviada. Espera la aprobación del administrador.')
       }
       setForm({ titulo: '', url: '', red: 'TikTok' })
       setEditingId(null)
       load()
     } catch (err) {
-      setError(err.status === 403 ? 'No tienes permiso para esta acción.' : 'Error al guardar.')
+      setError('Error al guardar.')
     }
   }
 
   const approveOne = async (id) => {
     try {
-      await api(`/videos-promocionales/${id}`, {
+      const res = await api(`/videos-promocionales/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ estado: 'aprobado' }),
       })
+      if (!res.ok) {
+        setError(res.status === 403 ? 'No tienes permiso para aprobar.' : 'Error al aprobar.')
+        return
+      }
       setMsg('Video aprobado.')
       load()
     } catch {
@@ -72,11 +90,15 @@ export default function VideosPromocionales() {
   const deleteOne = async (id) => {
     if (!confirm('¿Eliminar este video?')) return
     try {
-      await api(`/videos-promocionales/${id}`, { method: 'DELETE' })
+      const res = await api(`/videos-promocionales/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        setError(res.status === 403 ? 'Solo administrador puede eliminar.' : 'Error al eliminar.')
+        return
+      }
       load()
       setMsg('Video eliminado.')
     } catch {
-      setError('Solo administrador puede eliminar.')
+      setError('Error al eliminar.')
     }
   }
 
@@ -186,7 +208,11 @@ export default function VideosPromocionales() {
               {v.solicitante && <span className="text-xs theme-text-muted">por {v.solicitante}</span>}
             </div>
             <p className="font-medium theme-text">{v.titulo}</p>
-            <a href={v.url} target="_blank" rel="noopener noreferrer" className="theme-text-muted text-sm hover:text-cyan-500 truncate block max-w-md">{v.url}</a>
+            {/^https?:\/\//i.test(v.url) ? (
+              <a href={v.url} target="_blank" rel="noopener noreferrer" className="theme-text-muted text-sm hover:text-cyan-500 truncate block max-w-md">{v.url}</a>
+            ) : (
+              <span className="theme-text-muted text-sm truncate block max-w-md">{v.url}</span>
+            )}
           </div>
           {isAdmin && (
             <div className="flex gap-2 flex-wrap">

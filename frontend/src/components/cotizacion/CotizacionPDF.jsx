@@ -124,7 +124,8 @@ export default function CotizacionPDF({
   const envio = Number(envioProp) || 0
   const empaque = Number(empaqueProp) || 0
   const precioCliente = Number(d.precioCliente) || 0
-  const total = Number(totalFinalProp) || (hasLineas ? (Number(subTotalProp) || 0) - descuento + envio + empaque : precioCliente - descuento + envio + empaque)
+  const totalFinalNum = totalFinalProp != null && totalFinalProp !== '' && !Number.isNaN(Number(totalFinalProp)) ? Number(totalFinalProp) : null
+  const total = totalFinalNum != null ? totalFinalNum : (hasLineas ? (Number(subTotalProp) || 0) - descuento + envio + empaque : precioCliente - descuento + envio + empaque)
   const subTotal = hasLineas ? (Number(subTotalProp) || 0) : (precioCliente || total)
   const partidas = hasLineas
     ? lineas

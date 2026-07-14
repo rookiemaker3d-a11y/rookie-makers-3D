@@ -1,0 +1,4 @@
+# Dependencias de desarrollo/test. Instalar con: pip install -r requirements-dev.txt
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0

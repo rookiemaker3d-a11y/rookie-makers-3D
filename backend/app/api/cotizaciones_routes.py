@@ -191,7 +191,7 @@ async def _descontar_inventario(db: AsyncSession, detalles: dict, vendedor_nombr
     # --- 1. Buscar vendedor por nombre para obtener su ID ---
     vendedor_id: int | None = None
     vend_result = await db.execute(select(Vendedor).where(Vendedor.nombre == vendedor_nombre))
-    vend = vend_result.scalar_one_or_none()
+    vend = vend_result.scalars().first()
     if vend:
         vendedor_id = vend.id
 

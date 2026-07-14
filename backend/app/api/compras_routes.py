@@ -9,6 +9,7 @@ Flujo:
 6. Se devuelve al frontend el link wa.me/5214721488913?text=... pre-armado
 """
 from urllib.parse import quote
+import html
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -52,6 +53,10 @@ def _armar_email_orden(orden: OrdenCompra) -> tuple[str, str, str]:
             "</p>"
         )
     asunto = f"🛒 Nueva orden de compra #{orden.id} - {orden.producto_descripcion}"
+    # Escapar campos controlados por el cliente para evitar inyección HTML/phishing en el email.
+    prod_esc = html.escape(orden.producto_descripcion or "")
+    nombre_esc = html.escape(orden.cliente_nombre or "")
+    mensaje_html = html.escape(orden.cliente_mensaje) if orden.cliente_mensaje else "<em>(sin mensaje)</em>"
     texto = (
         f"Nueva orden de compra desde la landing\n\n"
         f"ID: #{orden.id}\n"
@@ -71,13 +76,13 @@ def _armar_email_orden(orden: OrdenCompra) -> tuple[str, str, str]:
         <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;width:35%;">ID</td>
             <td style="padding:8px;border:1px solid #e5e7eb;">#{orden.id}</td></tr>
         <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;">Producto</td>
-            <td style="padding:8px;border:1px solid #e5e7eb;">{orden.producto_descripcion}</td></tr>
+            <td style="padding:8px;border:1px solid #e5e7eb;">{prod_esc}</td></tr>
         <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;">Precio</td>
             <td style="padding:8px;border:1px solid #e5e7eb;"><strong>{precio_fmt}</strong></td></tr>
         <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;">Cliente</td>
-            <td style="padding:8px;border:1px solid #e5e7eb;">{orden.cliente_nombre}</td></tr>
+            <td style="padding:8px;border:1px solid #e5e7eb;">{nombre_esc}</td></tr>
         <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;">Mensaje</td>
-            <td style="padding:8px;border:1px solid #e5e7eb;">{orden.cliente_mensaje or '<em>(sin mensaje)</em>'}</td></tr>
+            <td style="padding:8px;border:1px solid #e5e7eb;">{mensaje_html}</td></tr>
         <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;">Fecha</td>
             <td style="padding:8px;border:1px solid #e5e7eb;">{orden.created_at.isoformat() if orden.created_at else 'N/A'}</td></tr>
         <tr><td style="padding:8px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:bold;">IP</td>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Shield, ShieldCheck, ShieldOff } from 'lucide-react'
+import QRCode from 'qrcode'
 import { useAuth } from '../context/AuthContext'
 
 export default function Seguridad() {
@@ -9,6 +10,7 @@ export default function Seguridad() {
   const [msg, setMsg] = useState('')
   const [step, setStep] = useState('idle')
   const [qrUri, setQrUri] = useState('')
+  const [qrDataUrl, setQrDataUrl] = useState('')
   const [code, setCode] = useState('')
   const [desbloqueoEmail, setDesbloqueoEmail] = useState('')
   const [desbloqueoMsg, setDesbloqueoMsg] = useState('')
@@ -25,12 +27,21 @@ export default function Seguridad() {
     setMsg('')
     setStep('setup')
     setQrUri('')
+    setQrDataUrl('')
     setCode('')
     try {
       const res = await api('/auth/mfa/setup', { method: 'POST' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail || 'Error')
-      setQrUri(data.provisioning_uri || '')
+      const uri = data.provisioning_uri || ''
+      setQrUri(uri)
+      // Generar el QR localmente para no enviar el secreto TOTP a un servicio externo.
+      try {
+        const dataUrl = await QRCode.toDataURL(uri, { width: 200, margin: 1 })
+        setQrDataUrl(dataUrl)
+      } catch {
+        setQrDataUrl('')
+      }
       setStep('confirm')
       setMsg('Escanea el QR con Google Authenticator o Authy e introduce el código de 6 dígitos.')
     } catch (e) {
@@ -137,7 +148,14 @@ export default function Seguridad() {
           <div className="space-y-4">
             <p className="text-sm theme-text-muted">Escanea el QR con tu app e introduce el código:</p>
             <div className="flex justify-center">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrUri)}`} alt="QR MFA" className="rounded-lg border" style={{ borderColor: 'var(--theme-border)' }} />
+              {qrDataUrl ? (
+                <img src={qrDataUrl} alt="QR MFA" className="rounded-lg border" style={{ borderColor: 'var(--theme-border)' }} />
+              ) : (
+                <div className="rounded-lg border p-3 text-xs theme-text-muted" style={{ borderColor: 'var(--theme-border)' }}>
+                  No se pudo generar el QR. Copia este URI en tu app:<br />
+                  <code className="break-all">{qrUri}</code>
+                </div>
+              )}
             </div>
             <form onSubmit={handleConfirm} className="flex gap-2 items-end">
               <input type="text" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" className="flex-1 px-4 py-2 rounded-xl border text-center text-lg tracking-widest" style={{ background: 'var(--theme-input-bg)', borderColor: 'var(--theme-border)', color: 'var(--theme-text)' }} />

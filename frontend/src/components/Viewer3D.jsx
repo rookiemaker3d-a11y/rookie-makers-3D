@@ -1,16 +1,27 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
 
 export default function Viewer3D({ stlBlob, onClose }) {
   const containerRef = useRef(null)
   const sceneRef = useRef(null)
+  const [webglError, setWebglError] = useState(false)
 
   useEffect(() => {
     if (!containerRef.current || !stlBlob) return
 
     const width = containerRef.current.clientWidth
     const height = containerRef.current.clientHeight
+
+    let renderer
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true })
+    } catch (err) {
+      console.error('WebGL no disponible:', err)
+      setWebglError(true)
+      return
+    }
+
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x1e293b)
     sceneRef.current = scene
@@ -19,7 +30,6 @@ export default function Viewer3D({ stlBlob, onClose }) {
     camera.position.set(80, 80, 80)
     camera.lookAt(0, 0, 0)
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     containerRef.current.appendChild(renderer.domElement)
@@ -34,6 +44,7 @@ export default function Viewer3D({ stlBlob, onClose }) {
 
     const loader = new STLLoader()
     const url = URL.createObjectURL(stlBlob)
+    let loadedMesh = null
     loader.load(
       url,
       (geometry) => {
@@ -44,6 +55,7 @@ export default function Viewer3D({ stlBlob, onClose }) {
           specular: 0x444444,
         })
         const mesh = new THREE.Mesh(geometry, mat)
+        loadedMesh = mesh
         scene.add(mesh)
         URL.revokeObjectURL(url)
       },
@@ -71,8 +83,14 @@ export default function Viewer3D({ stlBlob, onClose }) {
     return () => {
       window.removeEventListener('resize', onResize)
       cancelAnimationFrame(frame)
+      if (loadedMesh) {
+        loadedMesh.geometry?.dispose?.()
+        loadedMesh.material?.dispose?.()
+        scene.remove(loadedMesh)
+      }
       renderer.dispose()
       if (containerRef.current?.contains(renderer.domElement)) containerRef.current.removeChild(renderer.domElement)
+      URL.revokeObjectURL(url)
     }
   }, [stlBlob])
 
@@ -83,7 +101,13 @@ export default function Viewer3D({ stlBlob, onClose }) {
           <span className="font-semibold text-white">Vista previa 3D</span>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded">✕</button>
         </div>
-        <div ref={containerRef} className="w-full flex-1 min-h-[400px]" />
+        <div ref={containerRef} className="w-full flex-1 min-h-[400px]">
+          {webglError && (
+            <div className="flex items-center justify-center h-full p-6 text-center text-slate-300 text-sm">
+              Tu dispositivo o navegador no soporta WebGL, por lo que no se puede mostrar la vista previa 3D. Descarga el STL para visualizarlo en tu software de rebanado.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -31,7 +31,7 @@ async def generate_quote_pdf(
     vendedor_banco = ""
     vendedor_cuenta = ""
     res = await db.execute(select(Vendedor).where(Vendedor.nombre == body.vendedor_nombre))
-    v = res.scalar_one_or_none()
+    v = res.scalars().first()
     if v:
         vendedor_banco = v.banco or ""
         vendedor_cuenta = v.cuenta or ""
