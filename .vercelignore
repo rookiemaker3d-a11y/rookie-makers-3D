@@ -5,11 +5,6 @@ imagenes
 Paginaweb
 backend
 *.zip
-*.jpg
-*.png
-*.jpeg
-*.gif
-*.pdf
 *.db
 *.sqlite
 backend/rookie_erp.db
