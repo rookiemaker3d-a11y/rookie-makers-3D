@@ -6,7 +6,7 @@ from sqlalchemy import select, delete
 
 from app.database import get_db
 from app.auth import require_user, get_vendedor_from_user
-from app.models import CotizacionEnEspera, Producto, Vendedor, ArchivoCotizacion, InventarioFilamento, InventarioItem
+from app.models import CotizacionEnEspera, Producto, Vendedor, ArchivoCotizacion, InventarioFilamento, InventarioItem, Venta
 from app.schemas import CotizacionEnEsperaCreate, CotizacionEnEsperaResponse
 from app.config import get_settings
 from app.email_service import send_cotizacion_lista_notification
@@ -314,6 +314,7 @@ async def autorizar_venta(
             warnings = await _descontar_inventario(db, d, c.vendedor or "")
             all_warnings.extend(warnings)
 
+            venta_lineas = []
             # Si la cotización trae múltiples partidas (Nueva cotización), decidir si se autoriza como kit o por partida
             if isinstance(lineas, list) and len(lineas) > 0:
                 if modo == "kit":
@@ -327,6 +328,13 @@ async def autorizar_venta(
                         detalles={**detalles_producto, "tipo_producto": "kit"},
                     )
                     db.add(p)
+                    venta_lineas.append({
+                        "descripcion": f"KIT: {nombre}",
+                        "cantidad": 1,
+                        "costo_unitario": float(c.costo_base or 0),
+                        "precio_unitario": float(c.costo_final or 0),
+                        "subtotal": float(c.costo_final or 0),
+                    })
                 else:
                     # Un producto por partida
                     for l in lineas:
@@ -345,7 +353,15 @@ async def autorizar_venta(
                             detalles={**detalles_producto, "tipo_producto": "unico", "linea": l},
                         )
                         db.add(p)
-                await db.delete(c)
+                        unit_cost = (costo_base_total / cant) if cant else costo_base_total
+                        unit_price = (costo_final / cant) if cant else costo_final
+                        venta_lineas.append({
+                            "descripcion": nombre_prod,
+                            "cantidad": cant,
+                            "costo_unitario": unit_cost,
+                            "precio_unitario": unit_price,
+                            "subtotal": costo_final,
+                        })
             else:
                 # Cotización simple (una sola pieza)
                 p = Producto(
@@ -357,7 +373,33 @@ async def autorizar_venta(
                     detalles=detalles_producto,
                 )
                 db.add(p)
-                await db.delete(c)
+                cant = float(c.cantidad or 1)
+                venta_lineas.append({
+                    "descripcion": c.descripcion or "Producto",
+                    "cantidad": cant,
+                    "costo_unitario": float(c.costo_base or 0) / cant if cant else float(c.costo_base or 0),
+                    "precio_unitario": float(c.costo_final or 0) / cant if cant else float(c.costo_final or 0),
+                    "subtotal": float(c.costo_final or 0),
+                })
+
+            # Contabilidad: registrar venta con costos al autorizar
+            cliente_nombre = None
+            if isinstance(d, dict):
+                cliente_nombre = (d.get("cliente_nombre") or d.get("cliente") or "").strip() or None
+            total_venta = sum(float(x.get("subtotal") or 0) for x in venta_lineas) or float(c.costo_final or 0)
+            costo_total = sum(
+                float(x.get("costo_unitario") or 0) * float(x.get("cantidad") or 1) for x in venta_lineas
+            ) or float(c.costo_base or 0)
+            db.add(Venta(
+                cliente_nombre=cliente_nombre,
+                productos=venta_lineas,
+                total=total_venta,
+                ganancia_neta=round(total_venta - costo_total, 2),
+                vendedor=c.vendedor or "sistema",
+                fecha=(c.fecha or date.today().isoformat())[:10],
+                notas=f"Autorizado desde cotización #{c.id}: {c.descripcion or ''}".strip(),
+            ))
+            await db.delete(c)
     await db.commit()
     return {"ok": True, "count": len(ids), "warnings": all_warnings or None}
 

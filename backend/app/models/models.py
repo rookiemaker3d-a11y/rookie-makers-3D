@@ -115,9 +115,27 @@ class ArchivoCotizacion(Base):
 
 
 class CotizacionServicio(Base):
+    """Cotización de servicio / reparación de impresoras 3D."""
     __tablename__ = "cotizaciones_servicios"
     id = Column(Integer, primary_key=True, index=True)
-    items = Column(JSON, default=list)  # lista de {vendedor, descripcion, cantidad, horas, costo_final, fecha}
+    # Legacy: lista simple; se mantiene por compatibilidad
+    items = Column(JSON, default=list)
+    vendedor = Column(String(255), nullable=True)
+    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=True)
+    cliente_nombre = Column(String(255), nullable=True)
+    marca_impresora = Column(String(100), nullable=True)  # Creality, Bambu Lab, Anycubic, ...
+    modelo_impresora = Column(String(255), nullable=True)  # texto libre (Ender 3, X1C, etc.)
+    descripcion = Column(String(500), nullable=True)
+    trabajo_realizado = Column(Text, nullable=True)  # reporte final de lo hecho
+    costo_reparacion = Column(Float, default=0)  # mano de obra / cargo
+    materiales = Column(JSON, default=list)  # [{nombre, cantidad, costo_unitario, subtotal}]
+    porcentaje_ganancia = Column(Float, default=30)
+    costo_base = Column(Float, default=0)  # reparación + materiales
+    costo_final = Column(Float, default=0)  # con margen
+    estado = Column(String(30), default="cotizando")  # cotizando | espera_confirmacion | pagado | terminado
+    fecha = Column(String(20), nullable=True)
+    venta_id = Column(Integer, ForeignKey("ventas.id"), nullable=True)
+    fotos = Column(JSON, default=list)  # data URLs de fotos del arreglo (antes/después)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

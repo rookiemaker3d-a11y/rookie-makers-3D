@@ -300,6 +300,54 @@ def _seed_default_planes_suscripcion(sync_conn):
             pass
 
 
+def _migrate_cotizaciones_servicios_reparacion(sync_conn):
+    """Amplía cotizaciones_servicios para flujo de reparación de impresoras."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS vendedor VARCHAR(255)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS cliente_id INTEGER",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS cliente_nombre VARCHAR(255)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS marca_impresora VARCHAR(100)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS modelo_impresora VARCHAR(255)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS descripcion VARCHAR(500)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS trabajo_realizado TEXT",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS costo_reparacion DOUBLE PRECISION DEFAULT 0",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS materiales JSONB DEFAULT '[]'::jsonb",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS porcentaje_ganancia DOUBLE PRECISION DEFAULT 30",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS costo_base DOUBLE PRECISION DEFAULT 0",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS costo_final DOUBLE PRECISION DEFAULT 0",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS estado VARCHAR(30) DEFAULT 'cotizando'",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS fecha VARCHAR(20)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS venta_id INTEGER",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN IF NOT EXISTS fotos JSONB DEFAULT '[]'::jsonb",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN vendedor VARCHAR(255)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN cliente_id INTEGER",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN cliente_nombre VARCHAR(255)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN marca_impresora VARCHAR(100)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN modelo_impresora VARCHAR(255)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN descripcion VARCHAR(500)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN trabajo_realizado TEXT",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN costo_reparacion FLOAT DEFAULT 0",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN materiales JSON",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN porcentaje_ganancia FLOAT DEFAULT 30",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN costo_base FLOAT DEFAULT 0",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN costo_final FLOAT DEFAULT 0",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN estado VARCHAR(30) DEFAULT 'cotizando'",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN fecha VARCHAR(20)",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN venta_id INTEGER",
+            "ALTER TABLE cotizaciones_servicios ADD COLUMN fotos JSON",
+        ]
+    for stmt in stmts:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -313,3 +361,4 @@ async def init_db():
         await conn.run_sync(_migrate_add_user_horas_disenador)
         await conn.run_sync(_migrate_app_settings)
         await conn.run_sync(_seed_default_planes_suscripcion)
+        await conn.run_sync(_migrate_cotizaciones_servicios_reparacion)

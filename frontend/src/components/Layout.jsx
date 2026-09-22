@@ -23,6 +23,8 @@ import {
   ShoppingBag,
   Menu,
   X as CloseIcon,
+  Wrench,
+  Landmark,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -34,6 +36,8 @@ const NAV = [
   { to: '/productos', label: 'Productos', icon: Package },
   { to: '/inventario', label: 'Inventario', icon: Boxes },
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
+  { to: '/servicios', label: 'Servicio / reparación', icon: Wrench },
+  { to: '/contabilidad', label: 'Contabilidad', icon: Landmark },
   { to: '/clientes', label: 'Clientes', icon: Users },
   { to: '/vendedores', label: 'Diseñadores', icon: UserCog, adminOnly: true },
   { to: '/perfiles', label: 'Perfiles y suscripción', icon: Shield, adminOnly: true },
@@ -56,6 +60,8 @@ const NAV_VENDEDOR_VENTAS = [
   { to: '/productos', label: 'Productos', icon: Package },
   { to: '/cotizacion/nueva', label: 'Nueva cotización', icon: Calculator },
   { to: '/cotizaciones-espera', label: 'Cotizaciones espera', icon: FileText },
+  { to: '/servicios', label: 'Servicio / reparación', icon: Wrench },
+  { to: '/contabilidad', label: 'Contabilidad', icon: Landmark },
   { to: '/configuracion', label: 'Configuración', icon: Settings },
   { to: '/analisis', label: 'Análisis', icon: BarChart3 },
   { to: '/ventas', label: 'Ventas', icon: ShoppingCart },
