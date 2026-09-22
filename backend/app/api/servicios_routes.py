@@ -47,10 +47,28 @@ def _norm_estado(estado: str | None) -> str:
     return e
 
 
+CONCEPTOS_CATALOGO = [
+    {"id": "S001", "concepto": "Mantenimiento", "descripcion": "Limpieza y lubricación", "precio": 300.0},
+    {"id": "S002", "concepto": "Reparación", "descripcion": "Reparación de daños en impresión", "precio": 500.0},
+    {"id": "S003", "concepto": "Diagnóstico", "descripcion": "Diagnóstico técnico", "precio": 200.0},
+]
+
+
 class MaterialItem(BaseModel):
+    id: str | None = None
     nombre: str = ""
+    descripcion: str | None = None
     cantidad: float = 1
     costo_unitario: float = 0
+    subtotal: float | None = None
+
+
+class ConceptoItem(BaseModel):
+    id: str = ""
+    concepto: str = ""
+    descripcion: str = ""
+    precio: float = 0
+    cantidad: float = 1
     subtotal: float | None = None
 
 
@@ -62,6 +80,7 @@ class CotizacionServicioCreate(BaseModel):
     descripcion: str | None = None
     trabajo_realizado: str | None = None
     costo_reparacion: float = 0
+    conceptos: list[ConceptoItem] = Field(default_factory=list)
     materiales: list[MaterialItem] = Field(default_factory=list)
     porcentaje_ganancia: float = 30
     fecha: str | None = None
@@ -77,6 +96,7 @@ class CotizacionServicioUpdate(BaseModel):
     descripcion: str | None = None
     trabajo_realizado: str | None = None
     costo_reparacion: float | None = None
+    conceptos: list[ConceptoItem] | None = None
     materiales: list[MaterialItem] | None = None
     porcentaje_ganancia: float | None = None
     fecha: str | None = None
@@ -84,7 +104,37 @@ class CotizacionServicioUpdate(BaseModel):
     fotos: list[str] | None = None
 
 
-def _calc_costos(costo_reparacion: float, materiales: list, porcentaje_ganancia: float):
+def _norm_conceptos(conceptos: list | None) -> list[dict]:
+    out = []
+    for c in conceptos or []:
+        if hasattr(c, "model_dump"):
+            c = c.model_dump()
+        cid = (c.get("id") or "").strip().upper()
+        cant = float(c.get("cantidad") or 1)
+        precio = float(c.get("precio") or 0)
+        sub = float(c.get("subtotal") if c.get("subtotal") is not None else cant * precio)
+        out.append({
+            "id": cid or "S—",
+            "concepto": (c.get("concepto") or c.get("nombre") or "").strip() or "Servicio",
+            "descripcion": (c.get("descripcion") or "").strip(),
+            "precio": round(precio, 2),
+            "cantidad": cant,
+            "subtotal": round(sub, 2),
+        })
+    return out
+
+
+def _calc_costos(
+    costo_reparacion: float,
+    materiales: list,
+    porcentaje_ganancia: float,
+    conceptos: list | None = None,
+):
+    conceptos_n = _norm_conceptos(conceptos)
+    conceptos_total = sum(float(c["subtotal"]) for c in conceptos_n)
+    # Si hay conceptos catalogados, ellos definen la mano de obra; si no, usa costo_reparacion legacy
+    mano_obra = conceptos_total if conceptos_n else float(costo_reparacion or 0)
+
     mats = []
     mats_total = 0.0
     for m in materiales or []:
@@ -94,16 +144,18 @@ def _calc_costos(costo_reparacion: float, materiales: list, porcentaje_ganancia:
         cu = float(m.get("costo_unitario") or 0)
         sub = float(m.get("subtotal") if m.get("subtotal") is not None else cant * cu)
         mats.append({
+            "id": (m.get("id") or "").strip() or None,
             "nombre": (m.get("nombre") or "").strip() or "Material",
+            "descripcion": (m.get("descripcion") or "").strip() or None,
             "cantidad": cant,
             "costo_unitario": cu,
             "subtotal": round(sub, 2),
         })
         mats_total += sub
-    base = round(float(costo_reparacion or 0) + mats_total, 2)
+    base = round(mano_obra + mats_total, 2)
     pct = float(porcentaje_ganancia or 0)
     final = round(base * (1 + pct / 100.0), 2)
-    return mats, base, final
+    return conceptos_n, mats, base, final, mano_obra
 
 
 def _vendedor_nombre(user, vendedor) -> str:
@@ -123,6 +175,7 @@ def _to_dict(c: CotizacionServicio) -> dict:
         "descripcion": c.descripcion,
         "trabajo_realizado": c.trabajo_realizado,
         "costo_reparacion": c.costo_reparacion or 0,
+        "conceptos": c.items or [],
         "materiales": c.materiales or [],
         "porcentaje_ganancia": c.porcentaje_ganancia or 0,
         "costo_base": c.costo_base or 0,
@@ -144,6 +197,12 @@ async def list_servicios(db: AsyncSession = Depends(get_db), _user=Depends(requi
         {"id": s.id, "nombre": s.nombre, "tarifa_fija": s.tarifa_fija, "tarifa_por_hora": s.tarifa_por_hora}
         for s in result.scalars().all()
     ]
+
+
+@router.get("/conceptos")
+async def list_conceptos_servicio(_user=Depends(require_user)):
+    """Catálogo fijo: S001 Mantenimiento, S002 Reparación, S003 Diagnóstico."""
+    return CONCEPTOS_CATALOGO
 
 
 @router.get("/marcas-impresora")
@@ -191,7 +250,12 @@ async def create_cotizacion_servicio(
     user=Depends(require_user),
     vendedor=Depends(get_vendedor_from_user),
 ):
-    mats, base, final = _calc_costos(body.costo_reparacion, body.materiales, body.porcentaje_ganancia)
+    conceptos, mats, base, final, mano_obra = _calc_costos(
+        body.costo_reparacion,
+        body.materiales,
+        body.porcentaje_ganancia,
+        body.conceptos,
+    )
     c = CotizacionServicio(
         vendedor=_vendedor_nombre(user, vendedor),
         cliente_id=body.cliente_id,
@@ -200,7 +264,7 @@ async def create_cotizacion_servicio(
         modelo_impresora=body.modelo_impresora,
         descripcion=body.descripcion,
         trabajo_realizado=body.trabajo_realizado,
-        costo_reparacion=body.costo_reparacion or 0,
+        costo_reparacion=mano_obra,
         materiales=mats,
         porcentaje_ganancia=body.porcentaje_ganancia or 0,
         costo_base=base,
@@ -208,7 +272,7 @@ async def create_cotizacion_servicio(
         estado=_norm_estado(body.estado or "cotizando"),
         fecha=(body.fecha or date.today().isoformat())[:10],
         fotos=(body.fotos or [])[:8],
-        items=[],
+        items=conceptos,
     )
     db.add(c)
     await db.flush()
@@ -230,7 +294,6 @@ async def update_cotizacion_servicio(
     if not c:
         raise HTTPException(status_code=404, detail="Cotización de servicio no encontrada")
     if _norm_estado(c.estado) == "terminado" and user.role != "administrador":
-        # Solo permitir avanzar notas/informe; no borrar costos
         if body.estado is not None and _norm_estado(body.estado) != "terminado":
             raise HTTPException(status_code=400, detail="Servicio terminado; solo admin puede cambiar estado")
     if user.role == "vendedor" and vendedor and c.vendedor != vendedor.nombre:
@@ -240,6 +303,7 @@ async def update_cotizacion_servicio(
 
     data = body.model_dump(exclude_unset=True)
     mats_in = data.pop("materiales", None)
+    conceptos_in = data.pop("conceptos", None)
     if "estado" in data and data["estado"] is not None:
         data["estado"] = _norm_estado(data["estado"])
     if "fotos" in data and data["fotos"] is not None:
@@ -249,9 +313,13 @@ async def update_cotizacion_servicio(
     costo_rep = c.costo_reparacion if body.costo_reparacion is None else body.costo_reparacion
     pct = c.porcentaje_ganancia if body.porcentaje_ganancia is None else body.porcentaje_ganancia
     mats_src = mats_in if mats_in is not None else (c.materiales or [])
-    mats, base, final = _calc_costos(costo_rep or 0, mats_src, pct or 0)
+    conceptos_src = conceptos_in if conceptos_in is not None else (c.items or [])
+    conceptos, mats, base, final, mano_obra = _calc_costos(
+        costo_rep or 0, mats_src, pct or 0, conceptos_src
+    )
+    c.items = conceptos
     c.materiales = mats
-    c.costo_reparacion = costo_rep or 0
+    c.costo_reparacion = mano_obra
     c.porcentaje_ganancia = pct or 0
     c.costo_base = base
     c.costo_final = final
@@ -279,8 +347,12 @@ async def finalizar_cotizacion_servicio(
     if _norm_estado(c.estado) == "terminado" and c.venta_id:
         return {"ok": True, "already": True, **_to_dict(c)}
 
-    mats, base, final = _calc_costos(c.costo_reparacion or 0, c.materiales or [], c.porcentaje_ganancia or 0)
+    conceptos, mats, base, final, mano_obra = _calc_costos(
+        c.costo_reparacion or 0, c.materiales or [], c.porcentaje_ganancia or 0, c.items or []
+    )
+    c.items = conceptos
     c.materiales = mats
+    c.costo_reparacion = mano_obra
     c.costo_base = base
     c.costo_final = final
 
@@ -293,9 +365,16 @@ async def finalizar_cotizacion_servicio(
         f"Equipo: {equipo}",
         f"Cliente: {c.cliente_nombre or '—'}",
         f"Descripción del servicio: {c.descripcion or '—'}",
-        f"Mano de obra / cargo reparación: ${float(c.costo_reparacion or 0):.2f}",
-        "Materiales:",
+        "Conceptos:",
     ]
+    for co in conceptos:
+        reporte_lineas.append(
+            f"  - {co['id']} {co['concepto']}: {co['descripcion']} — "
+            f"{co['cantidad']} × ${co['precio']:.2f} = ${co['subtotal']:.2f}"
+        )
+    if not conceptos:
+        reporte_lineas.append(f"  Mano de obra: ${float(mano_obra):.2f}")
+    reporte_lineas.append("Materiales:")
     for m in mats:
         reporte_lineas.append(
             f"  - {m['nombre']}: {m['cantidad']} × ${m['costo_unitario']:.2f} = ${m['subtotal']:.2f}"
@@ -322,6 +401,7 @@ async def finalizar_cotizacion_servicio(
             "tipo": "servicio_reparacion",
             "marca_impresora": c.marca_impresora,
             "modelo_impresora": c.modelo_impresora,
+            "conceptos": conceptos,
             "materiales": mats,
             "porcentaje_ganancia": c.porcentaje_ganancia,
             "cotizacion_servicio_id": c.id,

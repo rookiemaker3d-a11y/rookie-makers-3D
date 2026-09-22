@@ -5,12 +5,17 @@ import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
 import CotizacionServicioPDF from '../components/cotizacion/CotizacionServicioPDF'
 import {
+  CONCEPTOS_SERVICIO,
+  calcTotalesServicio,
+} from '../config/conceptosServicio'
+import {
   Plus,
   Trash2,
   Wrench,
   FileText,
   Printer,
   ChevronRight,
+  ChevronLeft,
   Clock,
   HelpCircle,
   CheckCircle,
@@ -20,6 +25,9 @@ import {
   X,
   Eye,
   ExternalLink,
+  User,
+  Calculator,
+  Check,
 } from 'lucide-react'
 
 const todayISO = () => new Date().toISOString().split('T')[0]
@@ -44,18 +52,13 @@ const NEXT = {
   pagado: 'terminado',
 }
 
-const emptyMat = () => ({ nombre: '', cantidad: 1, costo_unitario: 0 })
+const WIZARD_STEPS = [
+  { id: 1, label: 'Cliente', icon: User },
+  { id: 2, label: 'Conceptos', icon: Calculator },
+  { id: 3, label: 'PDF', icon: FileDown },
+]
 
-function calcPreview(costoReparacion, materiales, pct) {
-  const matsTotal = (materiales || []).reduce((s, m) => {
-    const cant = Number(m.cantidad) || 0
-    const cu = Number(m.costo_unitario) || 0
-    return s + cant * cu
-  }, 0)
-  const base = (Number(costoReparacion) || 0) + matsTotal
-  const final = base * (1 + (Number(pct) || 0) / 100)
-  return { matsTotal, base, final, ganancia: final - base }
-}
+const emptyMat = () => ({ nombre: '', descripcion: '', cantidad: 1, costo_unitario: 0 })
 
 function normEstado(e) {
   const x = (e || 'cotizando').toLowerCase()
@@ -69,7 +72,6 @@ function logoUrl() {
   return `${window.location.origin}${import.meta.env.BASE_URL}logos/logo-cotizacion.png`
 }
 
-/** Comprime imagen a dataURL JPEG ~max 900px para no inflar la BD. */
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -99,15 +101,77 @@ function fileToDataUrl(file) {
   })
 }
 
+function emptyForm() {
+  return {
+    cliente_id: '',
+    cliente_nombre: '',
+    marca_impresora: 'Creality',
+    marca_otra: '',
+    modelo_impresora: '',
+    descripcion: '',
+    trabajo_realizado: '',
+    porcentaje_ganancia: 0,
+    conceptosIds: [],
+    materiales: [],
+    fecha: todayISO(),
+  }
+}
+
+function StepperServicio({ paso, onPaso }) {
+  return (
+    <nav className="flex items-center justify-center gap-2 sm:gap-4 mb-6">
+      {WIZARD_STEPS.map((step, index) => {
+        const isActive = paso === step.id
+        const isPast = paso > step.id
+        const Icon = step.icon
+        return (
+          <div key={step.id} className="flex items-center shrink-0">
+            <button
+              type="button"
+              onClick={() => onPaso?.(step.id)}
+              className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl transition ${
+                isActive
+                  ? 'bg-white/[0.1] border border-white/[0.15]'
+                  : isPast
+                    ? 'text-emerald-400/90 hover:bg-white/[0.05]'
+                    : 'theme-text-dim hover:theme-text-muted'
+              }`}
+            >
+              <span
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${
+                  isActive
+                    ? 'bg-cyan-500/30 theme-text'
+                    : isPast
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : 'bg-white/[0.06] theme-text-muted'
+                }`}
+              >
+                {isPast ? <Check className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
+              </span>
+              <span className="text-xs font-medium hidden sm:block">{step.label}</span>
+            </button>
+            {index < WIZARD_STEPS.length - 1 && (
+              <div className={`w-8 h-0.5 mx-1 rounded ${isPast ? 'bg-emerald-500/40' : 'bg-white/[0.08]'}`} />
+            )}
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
+
 export default function CotizacionesServicio() {
   const { api, user } = useAuth()
   const [items, setItems] = useState([])
   const [clientes, setClientes] = useState([])
   const [marcas, setMarcas] = useState([])
+  const [catalogo, setCatalogo] = useState(CONCEPTOS_SERVICIO)
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
   const [open, setOpen] = useState(false)
+  const [paso, setPaso] = useState(1)
+  const [saving, setSaving] = useState(false)
   const [updating, setUpdating] = useState(null)
   const [pdfBusy, setPdfBusy] = useState(null)
   const [detail, setDetail] = useState(null)
@@ -119,23 +183,25 @@ export default function CotizacionesServicio() {
   const prevFormUrl = useRef(null)
   const prevDetailUrl = useRef(null)
 
-  const [form, setForm] = useState({
-    cliente_id: '',
-    cliente_nombre: '',
-    marca_impresora: 'Creality',
-    marca_otra: '',
-    modelo_impresora: '',
-    descripcion: '',
-    trabajo_realizado: '',
-    costo_reparacion: 0,
-    porcentaje_ganancia: 30,
-    materiales: [emptyMat()],
-    fecha: todayISO(),
-  })
+  const [form, setForm] = useState(emptyForm)
+
+  const conceptosSeleccionados = useMemo(() => {
+    return (form.conceptosIds || [])
+      .map((id) => catalogo.find((c) => c.id === id))
+      .filter(Boolean)
+      .map((c) => ({
+        id: c.id,
+        concepto: c.concepto,
+        descripcion: c.descripcion,
+        precio: Number(c.precio) || 0,
+        cantidad: 1,
+        subtotal: Number(c.precio) || 0,
+      }))
+  }, [form.conceptosIds, catalogo])
 
   const preview = useMemo(
-    () => calcPreview(form.costo_reparacion, form.materiales, form.porcentaje_ganancia),
-    [form.costo_reparacion, form.materiales, form.porcentaje_ganancia],
+    () => calcTotalesServicio(conceptosSeleccionados, form.materiales, form.porcentaje_ganancia),
+    [conceptosSeleccionados, form.materiales, form.porcentaje_ganancia],
   )
 
   const vendedorPdf = {
@@ -157,11 +223,13 @@ export default function CotizacionesServicio() {
       api('/servicios/cotizaciones').then((r) => (r.ok ? r.json() : [])),
       api('/clientes').then((r) => (r.ok ? r.json() : [])).catch(() => []),
       api('/servicios/marcas-impresora').then((r) => (r.ok ? r.json() : { marcas: [] })),
+      api('/servicios/conceptos').then((r) => (r.ok ? r.json() : CONCEPTOS_SERVICIO)).catch(() => CONCEPTOS_SERVICIO),
     ])
-      .then(([cots, cls, m]) => {
+      .then(([cots, cls, m, conceptos]) => {
         setItems(cots || [])
         setClientes(cls || [])
         setMarcas(m?.marcas || [])
+        if (Array.isArray(conceptos) && conceptos.length) setCatalogo(conceptos)
       })
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
@@ -186,6 +254,7 @@ export default function CotizacionesServicio() {
         modelo_impresora: it.modelo_impresora,
         descripcion: it.descripcion,
       }}
+      conceptos={it.conceptos || it.items || []}
       materiales={it.materiales || []}
       costoReparacion={it.costo_reparacion}
       costoBase={it.costo_base}
@@ -206,8 +275,10 @@ export default function CotizacionesServicio() {
       form.marca_impresora === 'Otra' ? (form.marca_otra || 'Otra').trim() : form.marca_impresora
     const mats = (form.materiales || [])
       .filter((m) => (m.nombre || '').trim())
-      .map((m) => ({
+      .map((m, i) => ({
+        id: `M${String(i + 1).padStart(3, '0')}`,
         nombre: m.nombre.trim(),
+        descripcion: (m.descripcion || '').trim() || 'Refacción / material',
         cantidad: Number(m.cantidad) || 1,
         costo_unitario: Number(m.costo_unitario) || 0,
         subtotal: (Number(m.cantidad) || 1) * (Number(m.costo_unitario) || 0),
@@ -220,7 +291,9 @@ export default function CotizacionesServicio() {
       modelo_impresora: form.modelo_impresora,
       descripcion: form.descripcion,
       trabajo_realizado: form.trabajo_realizado,
-      costo_reparacion: Number(form.costo_reparacion) || 0,
+      conceptos: conceptosSeleccionados,
+      items: conceptosSeleccionados,
+      costo_reparacion: preview.conceptosTotal,
       materiales: mats,
       porcentaje_ganancia: Number(form.porcentaje_ganancia) || 0,
       costo_base: preview.base,
@@ -228,11 +301,10 @@ export default function CotizacionesServicio() {
       fecha: form.fecha,
       fotos: formFotos,
     }
-  }, [form, preview, formFotos])
+  }, [form, preview, formFotos, conceptosSeleccionados])
 
-  // Preview en vivo del formulario
   useEffect(() => {
-    if (!open) return undefined
+    if (!open || paso !== 3) return undefined
     let cancelled = false
     pdf(buildPdfDoc(formAsItem, 'cotizacion'))
       .toBlob()
@@ -247,9 +319,8 @@ export default function CotizacionesServicio() {
     return () => {
       cancelled = true
     }
-  }, [open, formAsItem])
+  }, [open, paso, formAsItem])
 
-  // Preview del detalle / informe
   useEffect(() => {
     if (!detail) {
       setDetailPreviewUrl(null)
@@ -284,6 +355,40 @@ export default function CotizacionesServicio() {
       cliente_id: id,
       cliente_nombre: c ? c.nombre : f.cliente_nombre,
     }))
+  }
+
+  const toggleConcepto = (id) => {
+    setForm((f) => {
+      const has = f.conceptosIds.includes(id)
+      return {
+        ...f,
+        conceptosIds: has ? f.conceptosIds.filter((x) => x !== id) : [...f.conceptosIds, id],
+      }
+    })
+  }
+
+  const abrirNueva = () => {
+    setForm(emptyForm())
+    setFormFotos([])
+    setPaso(1)
+    setFormPreviewUrl(null)
+    setErr('')
+    setOpen(true)
+  }
+
+  const cerrarNueva = () => {
+    setOpen(false)
+    setPaso(1)
+  }
+
+  const puedeAvanzar = () => {
+    if (paso === 1) {
+      return !!(form.cliente_nombre || '').trim()
+    }
+    if (paso === 2) {
+      return conceptosSeleccionados.length > 0 || form.materiales.some((m) => (m.nombre || '').trim())
+    }
+    return true
   }
 
   const descargarPdf = async (it, tipo = 'cotizacion') => {
@@ -365,10 +470,10 @@ export default function CotizacionesServicio() {
     }
   }
 
-  const save = async (e) => {
-    e.preventDefault()
+  const save = async () => {
     setErr('')
     setMsg('')
+    setSaving(true)
     const body = {
       cliente_id: form.cliente_id ? Number(form.cliente_id) : null,
       cliente_nombre: formAsItem.cliente_nombre || null,
@@ -376,9 +481,9 @@ export default function CotizacionesServicio() {
       modelo_impresora: form.modelo_impresora || null,
       descripcion: form.descripcion || null,
       trabajo_realizado: form.trabajo_realizado || null,
-      costo_reparacion: Number(form.costo_reparacion) || 0,
-      porcentaje_ganancia: Number(form.porcentaje_ganancia) || 0,
+      conceptos: conceptosSeleccionados,
       materiales: formAsItem.materiales,
+      porcentaje_ganancia: Number(form.porcentaje_ganancia) || 0,
       fecha: form.fecha || todayISO(),
       estado: 'cotizando',
       fotos: formFotos,
@@ -391,26 +496,16 @@ export default function CotizacionesServicio() {
       })
       if (!r.ok) throw new Error((await r.text()) || 'No se pudo guardar')
       const created = await r.json()
-      setMsg('Cotización creada. Revisa el preview y usa Continuar para avanzar la orden.')
-      setOpen(false)
+      setMsg('Cotización creada. Usa Continuar para avanzar la orden.')
+      cerrarNueva()
       setFormFotos([])
-      setForm({
-        cliente_id: '',
-        cliente_nombre: '',
-        marca_impresora: 'Creality',
-        marca_otra: '',
-        modelo_impresora: '',
-        descripcion: '',
-        trabajo_realizado: '',
-        costo_reparacion: 0,
-        porcentaje_ganancia: 30,
-        materiales: [emptyMat()],
-        fecha: todayISO(),
-      })
+      setForm(emptyForm())
       load()
       setDetail(created)
     } catch (ex) {
       setErr(ex.message || 'Error al guardar')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -461,11 +556,11 @@ export default function CotizacionesServicio() {
     <div className="space-y-6">
       <SectionHeader
         title="Servicio / reparación"
-        subtitle="Preview del PDF, Continuar para avanzar la orden, fotos del arreglo e informe final."
+        subtitle="Elige conceptos (S001–S003), revisa el PDF y avanza la orden como en cotización normal."
         action={
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
+            onClick={abrirNueva}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 text-white text-sm font-medium"
           >
             <Plus className="w-4 h-4" /> Nueva cotización servicio
@@ -478,246 +573,319 @@ export default function CotizacionesServicio() {
 
       {open && (
         <Card>
-          <form onSubmit={save} className="space-y-4">
-            <div className="grid lg:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <label className="block text-sm">
-                    <span className="theme-text-muted">Cliente (lista)</span>
-                    <select
-                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                      value={form.cliente_id}
-                      onChange={(e) => onCliente(e.target.value)}
-                    >
-                      <option value="">— Escribir manual / elegir —</option>
-                      {clientes.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nombre}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block text-sm">
-                    <span className="theme-text-muted">Nombre cliente</span>
-                    <input
-                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                      value={form.cliente_nombre}
-                      onChange={(e) => setForm({ ...form, cliente_nombre: e.target.value })}
-                    />
-                  </label>
-                </div>
+          <StepperServicio
+            paso={paso}
+            onPaso={(id) => {
+              if (id < paso || puedeAvanzar() || id === paso) setPaso(id)
+            }}
+          />
 
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <label className="block text-sm">
-                    <span className="theme-text-muted flex items-center gap-1">
-                      <Printer className="w-3.5 h-3.5" /> Marca
-                    </span>
-                    <select
-                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                      value={form.marca_impresora}
-                      onChange={(e) => setForm({ ...form, marca_impresora: e.target.value })}
-                    >
-                      {(marcas.length ? marcas : ['Creality', 'Bambu Lab', 'Anycubic', 'Otra']).map((m) => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  </label>
-                  {form.marca_impresora === 'Otra' && (
-                    <label className="block text-sm">
-                      <span className="theme-text-muted">Marca (texto)</span>
-                      <input
-                        className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                        value={form.marca_otra}
-                        onChange={(e) => setForm({ ...form, marca_otra: e.target.value })}
-                      />
-                    </label>
-                  )}
-                  <label className="block text-sm">
-                    <span className="theme-text-muted">Modelo</span>
-                    <input
-                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                      value={form.modelo_impresora}
-                      onChange={(e) => setForm({ ...form, modelo_impresora: e.target.value })}
-                      placeholder="Ender 3 V2, X1 Carbon…"
-                    />
-                  </label>
-                  <label className="block text-sm">
-                    <span className="theme-text-muted">Fecha</span>
-                    <input
-                      type="date"
-                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                      value={form.fecha}
-                      onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-                    />
-                  </label>
-                </div>
-
+          {paso === 1 && (
+            <div className="space-y-4 max-w-2xl mx-auto">
+              <h3 className="text-sm font-semibold theme-text">Cliente y equipo</h3>
+              <div className="grid sm:grid-cols-2 gap-3">
                 <label className="block text-sm">
-                  <span className="theme-text-muted">Qué se cobrará / diagnóstico</span>
-                  <textarea
-                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text min-h-[64px]"
-                    value={form.descripcion}
-                    onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
-                  />
-                </label>
-
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <label className="block text-sm">
-                    <span className="theme-text-muted">Costo reparación ($)</span>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                      value={form.costo_reparacion}
-                      onChange={(e) => setForm({ ...form, costo_reparacion: e.target.value })}
-                    />
-                  </label>
-                  <label className="block text-sm">
-                    <span className="theme-text-muted">% ganancia</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={500}
-                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
-                      value={form.porcentaje_ganancia}
-                      onChange={(e) => setForm({ ...form, porcentaje_ganancia: e.target.value })}
-                    />
-                  </label>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm theme-text-muted">Materiales</span>
-                    <button
-                      type="button"
-                      className="text-xs text-cyan-400"
-                      onClick={() => setForm({ ...form, materiales: [...form.materiales, emptyMat()] })}
-                    >
-                      + Material
-                    </button>
-                  </div>
-                  {form.materiales.map((m, i) => (
-                    <div key={i} className="grid grid-cols-12 gap-2 mb-2">
-                      <input
-                        className="col-span-5 rounded-lg border bg-white/5 border-white/20 px-2 py-1.5 text-sm theme-text"
-                        placeholder="Nombre"
-                        value={m.nombre}
-                        onChange={(e) => {
-                          const materiales = [...form.materiales]
-                          materiales[i] = { ...m, nombre: e.target.value }
-                          setForm({ ...form, materiales })
-                        }}
-                      />
-                      <input
-                        type="number"
-                        className="col-span-2 rounded-lg border bg-white/5 border-white/20 px-2 py-1.5 text-sm theme-text"
-                        value={m.cantidad}
-                        onChange={(e) => {
-                          const materiales = [...form.materiales]
-                          materiales[i] = { ...m, cantidad: e.target.value }
-                          setForm({ ...form, materiales })
-                        }}
-                      />
-                      <input
-                        type="number"
-                        className="col-span-3 rounded-lg border bg-white/5 border-white/20 px-2 py-1.5 text-sm theme-text"
-                        value={m.costo_unitario}
-                        onChange={(e) => {
-                          const materiales = [...form.materiales]
-                          materiales[i] = { ...m, costo_unitario: e.target.value }
-                          setForm({ ...form, materiales })
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="col-span-2 text-red-400 text-xs"
-                        onClick={() => setForm({ ...form, materiales: form.materiales.filter((_, j) => j !== i) })}
-                      >
-                        Quitar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <label className="block text-sm">
-                  <span className="theme-text-muted">Trabajo realizado (informe)</span>
-                  <textarea
-                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text min-h-[56px]"
-                    value={form.trabajo_realizado}
-                    onChange={(e) => setForm({ ...form, trabajo_realizado: e.target.value })}
-                  />
-                </label>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm theme-text-muted flex items-center gap-1">
-                      <Camera className="w-3.5 h-3.5" /> Fotos del arreglo
-                    </span>
-                    <button type="button" className="text-xs text-cyan-400" onClick={() => fotoInputRef.current?.click()}>
-                      + Foto
-                    </button>
-                    <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={addFormFoto} />
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formFotos.map((src, i) => (
-                      <div key={i} className="relative w-16 h-16 rounded overflow-hidden bg-white/5">
-                        <img src={src} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          className="absolute top-0 right-0 bg-black/60 p-0.5"
-                          onClick={() => setFormFotos((p) => p.filter((_, j) => j !== i))}
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
+                  <span className="theme-text-muted">Cliente (lista)</span>
+                  <select
+                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
+                    value={form.cliente_id}
+                    onChange={(e) => onCliente(e.target.value)}
+                  >
+                    <option value="">— Escribir manual / elegir —</option>
+                    {clientes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.nombre}</option>
                     ))}
-                    {!formFotos.length && <p className="text-xs theme-text-dim">Opcional ahora; también puedes subirlas después.</p>}
-                  </div>
-                </div>
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  <span className="theme-text-muted">Nombre cliente *</span>
+                  <input
+                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
+                    value={form.cliente_nombre}
+                    onChange={(e) => setForm({ ...form, cliente_nombre: e.target.value })}
+                  />
+                </label>
+              </div>
 
-                <div className="rounded-xl border border-white/10 p-3 text-sm space-y-1">
-                  <div className="flex justify-between theme-text-muted"><span>Materiales</span><span>${preview.matsTotal.toFixed(2)}</span></div>
-                  <div className="flex justify-between theme-text-muted"><span>Costo base</span><span>${preview.base.toFixed(2)}</span></div>
-                  <div className="flex justify-between theme-text font-semibold"><span>Total</span><span>${preview.final.toFixed(2)}</span></div>
-                </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="theme-text-muted flex items-center gap-1">
+                    <Printer className="w-3.5 h-3.5" /> Marca
+                  </span>
+                  <select
+                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
+                    value={form.marca_impresora}
+                    onChange={(e) => setForm({ ...form, marca_impresora: e.target.value })}
+                  >
+                    {(marcas.length ? marcas : ['Creality', 'Bambu Lab', 'Anycubic', 'Otra']).map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+                {form.marca_impresora === 'Otra' && (
+                  <label className="block text-sm">
+                    <span className="theme-text-muted">Marca (texto)</span>
+                    <input
+                      className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
+                      value={form.marca_otra}
+                      onChange={(e) => setForm({ ...form, marca_otra: e.target.value })}
+                    />
+                  </label>
+                )}
+                <label className="block text-sm">
+                  <span className="theme-text-muted">Modelo</span>
+                  <input
+                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
+                    value={form.modelo_impresora}
+                    onChange={(e) => setForm({ ...form, modelo_impresora: e.target.value })}
+                    placeholder="Ender 3 V2, X1 Carbon…"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="theme-text-muted">Fecha</span>
+                  <input
+                    type="date"
+                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
+                    value={form.fecha}
+                    onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                  />
+                </label>
+              </div>
 
-                <div className="flex gap-2">
-                  <button type="submit" className="px-4 py-2 rounded-xl bg-cyan-500 text-white text-sm font-medium">
-                    Guardar cotización
-                  </button>
-                  <button type="button" className="px-4 py-2 rounded-xl border border-white/20 text-sm" onClick={() => setOpen(false)}>
-                    Cancelar
-                  </button>
+              <label className="block text-sm">
+                <span className="theme-text-muted">Notas / qué reporta el cliente</span>
+                <textarea
+                  className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text min-h-[72px]"
+                  value={form.descripcion}
+                  onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+                  placeholder="Ej. hace ruido al imprimir, falla extrusión…"
+                />
+              </label>
+            </div>
+          )}
+
+          {paso === 2 && (
+            <div className="space-y-5 max-w-3xl mx-auto">
+              <div>
+                <h3 className="text-sm font-semibold theme-text mb-1">Conceptos de servicio</h3>
+                <p className="text-xs theme-text-dim mb-3">
+                  Selecciona uno o más. Id · Concepto · Descripción · Precio
+                </p>
+                <div className="space-y-2">
+                  {catalogo.map((c) => {
+                    const on = form.conceptosIds.includes(c.id)
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => toggleConcepto(c.id)}
+                        className={`w-full text-left rounded-xl border px-4 py-3 transition ${
+                          on
+                            ? 'border-cyan-400/50 bg-cyan-500/15'
+                            : 'border-white/15 bg-white/[0.03] hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${
+                              on ? 'bg-cyan-500 border-cyan-400 text-white' : 'border-white/30'
+                            }`}
+                          >
+                            {on && <Check className="w-3.5 h-3.5" />}
+                          </span>
+                          <div className="flex-1 min-w-0 grid sm:grid-cols-12 gap-1 sm:gap-2 items-baseline">
+                            <span className="sm:col-span-2 font-mono text-sm font-semibold text-cyan-300">{c.id}</span>
+                            <span className="sm:col-span-3 text-sm font-medium theme-text">{c.concepto}</span>
+                            <span className="sm:col-span-5 text-sm theme-text-muted truncate">{c.descripcion}</span>
+                            <span className="sm:col-span-2 text-sm font-semibold theme-text sm:text-right">
+                              ${Number(c.precio).toFixed(0)}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Eye className="w-4 h-4 text-cyan-400" />
-                  <h3 className="text-sm font-semibold theme-text">Vista previa de la cotización</h3>
+                <div className="flex justify-between mb-2">
+                  <div>
+                    <h3 className="text-sm font-semibold theme-text">Materiales / refacciones (opcional)</h3>
+                    <p className="text-xs theme-text-dim">Piezas extra aparte del catálogo S001–S003</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs text-cyan-400"
+                    onClick={() => setForm({ ...form, materiales: [...form.materiales, emptyMat()] })}
+                  >
+                    + Material
+                  </button>
                 </div>
-                <div className="rounded-lg border border-white/15 overflow-hidden bg-white" style={{ minHeight: 480 }}>
-                  {formPreviewUrl ? (
-                    <iframe src={formPreviewUrl} title="Preview cotización servicio" className="w-full h-[520px]" />
-                  ) : (
-                    <div className="flex items-center justify-center h-[480px] text-slate-500 text-sm">Generando preview…</div>
-                  )}
+                {form.materiales.length === 0 && (
+                  <p className="text-xs theme-text-dim mb-2">Sin materiales. Puedes agregar si usaste refacciones.</p>
+                )}
+                {form.materiales.map((m, i) => (
+                  <div key={i} className="grid grid-cols-12 gap-2 mb-2">
+                    <input
+                      className="col-span-4 rounded-lg border bg-white/5 border-white/20 px-2 py-1.5 text-sm theme-text"
+                      placeholder="Nombre"
+                      value={m.nombre}
+                      onChange={(e) => {
+                        const materiales = [...form.materiales]
+                        materiales[i] = { ...m, nombre: e.target.value }
+                        setForm({ ...form, materiales })
+                      }}
+                    />
+                    <input
+                      className="col-span-3 rounded-lg border bg-white/5 border-white/20 px-2 py-1.5 text-sm theme-text"
+                      placeholder="Descripción"
+                      value={m.descripcion || ''}
+                      onChange={(e) => {
+                        const materiales = [...form.materiales]
+                        materiales[i] = { ...m, descripcion: e.target.value }
+                        setForm({ ...form, materiales })
+                      }}
+                    />
+                    <input
+                      type="number"
+                      className="col-span-2 rounded-lg border bg-white/5 border-white/20 px-2 py-1.5 text-sm theme-text"
+                      value={m.cantidad}
+                      onChange={(e) => {
+                        const materiales = [...form.materiales]
+                        materiales[i] = { ...m, cantidad: e.target.value }
+                        setForm({ ...form, materiales })
+                      }}
+                    />
+                    <input
+                      type="number"
+                      className="col-span-2 rounded-lg border bg-white/5 border-white/20 px-2 py-1.5 text-sm theme-text"
+                      value={m.costo_unitario}
+                      onChange={(e) => {
+                        const materiales = [...form.materiales]
+                        materiales[i] = { ...m, costo_unitario: e.target.value }
+                        setForm({ ...form, materiales })
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="col-span-1 text-red-400 text-xs"
+                      onClick={() => setForm({ ...form, materiales: form.materiales.filter((_, j) => j !== i) })}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <label className="block text-sm">
+                  <span className="theme-text-muted">% ganancia / margen</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={500}
+                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text"
+                    value={form.porcentaje_ganancia}
+                    onChange={(e) => setForm({ ...form, porcentaje_ganancia: e.target.value })}
+                  />
+                </label>
+                <div className="rounded-xl border border-white/10 p-3 text-sm space-y-1 self-end">
+                  <div className="flex justify-between theme-text-muted">
+                    <span>Conceptos</span><span>${preview.conceptosTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between theme-text-muted">
+                    <span>Materiales</span><span>${preview.matsTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between theme-text font-semibold">
+                    <span>Total</span><span>${preview.final.toFixed(2)}</span>
+                  </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {paso === 3 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-semibold theme-text">Vista previa PDF</h3>
+              </div>
+              <div className="rounded-lg border border-white/15 overflow-hidden bg-white" style={{ minHeight: 520 }}>
+                {formPreviewUrl ? (
+                  <iframe src={formPreviewUrl} title="Preview cotización servicio" className="w-full h-[560px]" />
+                ) : (
+                  <div className="flex items-center justify-center h-[520px] text-slate-500 text-sm">Generando preview…</div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-3 items-center">
                 {formPreviewUrl && (
                   <button
                     type="button"
                     onClick={() => window.open(formPreviewUrl, '_blank', 'noopener')}
-                    className="mt-2 text-xs text-cyan-400 inline-flex items-center gap-1"
+                    className="text-xs text-cyan-400 inline-flex items-center gap-1"
                   >
-                    <ExternalLink className="w-3 h-3" /> Abrir preview en pestaña
+                    <ExternalLink className="w-3 h-3" /> Abrir en pestaña
                   </button>
                 )}
+                <div className="flex items-center gap-2 ml-auto">
+                  <button type="button" className="text-xs text-cyan-400" onClick={() => fotoInputRef.current?.click()}>
+                    <Camera className="w-3.5 h-3.5 inline mr-1" /> Fotos ({formFotos.length})
+                  </button>
+                  <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={addFormFoto} />
+                </div>
               </div>
+              {formFotos.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formFotos.map((src, i) => (
+                    <div key={i} className="relative w-14 h-14 rounded overflow-hidden bg-white/5">
+                      <img src={src} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        className="absolute top-0 right-0 bg-black/60 p-0.5"
+                        onClick={() => setFormFotos((p) => p.filter((_, j) => j !== i))}
+                      >
+                        <X className="w-3 h-3 text-white" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </form>
+          )}
+
+          <div className="flex justify-between mt-6 pt-4 border-t border-white/10">
+            <button
+              type="button"
+              onClick={() => (paso === 1 ? cerrarNueva() : setPaso((p) => p - 1))}
+              className="inline-flex items-center gap-1 px-4 py-2 rounded-xl border border-white/20 text-sm"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              {paso === 1 ? 'Cancelar' : 'Atrás'}
+            </button>
+            {paso < 3 ? (
+              <button
+                type="button"
+                disabled={!puedeAvanzar()}
+                onClick={() => setPaso((p) => p + 1)}
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-cyan-500 text-white text-sm font-medium disabled:opacity-40"
+              >
+                Siguiente <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={saving || !puedeAvanzar()}
+                onClick={save}
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-cyan-500 text-white text-sm font-medium disabled:opacity-40"
+              >
+                {saving ? 'Guardando…' : 'Guardar cotización'}
+              </button>
+            )}
+          </div>
         </Card>
       )}
 
-      {/* Modal detalle: preview + continuar + fotos */}
       {detail && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900 p-4">
@@ -731,6 +899,11 @@ export default function CotizacionesServicio() {
                   {' · '}
                   Estado: <span className="text-cyan-300">{normEstado(detail.estado)}</span>
                 </p>
+                {(detail.conceptos || detail.items || []).length > 0 && (
+                  <p className="text-xs theme-text-muted mt-1">
+                    {(detail.conceptos || detail.items).map((c) => c.id).join(' · ')}
+                  </p>
+                )}
               </div>
               <button type="button" onClick={() => setDetail(null)} className="theme-text-muted hover:theme-text p-1">
                 <X className="w-5 h-5" />
@@ -742,16 +915,12 @@ export default function CotizacionesServicio() {
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="w-4 h-4 text-cyan-400" />
                   <span className="text-sm theme-text font-medium">
-                    {normEstado(detail.estado) === 'terminado' ? 'Reporte / informe generado' : 'Preview cotización'}
+                    {normEstado(detail.estado) === 'terminado' ? 'Reporte / informe' : 'Preview cotización'}
                   </span>
                 </div>
                 <div className="rounded-lg border border-white/15 overflow-hidden bg-white min-h-[420px]">
                   {detailPreviewUrl ? (
-                    <iframe
-                      src={detailPreviewUrl}
-                      title="Preview PDF servicio"
-                      className="w-full h-[460px]"
-                    />
+                    <iframe src={detailPreviewUrl} title="Preview PDF servicio" className="w-full h-[460px]" />
                   ) : (
                     <div className="flex items-center justify-center h-[420px] text-slate-500 text-sm">Generando…</div>
                   )}
@@ -798,11 +967,7 @@ export default function CotizacionesServicio() {
                     <span className="text-sm theme-text font-medium flex items-center gap-1">
                       <Camera className="w-4 h-4" /> Fotos del arreglo
                     </span>
-                    <button
-                      type="button"
-                      className="text-xs text-cyan-400"
-                      onClick={() => detailFotoRef.current?.click()}
-                    >
+                    <button type="button" className="text-xs text-cyan-400" onClick={() => detailFotoRef.current?.click()}>
                       + Subir foto
                     </button>
                     <input ref={detailFotoRef} type="file" accept="image/*" className="hidden" onChange={addDetailFoto} />
@@ -821,7 +986,7 @@ export default function CotizacionesServicio() {
                       </div>
                     ))}
                     {!(detail.fotos || []).length && (
-                      <p className="text-xs theme-text-dim">Sube fotos del antes/después; salen en el informe PDF.</p>
+                      <p className="text-xs theme-text-dim">Sube fotos; salen en el informe PDF.</p>
                     )}
                   </div>
                 </div>
@@ -869,6 +1034,10 @@ export default function CotizacionesServicio() {
                   {!list.length && <p className="text-xs theme-text-dim">Vacío</p>}
                   {list.map((it) => {
                     const next = NEXT[normEstado(it.estado)]
+                    const conceptosLabel = (it.conceptos || it.items || [])
+                      .map((c) => c.id)
+                      .filter(Boolean)
+                      .join(', ')
                     return (
                       <div key={it.id} className="rounded-lg bg-black/25 border border-white/10 p-2.5 text-sm">
                         <button type="button" className="w-full text-left" onClick={() => setDetail(it)}>
@@ -877,6 +1046,9 @@ export default function CotizacionesServicio() {
                             <Wrench className="w-3 h-3" />
                             {[it.marca_impresora, it.modelo_impresora].filter(Boolean).join(' · ') || '—'}
                           </div>
+                          {conceptosLabel && (
+                            <div className="text-[11px] text-cyan-400/90 mt-0.5 font-mono">{conceptosLabel}</div>
+                          )}
                           <div className="text-xs theme-text-muted truncate mt-0.5">{it.descripcion}</div>
                           <div className="mt-1 flex justify-between text-xs">
                             <span className="theme-text-dim">

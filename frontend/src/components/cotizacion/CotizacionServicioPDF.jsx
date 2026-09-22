@@ -2,7 +2,7 @@ import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/render
 
 const styles = StyleSheet.create({
   page: {
-    padding: 32,
+    padding: 28,
     fontFamily: 'Helvetica',
     fontSize: 10,
     color: '#111',
@@ -11,7 +11,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   logoWrap: { alignItems: 'flex-start', minWidth: 140 },
   logoImage: { width: 120, height: 84, marginBottom: 8, objectFit: 'contain' },
@@ -25,15 +25,15 @@ const styles = StyleSheet.create({
   brandName: { fontWeight: 'bold', fontSize: 18, lineHeight: 1.2, color: '#111' },
   tagline: { fontSize: 9, letterSpacing: 1.5, color: '#666', marginTop: 2 },
   metaRight: { textAlign: 'right' },
-  docTitle: { fontSize: 22, fontWeight: 'bold', color: '#111', marginBottom: 10 },
-  metaTable: { fontSize: 11, lineHeight: 2 },
+  docTitle: { fontSize: 20, fontWeight: 'bold', color: '#111', marginBottom: 8 },
+  metaTable: { fontSize: 10, lineHeight: 1.8 },
   metaB: { fontWeight: 'bold' },
   validityNote: { fontSize: 8, color: '#888', marginTop: 6 },
-  divider: { borderTopWidth: 2, borderTopColor: '#111', marginVertical: 12 },
+  divider: { borderTopWidth: 2, borderTopColor: '#111', marginVertical: 10 },
   parties: {
     flexDirection: 'row',
     gap: 20,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   partyCol: { flex: 1 },
   sectionHead: {
@@ -42,45 +42,79 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: '#111',
     paddingBottom: 3,
-    marginBottom: 7,
+    marginBottom: 6,
   },
-  infoBlock: { fontSize: 10, lineHeight: 1.85, color: '#222' },
+  infoBlock: { fontSize: 10, lineHeight: 1.7, color: '#222' },
   infoB: { fontWeight: 'bold' },
-  bankWrap: { marginBottom: 14, borderWidth: 1.5, borderColor: '#111' },
-  blackBar: {
+
+  /* Cajas: un solo borde exterior; cabecera negra sin borde propio */
+  box: {
+    borderWidth: 1.5,
+    borderColor: '#111',
+    marginBottom: 12,
+  },
+  boxHead: {
     backgroundColor: '#111',
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+  },
+  boxHeadText: {
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
-    padding: 4,
   },
-  bankRow: { flexDirection: 'row', fontSize: 10, paddingHorizontal: 5, paddingVertical: 2 },
+  boxBody: {
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+  },
+  bankRow: { flexDirection: 'row', fontSize: 10, paddingVertical: 2 },
   bankLabel: { width: 90, fontWeight: 'bold', color: '#222' },
   bankValue: { flex: 1, color: '#222' },
-  bottom: { flexDirection: 'row', gap: 20, marginBottom: 14 },
-  notesArea: { flex: 1, borderWidth: 1.5, borderColor: '#111' },
-  notesText: { fontSize: 10, color: '#333', lineHeight: 1.7, minHeight: 40, padding: 6 },
+
+  table: {
+    borderWidth: 1.5,
+    borderColor: '#111',
+    marginBottom: 8,
+  },
+  tableHead: {
+    flexDirection: 'row',
+    backgroundColor: '#111',
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+  },
+  tableHeadCell: {
+    color: '#fff',
+    fontSize: 8,
+    fontWeight: 'bold',
+    flex: 1,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#ccc',
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  tableCell: { fontSize: 8, flex: 1, color: '#222' },
+  tableRight: { textAlign: 'right' },
+
+  totalsBlock: { width: 180, alignSelf: 'flex-end', marginBottom: 12 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', fontSize: 10, marginBottom: 2 },
   totalLbl: { color: '#666' },
   totalVal: { fontWeight: 'bold', textAlign: 'right' },
   totalFinal: { borderTopWidth: 2, borderTopColor: '#111', paddingTop: 4, marginTop: 2 },
   totalFinalLbl: { fontWeight: 'bold', color: '#111' },
   totalFinalVal: { fontSize: 13, fontWeight: 'bold', textAlign: 'right' },
-  tableWrap: { borderWidth: 1, borderColor: '#111', marginTop: 4 },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#ccc', paddingVertical: 3, paddingHorizontal: 4 },
-  tableCell: { fontSize: 8, flex: 1 },
-  tableHeaderBlack: { fontWeight: 'bold', backgroundColor: '#111', color: '#fff', padding: 4 },
-  tableRight: { textAlign: 'right' },
-  totalsBlock: { width: 180, alignSelf: 'flex-end', marginTop: 8 },
-  termsArea: { borderWidth: 1.5, borderColor: '#111', marginTop: 14 },
-  termsText: { fontSize: 9, lineHeight: 1.9, color: '#333', padding: 6 },
+
+  notesText: { fontSize: 10, color: '#333', lineHeight: 1.6 },
+  termsText: { fontSize: 9, lineHeight: 1.7, color: '#333' },
 })
 
-const TERMINOS_SERVICIO = `SE REQUIERE PAGO MÍNIMO DE 50% ANTES DEL INICIO DEL SERVICIO / REPARACIÓN.
-ROOKIE MAKER 3D NO CUBRE REPUESTOS NO AUTORIZADOS NI DAÑOS PREEXISTENTES NO DECLARADOS.
-LOS TIEMPOS DE ENTREGA DEPENDEN DE DISPONIBILIDAD DE REFACCIONES (ZONA LOCAL 3 A 5 DÍAS HÁBILES TÍPICOS).
-COTIZACIÓN VÁLIDA POR 7 DÍAS NATURALES A PARTIR DE LA RECEPCIÓN.
-CUALQUIER DUDA O ACLARACIÓN COMUNICARSE AL TELÉFONO DE CONTACTO DE SU VENDEDOR.`
+const TERMINOS_SERVICIO = [
+  'SE REQUIERE PAGO MÍNIMO DE 50% ANTES DEL INICIO DEL SERVICIO / REPARACIÓN.',
+  'ROOKIE MAKER 3D NO CUBRE REPUESTOS NO AUTORIZADOS NI DAÑOS PREEXISTENTES NO DECLARADOS.',
+  'LOS TIEMPOS DE ENTREGA DEPENDEN DE DISPONIBILIDAD DE REFACCIONES (ZONA LOCAL 3 A 5 DÍAS HÁBILES TÍPICOS).',
+]
 
 const NA = 'N/A'
 function formatDate(d) {
@@ -90,16 +124,27 @@ function formatDate(d) {
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`
 }
 
+function Box({ title, children, style, wrap = false }) {
+  return (
+    <View style={[styles.box, style]} wrap={wrap}>
+      <View style={styles.boxHead}>
+        <Text style={styles.boxHeadText}>{title}</Text>
+      </View>
+      <View style={styles.boxBody}>{children}</View>
+    </View>
+  )
+}
+
 /**
  * PDF de cotización / informe de servicio-reparación.
- * Mismo formato visual que CotizacionPDF (impresión), adaptado a servicio.
- * tipo: 'cotizacion' | 'informe'
+ * Columnas: Id · Concepto · Descripción · Costo · Cant. · Costo final
  */
 export default function CotizacionServicioPDF({
   tipo = 'cotizacion',
   folio,
   cliente = {},
   servicio = {},
+  conceptos = [],
   materiales = [],
   costoReparacion = 0,
   costoBase = 0,
@@ -110,7 +155,7 @@ export default function CotizacionServicioPDF({
   vendedor = {},
   transferencia = {},
   diasValidez = 7,
-  terminos = TERMINOS_SERVICIO,
+  terminosLines = TERMINOS_SERVICIO,
   logoUrl,
   fecha,
   fotos = [],
@@ -125,30 +170,45 @@ export default function CotizacionServicioPDF({
   const descripcion = servicio.descripcion || 'Servicio / reparación'
   const fotosOk = (fotos || []).filter((f) => typeof f === 'string' && f.startsWith('data:image')).slice(0, 6)
 
-  const partidas = [
-    {
-      id: 'S001',
-      nombre: 'Mano de obra / reparación',
-      desc: descripcion,
-      costo: Number(costoReparacion) || 0,
-      cant: 1,
-      final: Number(costoReparacion) || 0,
-    },
-    ...(materiales || []).map((m, i) => {
-      const cant = Number(m.cantidad) || 1
-      const cu = Number(m.costo_unitario) || 0
-      const sub = m.subtotal != null ? Number(m.subtotal) : cant * cu
-      return {
-        id: `M${String(i + 1).padStart(3, '0')}`,
-        nombre: m.nombre || 'Material',
-        desc: 'Refacción / material',
-        costo: cu,
-        cant,
-        final: sub,
-      }
-    }),
-  ]
+  const partidasConceptos = (conceptos || []).length
+    ? (conceptos || []).map((c) => {
+        const cant = Number(c.cantidad) || 1
+        const precio = Number(c.precio) || 0
+        return {
+          id: c.id || 'S—',
+          concepto: c.concepto || c.nombre || 'Servicio',
+          desc: c.descripcion || '',
+          costo: precio,
+          cant,
+          final: cant * precio,
+        }
+      })
+    : Number(costoReparacion) > 0
+      ? [{
+          id: 'S001',
+          concepto: 'Mano de obra / reparación',
+          desc: descripcion,
+          costo: Number(costoReparacion) || 0,
+          cant: 1,
+          final: Number(costoReparacion) || 0,
+        }]
+      : []
 
+  const partidasMats = (materiales || []).map((m, i) => {
+    const cant = Number(m.cantidad) || 1
+    const cu = Number(m.costo_unitario) || 0
+    const sub = m.subtotal != null ? Number(m.subtotal) : cant * cu
+    return {
+      id: m.id || `M${String(i + 1).padStart(3, '0')}`,
+      concepto: m.nombre || 'Material',
+      desc: m.descripcion || 'Refacción / material',
+      costo: cu,
+      cant,
+      final: sub,
+    }
+  })
+
+  const partidas = [...partidasConceptos, ...partidasMats]
   const subTotal = Number(costoBase) || partidas.reduce((s, p) => s + (p.final || 0), 0)
   const total = Number(costoFinal) || subTotal
   const margen = Number(porcentajeGanancia) || 0
@@ -221,75 +281,93 @@ export default function CotizacionServicioPDF({
         </View>
 
         {!isInforme && (
-          <View style={styles.bankWrap}>
-            <Text style={styles.blackBar}>DATOS DE TRANSFERENCIA</Text>
+          <Box title="DATOS DE TRANSFERENCIA">
             <View style={styles.bankRow}><Text style={styles.bankLabel}>BANCO:</Text><Text style={styles.bankValue}>{t.banco || NA}</Text></View>
             <View style={styles.bankRow}><Text style={styles.bankLabel}>CUENTA:</Text><Text style={styles.bankValue}>{t.cuenta || NA}</Text></View>
             <View style={styles.bankRow}><Text style={styles.bankLabel}>CLABE:</Text><Text style={styles.bankValue}>{t.clabe || NA}</Text></View>
             <View style={styles.bankRow}><Text style={styles.bankLabel}>BENEFICIARIO:</Text><Text style={styles.bankValue}>{t.beneficiario || NA}</Text></View>
-          </View>
+          </Box>
         )}
 
-        <View style={{ marginBottom: 14 }}>
-          <View style={[styles.tableWrap, { borderTopWidth: 0 }]}>
-            <View style={[styles.tableRow, styles.blackBar, { marginBottom: 0, borderBottomWidth: 0 }]}>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack]}>ID</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 2 }]}>CONCEPTO</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 1.5 }]}>DESCRIPCIÓN</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>CANT.</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO FINAL</Text>
+        <View style={styles.table} wrap={false}>
+          <View style={styles.tableHead}>
+            <Text style={styles.tableHeadCell}>ID</Text>
+            <Text style={[styles.tableHeadCell, { flex: 1.6 }]}>CONCEPTO</Text>
+            <Text style={[styles.tableHeadCell, { flex: 2 }]}>DESCRIPCIÓN</Text>
+            <Text style={[styles.tableHeadCell, styles.tableRight]}>COSTO</Text>
+            <Text style={[styles.tableHeadCell, styles.tableRight]}>CANT.</Text>
+            <Text style={[styles.tableHeadCell, styles.tableRight]}>COSTO FINAL</Text>
+          </View>
+          {partidas.length === 0 ? (
+            <View style={styles.tableRow}>
+              <Text style={styles.tableCell}>—</Text>
+              <Text style={[styles.tableCell, { flex: 1.6 }]}>Sin partidas</Text>
+              <Text style={[styles.tableCell, { flex: 2 }]}>{NA}</Text>
+              <Text style={[styles.tableCell, styles.tableRight]}>$0.00</Text>
+              <Text style={[styles.tableCell, styles.tableRight]}>0</Text>
+              <Text style={[styles.tableCell, styles.tableRight]}>$0.00</Text>
             </View>
-            {partidas.map((l, i) => (
+          ) : (
+            partidas.map((l, i) => (
               <View key={i} style={styles.tableRow}>
                 <Text style={styles.tableCell}>{l.id}</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre}</Text>
-                <Text style={[styles.tableCell, { flex: 1.5 }]}>{l.desc}</Text>
+                <Text style={[styles.tableCell, { flex: 1.6 }]}>{l.concepto}</Text>
+                <Text style={[styles.tableCell, { flex: 2 }]}>{l.desc || NA}</Text>
                 <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo ?? 0).toFixed(2)}</Text>
                 <Text style={[styles.tableCell, styles.tableRight]}>{l.cant ?? 1}</Text>
                 <Text style={[styles.tableCell, styles.tableRight]}>${(l.final ?? 0).toFixed(2)}</Text>
               </View>
-            ))}
-          </View>
-          <View style={styles.totalsBlock}>
-            <View style={styles.totalRow}><Text style={styles.totalLbl}>SUBTOTAL (COSTO)</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
-            {margen > 0 && (
-              <View style={styles.totalRow}><Text style={styles.totalLbl}>MARGEN {margen}%</Text><Text style={styles.totalVal}>${(total - subTotal).toFixed(2)}</Text></View>
-            )}
-            <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
-          </View>
+            ))
+          )}
         </View>
 
-        <View style={styles.bottom}>
-          <View style={styles.notesArea}>
-            <Text style={styles.blackBar}>{isInforme ? 'TRABAJO REALIZADO / INFORME:' : 'NOTAS ADICIONALES:'}</Text>
-            <Text style={styles.notesText}>
-              {isInforme
-                ? (trabajoRealizado && String(trabajoRealizado).trim() ? trabajoRealizado : (notas && notas.trim() ? notas : NA))
-                : (notas && notas.trim() ? notas : NA)}
-            </Text>
-          </View>
+        <View style={styles.totalsBlock}>
+          <View style={styles.totalRow}><Text style={styles.totalLbl}>SUBTOTAL</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
+          {margen > 0 && (
+            <View style={styles.totalRow}><Text style={styles.totalLbl}>MARGEN {margen}%</Text><Text style={styles.totalVal}>${(total - subTotal).toFixed(2)}</Text></View>
+          )}
+          <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
         </View>
+
+        <Box title={isInforme ? 'TRABAJO REALIZADO / INFORME:' : 'NOTAS ADICIONALES:'}>
+          <Text style={styles.notesText}>
+            {isInforme
+              ? (trabajoRealizado && String(trabajoRealizado).trim() ? trabajoRealizado : (notas && notas.trim() ? notas : NA))
+              : (notas && notas.trim() ? notas : NA)}
+          </Text>
+        </Box>
 
         {isInforme && fotosOk.length > 0 && (
-          <View style={{ marginTop: 10, marginBottom: 10 }}>
+          <View style={{ marginBottom: 10 }} wrap={false}>
             <Text style={styles.sectionHead}>FOTOS DEL ARREGLO:</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {fotosOk.map((src, i) => (
                 <Image
                   key={i}
                   src={src}
-                  style={{ width: 160, height: 120, objectFit: 'cover', marginBottom: 6, borderWidth: 1, borderColor: '#111' }}
+                  style={{ width: 150, height: 110, objectFit: 'cover', borderWidth: 1, borderColor: '#111' }}
                 />
               ))}
             </View>
           </View>
         )}
 
-        <View style={styles.termsArea}>
-          <Text style={styles.blackBar}>TERMINOS GENERALES:</Text>
-          <Text style={styles.termsText}>{terminos}</Text>
-        </View>
+        <Box title="TERMINOS GENERALES:" wrap={false}>
+          {(terminosLines || []).map((line, i) => (
+            <Text key={i} style={styles.termsText}>{line}</Text>
+          ))}
+        </Box>
+
+        {!isInforme && (
+          <Box title="VIGENCIA:" wrap={false}>
+            <Text style={styles.termsText}>
+              COTIZACIÓN VÁLIDA POR {diasValidez} DÍAS NATURALES A PARTIR DE LA RECEPCIÓN.
+            </Text>
+            <Text style={styles.termsText}>
+              CUALQUIER DUDA O ACLARACIÓN COMUNICARSE AL TELÉFONO DE CONTACTO DE SU VENDEDOR.
+            </Text>
+          </Box>
+        )}
       </Page>
     </Document>
   )
