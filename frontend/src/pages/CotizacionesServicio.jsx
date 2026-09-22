@@ -33,10 +33,10 @@ import {
 const todayISO = () => new Date().toISOString().split('T')[0]
 
 const ESTADOS = [
-  { id: 'cotizando', label: 'Cotizando', color: 'amber', icon: Clock, nextLabel: 'Enviar a espera confirmación' },
-  { id: 'espera_confirmacion', label: 'Espera confirmación', color: 'slate', icon: HelpCircle, nextLabel: 'Marcar como pagado' },
-  { id: 'pagado', label: 'Pagado', color: 'emerald', icon: CheckCircle, nextLabel: 'Terminar y generar informe' },
-  { id: 'terminado', label: 'Terminado / informe', color: 'blue', icon: Flag, nextLabel: null },
+  { id: 'cotizando', label: 'Cotizando', color: 'amber', icon: Clock, nextLabel: 'Enviar a confirmación cliente' },
+  { id: 'espera_confirmacion', label: 'Confirma cliente', color: 'slate', icon: HelpCircle, nextLabel: 'Cliente confirmó / marcar pagado' },
+  { id: 'pagado', label: 'Elaborar reporte', color: 'emerald', icon: CheckCircle, nextLabel: 'Cerrar y enviar a contabilidad' },
+  { id: 'terminado', label: 'En contabilidad', color: 'blue', icon: Flag, nextLabel: null },
 ]
 
 const colorClasses = {
@@ -56,6 +56,7 @@ const WIZARD_STEPS = [
   { id: 1, label: 'Cliente', icon: User },
   { id: 2, label: 'Conceptos', icon: Calculator },
   { id: 3, label: 'PDF', icon: FileDown },
+  { id: 4, label: 'Confirmar', icon: CheckCircle },
 ]
 
 const emptyMat = () => ({ nombre: '', descripcion: '', cantidad: 1, costo_unitario: 0 })
@@ -175,6 +176,8 @@ export default function CotizacionesServicio() {
   const [updating, setUpdating] = useState(null)
   const [pdfBusy, setPdfBusy] = useState(null)
   const [detail, setDetail] = useState(null)
+  const [elaborarModo, setElaborarModo] = useState(false)
+  const [confirmadoWizard, setConfirmadoWizard] = useState(false)
   const [detailPreviewUrl, setDetailPreviewUrl] = useState(null)
   const [formPreviewUrl, setFormPreviewUrl] = useState(null)
   const [formFotos, setFormFotos] = useState([])
@@ -304,7 +307,7 @@ export default function CotizacionesServicio() {
   }, [form, preview, formFotos, conceptosSeleccionados])
 
   useEffect(() => {
-    if (!open || paso !== 3) return undefined
+    if (!open || (paso !== 3 && paso !== 4)) return undefined
     let cancelled = false
     pdf(buildPdfDoc(formAsItem, 'cotizacion'))
       .toBlob()
@@ -324,10 +327,12 @@ export default function CotizacionesServicio() {
   useEffect(() => {
     if (!detail) {
       setDetailPreviewUrl(null)
+      setElaborarModo(false)
       return undefined
     }
+    if (normEstado(detail.estado) === 'pagado') setElaborarModo(true)
     let cancelled = false
-    const tipo = normEstado(detail.estado) === 'terminado' ? 'informe' : 'cotizacion'
+    const tipo = normEstado(detail.estado) === 'terminado' || elaborarModo ? 'informe' : 'cotizacion'
     pdf(buildPdfDoc(detail, tipo))
       .toBlob()
       .then((blob) => {
@@ -341,7 +346,7 @@ export default function CotizacionesServicio() {
     return () => {
       cancelled = true
     }
-  }, [detail])
+  }, [detail, elaborarModo])
 
   useEffect(() => () => {
     if (prevFormUrl.current) URL.revokeObjectURL(prevFormUrl.current)
@@ -372,6 +377,7 @@ export default function CotizacionesServicio() {
     setFormFotos([])
     setPaso(1)
     setFormPreviewUrl(null)
+    setConfirmadoWizard(false)
     setErr('')
     setOpen(true)
   }
@@ -379,6 +385,7 @@ export default function CotizacionesServicio() {
   const cerrarNueva = () => {
     setOpen(false)
     setPaso(1)
+    setConfirmadoWizard(false)
   }
 
   const puedeAvanzar = () => {
@@ -470,7 +477,7 @@ export default function CotizacionesServicio() {
     }
   }
 
-  const save = async () => {
+  const save = async ({ enviarConfirmacion = false } = {}) => {
     setErr('')
     setMsg('')
     setSaving(true)
@@ -485,7 +492,7 @@ export default function CotizacionesServicio() {
       materiales: formAsItem.materiales,
       porcentaje_ganancia: Number(form.porcentaje_ganancia) || 0,
       fecha: form.fecha || todayISO(),
-      estado: 'cotizando',
+      estado: enviarConfirmacion ? 'espera_confirmacion' : 'cotizando',
       fotos: formFotos,
     }
     try {
@@ -496,14 +503,26 @@ export default function CotizacionesServicio() {
       })
       if (!r.ok) throw new Error((await r.text()) || 'No se pudo guardar')
       const created = await r.json()
-      setMsg('Cotización creada. Usa Continuar para avanzar la orden.')
-      cerrarNueva()
+      if (enviarConfirmacion) {
+        setConfirmadoWizard(true)
+        setMsg(`Cotización SRV-${created.id} enviada a confirmación del cliente.`)
+      } else {
+        setMsg('Borrador guardado en Cotizando.')
+        cerrarNueva()
+        setDetail(created)
+      }
       setFormFotos([])
       setForm(emptyForm())
       load()
-      setDetail(created)
+      if (enviarConfirmacion) {
+        // se queda en paso 4 con pantalla de éxito
+      } else {
+        setDetail(created)
+      }
+      return created
     } catch (ex) {
       setErr(ex.message || 'Error al guardar')
+      return null
     } finally {
       setSaving(false)
     }
@@ -514,11 +533,31 @@ export default function CotizacionesServicio() {
     setErr('')
     try {
       if (estado === 'terminado') {
+        const fotos = it.fotos || []
+        if (!fotos.length) {
+          setErr('Sube al menos una foto del arreglo antes de cerrar el reporte.')
+          setElaborarModo(true)
+          setUpdating(null)
+          return
+        }
+        if (!(it.trabajo_realizado || '').trim()) {
+          setErr('Escribe el trabajo realizado en el reporte antes de enviar a contabilidad.')
+          setElaborarModo(true)
+          setUpdating(null)
+          return
+        }
+        // Guardar trabajo_realizado por si no disparó blur
+        await api(`/servicios/cotizaciones/${it.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trabajo_realizado: it.trabajo_realizado || '' }),
+        })
         const r = await api(`/servicios/cotizaciones/${it.id}/finalizar`, { method: 'POST' })
         const data = await r.json().catch(() => ({}))
         if (!r.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'No se pudo terminar')
         const merged = { ...it, ...data, estado: 'terminado', fotos: data.fotos || it.fotos || [] }
-        setMsg(`Terminado. Venta #${data.venta_id || '—'} en contabilidad. Abre el informe.`)
+        setMsg(`Reporte cerrado. Venta #${data.venta_id || '—'} registrada en Contabilidad (gasto + ingreso).`)
+        setElaborarModo(false)
         load()
         setDetail(merged)
         await descargarPdf(merged, 'informe')
@@ -534,8 +573,15 @@ export default function CotizacionesServicio() {
         throw new Error(d.detail || 'No se pudo avanzar')
       }
       const updated = await r.json()
+      if (normEstado(updated.estado) === 'pagado') setElaborarModo(true)
       setDetail(updated)
       load()
+      if (normEstado(updated.estado) === 'pagado') {
+        setMsg('Cliente confirmó / pagado. Ahora elabora el reporte con fotos y cierra a contabilidad.')
+      }
+      if (normEstado(updated.estado) === 'espera_confirmacion') {
+        setMsg('En espera de confirmación del cliente.')
+      }
     } catch (ex) {
       setErr(ex.message || 'Error al cambiar estado')
     } finally {
@@ -556,7 +602,7 @@ export default function CotizacionesServicio() {
     <div className="space-y-6">
       <SectionHeader
         title="Servicio / reparación"
-        subtitle="Elige conceptos (S001–S003), revisa el PDF y avanza la orden como en cotización normal."
+        subtitle="Cliente → Conceptos → PDF → Confirmar cliente. Luego elaboras el reporte con fotos y el gasto entra a Contabilidad."
         action={
           <button
             type="button"
@@ -828,32 +874,60 @@ export default function CotizacionesServicio() {
                     <ExternalLink className="w-3 h-3" /> Abrir en pestaña
                   </button>
                 )}
-                <div className="flex items-center gap-2 ml-auto">
-                  <button type="button" className="text-xs text-cyan-400" onClick={() => fotoInputRef.current?.click()}>
-                    <Camera className="w-3.5 h-3.5 inline mr-1" /> Fotos ({formFotos.length})
-                  </button>
-                  <input ref={fotoInputRef} type="file" accept="image/*" className="hidden" onChange={addFormFoto} />
-                </div>
               </div>
-              {formFotos.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {formFotos.map((src, i) => (
-                    <div key={i} className="relative w-14 h-14 rounded overflow-hidden bg-white/5">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        className="absolute top-0 right-0 bg-black/60 p-0.5"
-                        onClick={() => setFormFotos((p) => p.filter((_, j) => j !== i))}
-                      >
-                        <X className="w-3 h-3 text-white" />
-                      </button>
-                    </div>
-                  ))}
+            </div>
+          )}
+
+          {paso === 4 && !confirmadoWizard && (
+            <div className="max-w-xl mx-auto space-y-4 text-center py-6">
+              <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <CheckCircle className="w-8 h-8 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-semibold theme-text">Confirmar con el cliente</h3>
+              <p className="text-sm theme-text-muted">
+                Cliente: <strong className="theme-text">{form.cliente_nombre || '—'}</strong>
+                {' · '}
+                Total: <strong className="theme-text">${preview.final.toFixed(2)}</strong> MXN
+              </p>
+              <p className="text-xs theme-text-dim">
+                Al confirmar, la cotización pasa a <strong>Confirma cliente</strong> (espera de aceptación / anticipo).
+                Después marcarás pagado, elaborarás el reporte con fotos y el monto irá a Contabilidad.
+              </p>
+              {formPreviewUrl && (
+                <div className="rounded-lg border border-white/15 overflow-hidden bg-white mt-4">
+                  <iframe src={formPreviewUrl} title="PDF confirmar" className="w-full h-[320px]" />
                 </div>
               )}
             </div>
           )}
 
+          {paso === 4 && confirmadoWizard && (
+            <div className="max-w-md mx-auto text-center py-10 space-y-4">
+              <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-emerald-400" />
+              </div>
+              <h3 className="text-xl font-bold theme-text">Cotización registrada</h3>
+              <p className="text-sm theme-text-muted">Estado: Confirma cliente · lista para que el cliente acepte</p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={cerrarNueva}
+                  className="px-4 py-2.5 rounded-xl bg-cyan-500 text-white text-sm font-medium"
+                >
+                  Ver tablero
+                </button>
+                <button
+                  type="button"
+                  onClick={abrirNueva}
+                  className="px-4 py-2.5 rounded-xl border border-white/20 text-sm"
+                >
+                  Nueva cotización
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!confirmadoWizard && (
           <div className="flex justify-between mt-6 pt-4 border-t border-white/10">
             <button
               type="button"
@@ -863,7 +937,7 @@ export default function CotizacionesServicio() {
               <ChevronLeft className="w-4 h-4" />
               {paso === 1 ? 'Cancelar' : 'Atrás'}
             </button>
-            {paso < 3 ? (
+            {paso < 4 ? (
               <button
                 type="button"
                 disabled={!puedeAvanzar()}
@@ -876,13 +950,14 @@ export default function CotizacionesServicio() {
               <button
                 type="button"
                 disabled={saving || !puedeAvanzar()}
-                onClick={save}
-                className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-cyan-500 text-white text-sm font-medium disabled:opacity-40"
+                onClick={() => save({ enviarConfirmacion: true })}
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium disabled:opacity-40"
               >
-                {saving ? 'Guardando…' : 'Guardar cotización'}
+                {saving ? 'Registrando…' : 'Confirmar y enviar a cliente'}
               </button>
             )}
           </div>
+          )}
         </Card>
       )}
 
@@ -950,62 +1025,161 @@ export default function CotizacionesServicio() {
               </div>
 
               <div className="space-y-4">
-                {NEXT[normEstado(detail.estado)] && (
+                {normEstado(detail.estado) === 'espera_confirmacion' && (
+                  <div className="rounded-xl border border-slate-500/30 bg-slate-500/10 p-3 space-y-2">
+                    <p className="text-sm theme-text font-medium">Confirmación del cliente</p>
+                    <p className="text-xs theme-text-dim">
+                      Cuando el cliente acepte y pague el anticipo, marca como pagado para pasar a elaborar el reporte.
+                    </p>
+                    <button
+                      type="button"
+                      disabled={updating === detail.id}
+                      onClick={() => setEstado(detail, 'pagado')}
+                      className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm inline-flex items-center justify-center gap-2"
+                    >
+                      Cliente confirmó / marcar pagado
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {(normEstado(detail.estado) === 'pagado' || elaborarModo) && normEstado(detail.estado) !== 'terminado' && (
+                  <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-emerald-400" />
+                      <p className="text-sm theme-text font-semibold">Elaborar reporte</p>
+                    </div>
+                    <p className="text-xs theme-text-dim">
+                      Sube fotos del arreglo, escribe qué se hizo y cierra. Al cerrar se crea la venta y el gasto/ingreso entra a Contabilidad.
+                    </p>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs theme-text-muted">Fotos del arreglo *</span>
+                        <button type="button" className="text-xs text-cyan-400" onClick={() => detailFotoRef.current?.click()}>
+                          + Subir foto
+                        </button>
+                        <input ref={detailFotoRef} type="file" accept="image/*" className="hidden" onChange={addDetailFoto} />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(detail.fotos || []).map((src, i) => (
+                          <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                            <img src={src} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              className="absolute top-0 right-0 bg-black/60 p-0.5"
+                              onClick={() => removeDetailFoto(i)}
+                            >
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                        {!(detail.fotos || []).length && (
+                          <p className="text-xs text-amber-300">Obligatorio: al menos 1 foto para cerrar el reporte.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <label className="block text-sm">
+                      <span className="theme-text-muted text-xs">Trabajo realizado *</span>
+                      <textarea
+                        className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text min-h-[90px] text-sm"
+                        value={detail.trabajo_realizado || ''}
+                        onChange={(e) => setDetail({ ...detail, trabajo_realizado: e.target.value })}
+                        placeholder="Qué se reparó, piezas cambiadas, pruebas…"
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      disabled={updating === detail.id}
+                      onClick={() => setEstado(detail, 'terminado')}
+                      className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-semibold text-sm inline-flex items-center justify-center gap-2"
+                    >
+                      Cerrar reporte → Contabilidad
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <p className="text-[11px] theme-text-dim text-center">
+                      Total ${Number(detail.costo_final || 0).toFixed(2)} · Base ${Number(detail.costo_base || 0).toFixed(2)}
+                    </p>
+                  </div>
+                )}
+
+                {normEstado(detail.estado) === 'cotizando' && (
                   <button
                     type="button"
                     disabled={updating === detail.id}
-                    onClick={() => setEstado(detail, NEXT[normEstado(detail.estado)])}
+                    onClick={() => setEstado(detail, 'espera_confirmacion')}
                     className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-semibold text-sm inline-flex items-center justify-center gap-2"
                   >
-                    Continuar: {nextLabelFor(detail.estado)}
+                    Enviar a confirmación del cliente
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 )}
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm theme-text font-medium flex items-center gap-1">
-                      <Camera className="w-4 h-4" /> Fotos del arreglo
-                    </span>
-                    <button type="button" className="text-xs text-cyan-400" onClick={() => detailFotoRef.current?.click()}>
-                      + Subir foto
-                    </button>
-                    <input ref={detailFotoRef} type="file" accept="image/*" className="hidden" onChange={addDetailFoto} />
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {(detail.fotos || []).map((src, i) => (
-                      <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden bg-white/5 border border-white/10">
-                        <img src={src} alt="" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          className="absolute top-0 right-0 bg-black/60 p-0.5"
-                          onClick={() => removeDetailFoto(i)}
-                        >
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      </div>
-                    ))}
-                    {!(detail.fotos || []).length && (
-                      <p className="text-xs theme-text-dim">Sube fotos; salen en el informe PDF.</p>
+                {normEstado(detail.estado) === 'terminado' && (
+                  <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 space-y-2">
+                    <p className="text-sm theme-text font-medium">En Contabilidad</p>
+                    <p className="text-xs theme-text-dim">
+                      Venta #{detail.venta_id || '—'} registrada. Costo base ${Number(detail.costo_base || 0).toFixed(2)} ·
+                      Ingreso ${Number(detail.costo_final || 0).toFixed(2)}.
+                    </p>
+                    {detail.venta_id && (
+                      <Link to="/contabilidad" className="text-xs text-cyan-400 inline-flex items-center gap-1">
+                        Abrir Contabilidad <ExternalLink className="w-3 h-3" />
+                      </Link>
                     )}
                   </div>
-                </div>
+                )}
 
-                <label className="block text-sm">
-                  <span className="theme-text-muted">Notas / trabajo realizado</span>
-                  <textarea
-                    className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text min-h-[80px] text-sm"
-                    value={detail.trabajo_realizado || ''}
-                    onChange={(e) => setDetail({ ...detail, trabajo_realizado: e.target.value })}
-                    onBlur={async () => {
-                      await api(`/servicios/cotizaciones/${detail.id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ trabajo_realizado: detail.trabajo_realizado || '' }),
-                      })
-                    }}
-                  />
-                </label>
+                {normEstado(detail.estado) !== 'pagado' && normEstado(detail.estado) !== 'terminado' && (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm theme-text font-medium flex items-center gap-1">
+                          <Camera className="w-4 h-4" /> Fotos (opcional ahora)
+                        </span>
+                        <button type="button" className="text-xs text-cyan-400" onClick={() => detailFotoRef.current?.click()}>
+                          + Subir foto
+                        </button>
+                        <input ref={detailFotoRef} type="file" accept="image/*" className="hidden" onChange={addDetailFoto} />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(detail.fotos || []).map((src, i) => (
+                          <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden bg-white/5 border border-white/10">
+                            <img src={src} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              className="absolute top-0 right-0 bg-black/60 p-0.5"
+                              onClick={() => removeDetailFoto(i)}
+                            >
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                        {!(detail.fotos || []).length && (
+                          <p className="text-xs theme-text-dim">Las fotos obligatorias se piden al elaborar el reporte.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <label className="block text-sm">
+                      <span className="theme-text-muted">Notas</span>
+                      <textarea
+                        className="mt-1 w-full rounded-lg border bg-white/5 border-white/20 px-3 py-2 theme-text min-h-[80px] text-sm"
+                        value={detail.trabajo_realizado || ''}
+                        onChange={(e) => setDetail({ ...detail, trabajo_realizado: e.target.value })}
+                        onBlur={async () => {
+                          await api(`/servicios/cotizaciones/${detail.id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ trabajo_realizado: detail.trabajo_realizado || '' }),
+                          })
+                        }}
+                      />
+                    </label>
+                  </>
+                )}
 
                 <p className="text-xs theme-text-dim">
                   Total ${Number(detail.costo_final || 0).toFixed(2)} · Base ${Number(detail.costo_base || 0).toFixed(2)}
@@ -1062,10 +1236,17 @@ export default function CotizacionesServicio() {
                             <button
                               type="button"
                               disabled={updating === it.id}
-                              onClick={() => setEstado(it, next)}
+                              onClick={() => {
+                                if (next === 'terminado') {
+                                  setDetail(it)
+                                  setElaborarModo(true)
+                                  return
+                                }
+                                setEstado(it, next)
+                              }}
                               className="w-full py-1.5 rounded-lg bg-cyan-500/90 text-white text-[11px] font-semibold inline-flex items-center justify-center gap-1"
                             >
-                              Continuar <ChevronRight className="w-3 h-3" />
+                              {next === 'terminado' ? 'Elaborar reporte' : 'Continuar'} <ChevronRight className="w-3 h-3" />
                             </button>
                           )}
                           <div className="flex flex-wrap gap-1.5">

@@ -347,6 +347,18 @@ async def finalizar_cotizacion_servicio(
     if _norm_estado(c.estado) == "terminado" and c.venta_id:
         return {"ok": True, "already": True, **_to_dict(c)}
 
+    fotos = c.fotos or []
+    if not fotos:
+        raise HTTPException(
+            status_code=400,
+            detail="Sube al menos una foto del arreglo antes de cerrar el reporte",
+        )
+    if not (c.trabajo_realizado or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Escribe el trabajo realizado antes de enviar a contabilidad",
+        )
+
     conceptos, mats, base, final, mano_obra = _calc_costos(
         c.costo_reparacion or 0, c.materiales or [], c.porcentaje_ganancia or 0, c.items or []
     )
