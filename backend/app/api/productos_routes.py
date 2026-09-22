@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_, func, literal
 
 from app.database import get_db
 from app.auth import require_user, get_vendedor_from_user, require_admin
@@ -8,6 +8,17 @@ from app.models import Producto, Vendedor
 from app.schemas import ProductoCreate, ProductoResponse, ProductoUpdate
 
 router = APIRouter(prefix="/productos", tags=["productos"])
+
+
+async def _catalogo_es_general_expr(db: AsyncSession):
+    """Expression portable: catalogo == 'general' o ausente (SQLite vs PostgreSQL)."""
+    conn = await db.connection()
+    dialect = conn.dialect.name
+    if dialect == "postgresql":
+        # detalles->>'catalogo'
+        return func.coalesce(Producto.detalles.op("->>")("catalogo"), literal("general"))
+    # SQLite
+    return func.coalesce(func.json_extract(Producto.detalles, "$.catalogo"), literal("general"))
 
 
 @router.get("", response_model=list[ProductoResponse])
@@ -25,9 +36,10 @@ async def list_productos(
         if for_analysis:
             q = q.where(Producto.vendedor == vendedor.nombre)
         else:
+            catalogo = await _catalogo_es_general_expr(db)
             q = q.where(
                 or_(
-                    func.coalesce(func.json_extract(Producto.detalles, "$.catalogo"), "general") == "general",
+                    catalogo == "general",
                     Producto.vendedor == vendedor.nombre,
                 )
             )
@@ -35,9 +47,10 @@ async def list_productos(
         if for_analysis:
             q = q.where(Producto.vendedor == user.email)
         else:
+            catalogo = await _catalogo_es_general_expr(db)
             q = q.where(
                 or_(
-                    func.coalesce(func.json_extract(Producto.detalles, "$.catalogo"), "general") == "general",
+                    catalogo == "general",
                     Producto.vendedor == user.email,
                 )
             )
