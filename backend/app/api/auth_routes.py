@@ -208,15 +208,22 @@ async def update_me(
 ):
     """Actualiza perfil del usuario actual. Vendedor: Vendedor; vendedor_ventas: User (nombre, telefono, banco, cuenta, clabe)."""
     if user.vendedor_id:
-        if body.nombre is not None:
-            nombre = (body.nombre or "").strip() or None
-            res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
-            v = res.scalar_one_or_none()
-            if v:
-                v.nombre = nombre or v.nombre
+        res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
+        v = res.scalar_one_or_none()
+        if v:
+            if body.nombre is not None:
+                v.nombre = (body.nombre or "").strip() or v.nombre
+            if body.telefono is not None:
+                v.telefono = (body.telefono or "").strip() or None
+            if body.banco is not None:
+                v.banco = (body.banco or "").strip() or None
+            if body.cuenta is not None:
+                v.cuenta = (body.cuenta or "").strip() or None
+            if body.clabe is not None:
+                v.clabe = (body.clabe or "").strip() or None
         await db.commit()
     else:
-        # vendedor_ventas: actualizar User
+        # vendedor_ventas / admin sin vendedor: actualizar User
         if body.nombre is not None:
             user.nombre = (body.nombre or "").strip() or None
         if body.telefono is not None:

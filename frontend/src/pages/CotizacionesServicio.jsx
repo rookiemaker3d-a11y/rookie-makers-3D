@@ -118,6 +118,17 @@ function emptyForm() {
   }
 }
 
+function readServicioDraft(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const obj = JSON.parse(raw)
+    return obj && typeof obj === 'object' ? obj : null
+  } catch (_) {
+    return null
+  }
+}
+
 function StepperServicio({ paso, onPaso }) {
   return (
     <nav className="flex items-center justify-center gap-2 sm:gap-4 mb-6">
@@ -163,6 +174,9 @@ function StepperServicio({ paso, onPaso }) {
 
 export default function CotizacionesServicio() {
   const { api, user } = useAuth()
+  const draftKey = useMemo(() => `servicio_draft_v1:${user?.id ?? 'anon'}`, [user?.id])
+  const restoringRef = useRef(false)
+  const saveTimerRef = useRef(null)
   const [items, setItems] = useState([])
   const [clientes, setClientes] = useState([])
   const [marcas, setMarcas] = useState([])
@@ -178,6 +192,7 @@ export default function CotizacionesServicio() {
   const [detail, setDetail] = useState(null)
   const [elaborarModo, setElaborarModo] = useState(false)
   const [confirmadoWizard, setConfirmadoWizard] = useState(false)
+  const [draftInfo, setDraftInfo] = useState(null)
   const [detailPreviewUrl, setDetailPreviewUrl] = useState(null)
   const [formPreviewUrl, setFormPreviewUrl] = useState(null)
   const [formFotos, setFormFotos] = useState([])
@@ -187,6 +202,92 @@ export default function CotizacionesServicio() {
   const prevDetailUrl = useRef(null)
 
   const [form, setForm] = useState(emptyForm)
+
+  const clearDraft = () => {
+    try {
+      localStorage.removeItem(draftKey)
+    } catch (_) {
+      // ignore
+    }
+    setDraftInfo(null)
+  }
+
+  // Restaurar borrador al montar
+  useEffect(() => {
+    const d = readServicioDraft(draftKey)
+    if (!d) return
+    restoringRef.current = true
+    try {
+      if (d.form && typeof d.form === 'object') setForm({ ...emptyForm(), ...d.form })
+      if (typeof d.paso === 'number' && d.paso >= 1 && d.paso <= 4) setPaso(d.paso)
+      if (Array.isArray(d.formFotos)) setFormFotos(d.formFotos.slice(0, 6))
+      if (d.open) setOpen(true)
+      setDraftInfo({ savedAt: d.savedAt || null })
+      if (d.open) setMsg('Se restauró el borrador de la cotización de servicio.')
+    } finally {
+      setTimeout(() => {
+        restoringRef.current = false
+      }, 0)
+    }
+  }, [draftKey])
+
+  // Autosave mientras el wizard está abierto
+  useEffect(() => {
+    if (!draftKey || !open || confirmadoWizard) return undefined
+    if (restoringRef.current) return undefined
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        const payload = {
+          savedAt: new Date().toISOString(),
+          open: true,
+          paso,
+          form,
+          formFotos: (formFotos || []).slice(0, 4), // limitar tamaño en localStorage
+        }
+        localStorage.setItem(draftKey, JSON.stringify(payload))
+        setDraftInfo({ savedAt: payload.savedAt })
+      } catch (_) {
+        // ignore (quota)
+      }
+    }, 400)
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    }
+  }, [draftKey, open, paso, form, formFotos, confirmadoWizard])
+
+  // Flush al cerrar pestaña
+  useEffect(() => {
+    if (!draftKey || !open || confirmadoWizard) return undefined
+    const flush = () => {
+      if (restoringRef.current) return
+      try {
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            savedAt: new Date().toISOString(),
+            open: true,
+            paso,
+            form,
+            formFotos: (formFotos || []).slice(0, 4),
+          }),
+        )
+      } catch (_) {
+        // ignore
+      }
+    }
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('beforeunload', flush)
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.removeEventListener('beforeunload', flush)
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [draftKey, open, paso, form, formFotos, confirmadoWizard])
 
   const conceptosSeleccionados = useMemo(() => {
     return (form.conceptosIds || [])
@@ -373,6 +474,7 @@ export default function CotizacionesServicio() {
   }
 
   const abrirNueva = () => {
+    clearDraft()
     setForm(emptyForm())
     setFormFotos([])
     setPaso(1)
@@ -383,6 +485,7 @@ export default function CotizacionesServicio() {
   }
 
   const cerrarNueva = () => {
+    // Al cancelar sin confirmar: conservar borrador para no perder datos
     setOpen(false)
     setPaso(1)
     setConfirmadoWizard(false)
@@ -505,8 +608,10 @@ export default function CotizacionesServicio() {
       const created = await r.json()
       if (enviarConfirmacion) {
         setConfirmadoWizard(true)
+        clearDraft()
         setMsg(`Cotización SRV-${created.id} enviada a confirmación del cliente.`)
       } else {
+        clearDraft()
         setMsg('Borrador guardado en Cotizando.')
         cerrarNueva()
         setDetail(created)
@@ -514,11 +619,6 @@ export default function CotizacionesServicio() {
       setFormFotos([])
       setForm(emptyForm())
       load()
-      if (enviarConfirmacion) {
-        // se queda en paso 4 con pantalla de éxito
-      } else {
-        setDetail(created)
-      }
       return created
     } catch (ex) {
       setErr(ex.message || 'Error al guardar')
@@ -616,6 +716,45 @@ export default function CotizacionesServicio() {
 
       {msg && <p className="text-sm text-emerald-400">{msg}</p>}
       {err && <p className="text-sm text-red-400">{err}</p>}
+
+      {draftInfo?.savedAt && !open && (
+        <div className="rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm theme-text">Hay un borrador de cotización de servicio sin terminar.</p>
+            <p className="text-xs theme-text-dim mt-0.5">
+              Último guardado: {new Date(draftInfo.savedAt).toLocaleString()}
+            </p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                const d = readServicioDraft(draftKey)
+                if (d?.form) setForm({ ...emptyForm(), ...d.form })
+                if (typeof d?.paso === 'number') setPaso(d.paso)
+                if (Array.isArray(d?.formFotos)) setFormFotos(d.formFotos)
+                setOpen(true)
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs bg-cyan-500 text-white"
+            >
+              Continuar
+            </button>
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="px-3 py-1.5 rounded-lg text-xs bg-white/10 theme-text"
+            >
+              Borrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {open && draftInfo?.savedAt && !confirmadoWizard && (
+        <p className="text-xs theme-text-dim">
+          Autoguardado activo · {new Date(draftInfo.savedAt).toLocaleTimeString()}
+        </p>
+      )}
 
       {open && (
         <Card>

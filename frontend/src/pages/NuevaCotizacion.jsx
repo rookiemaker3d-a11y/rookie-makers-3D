@@ -197,6 +197,37 @@ export default function NuevaCotizacion() {
     }
   }, [draftKey, paso, wizardData, notas, vendedorSeleccionadoId])
 
+  // Al cerrar pestaña / salir: guardar ya (sin esperar debounce)
+  useEffect(() => {
+    if (!draftKey) return undefined
+    const flush = () => {
+      if (restoringRef.current) return
+      try {
+        const payload = {
+          savedAt: new Date().toISOString(),
+          paso,
+          wizardData,
+          notas,
+          vendedorSeleccionadoId,
+        }
+        localStorage.setItem(draftKey, JSON.stringify(payload))
+      } catch (_) {
+        // ignore
+      }
+    }
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') flush()
+    }
+    window.addEventListener('beforeunload', flush)
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.removeEventListener('beforeunload', flush)
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [draftKey, paso, wizardData, notas, vendedorSeleccionadoId])
+
   const shouldRemoteDraft = !!wizardData?.cliente && !!wizardData?.proyecto?.nombre?.trim()
 
   // Crear borrador remoto (una vez) cuando ya hay cliente+proyecto

@@ -32,6 +32,13 @@ export default function Configuracion() {
   const [errPassword, setErrPassword] = useState('')
   const [porcentajeInversion, setPorcentajeInversion] = useState(defaultPorcentajeInversion)
 
+  // Datos bancarios (CLABE / clave interbancaria) para PDF de cotización
+  const puedeEditarBanco =
+    user?.role === 'vendedor_ventas' ||
+    user?.role === 'vendedor' ||
+    !!user?.vendedor_id ||
+    user?.role === 'administrador'
+
   useEffect(() => {
     setPorcentajeInversion(defaultPorcentajeInversion())
   }, [])
@@ -67,7 +74,7 @@ export default function Configuracion() {
     setSavingPerfil(true)
     try {
       const payload = { nombre: nombre.trim() || null }
-      if (user?.role === 'vendedor_ventas') {
+      if (puedeEditarBanco) {
         payload.telefono = telefono.trim() || null
         payload.banco = banco.trim() || null
         payload.cuenta = cuenta.trim() || null
@@ -83,7 +90,11 @@ export default function Configuracion() {
       }
       const data = await res.json()
       setPerfil(data)
-      setMsgPerfil('Datos actualizados. Se reflejarán en todo el sistema.')
+      setTelefono(data?.vendedor_telefono ?? '')
+      setBanco(data?.vendedor_banco ?? '')
+      setCuenta(data?.vendedor_cuenta ?? '')
+      setClabe(data?.vendedor_clabe ?? '')
+      setMsgPerfil('Datos actualizados. La CLABE se reflejará en el PDF de cotización.')
       await refreshUser()
     } catch (err) {
       setErrPerfil(err?.message || 'Error al guardar')
@@ -140,7 +151,7 @@ export default function Configuracion() {
     <div className="space-y-6">
       <SectionHeader
         title="Configuración"
-        subtitle="Edita tu nombre y cambia tu contraseña. Los cambios se actualizan en todos los perfiles."
+        subtitle="Edita tu nombre, datos bancarios (CLABE del PDF) y contraseña."
       />
 
       <Card className="max-w-lg">
@@ -167,8 +178,14 @@ export default function Configuracion() {
             </p>
             <p className="text-xs theme-text-dim mt-1">El correo no se puede cambiar desde aquí. Contacta al administrador si lo necesitas.</p>
           </div>
-          {user?.role === 'vendedor_ventas' && (
+          {puedeEditarBanco && (
             <>
+              <div className="pt-2 border-t" style={{ borderColor: 'var(--theme-border)' }}>
+                <p className="text-sm font-medium theme-text mb-1">Datos de transferencia (PDF)</p>
+                <p className="text-xs theme-text-dim mb-3">
+                  Aparecen en la cotización como BANCO, CUENTA y CLABE (clave interbancaria).
+                </p>
+              </div>
               <div>
                 <label className="block text-sm font-medium theme-text-muted mb-1">Teléfono</label>
                 <input
@@ -203,16 +220,22 @@ export default function Configuracion() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium theme-text-muted mb-1">CLABE (18 dígitos)</label>
+                <label className="block text-sm font-medium theme-text-muted mb-1">
+                  Clave interbancaria (CLABE)
+                </label>
                 <input
                   type="text"
                   value={clabe}
-                  onChange={(e) => setClabe(e.target.value)}
-                  placeholder="CLABE interbancaria"
-                  maxLength={22}
+                  onChange={(e) => setClabe(e.target.value.replace(/\D/g, '').slice(0, 18))}
+                  placeholder="18 dígitos — sale como CLABE en el PDF"
+                  maxLength={18}
+                  inputMode="numeric"
                   className="w-full px-4 py-2.5 rounded-xl bg-white/[0.04] border theme-text placeholder-theme-dim focus:ring-2 focus:ring-[rgba(79,142,247,0.5)]"
                   style={{ borderColor: 'var(--theme-border)' }}
                 />
+                <p className="text-xs theme-text-dim mt-1">
+                  {clabe.length}/18 dígitos. En el PDF aparece en &quot;DATOS DE TRANSFERENCIA → CLABE&quot;.
+                </p>
               </div>
             </>
           )}
