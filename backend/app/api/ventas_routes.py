@@ -20,6 +20,8 @@ async def list_ventas(
     vendedor=Depends(get_vendedor_from_user),
 ):
     """Lista ventas. Admin ve todas; vendedor solo las suyas."""
+    from app.api.cotizaciones_routes import asegurar_ordenes_en_ventas
+    await asegurar_ordenes_en_ventas(db)
     q = select(Venta).order_by(Venta.id.desc())
     if user.role == "vendedor" and vendedor:
         q = q.where(Venta.vendedor == vendedor.nombre)

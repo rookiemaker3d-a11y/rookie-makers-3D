@@ -463,7 +463,7 @@ async def autorizar_venta(
                 total=total_venta,
                 ganancia_neta=round(total_venta - costo_total, 2),
                 vendedor=c.vendedor or "sistema",
-                fecha=(c.fecha or date.today().isoformat())[:10],
+                fecha=date.today().isoformat(),
                 notas=f"Autorizado desde cotización #{c.id}: {c.descripcion or ''}".strip(),
                 pago=pago,
             )
@@ -530,7 +530,7 @@ async def _contar_en_ventas(db: AsyncSession, c: CotizacionEnEspera):
         total=total_venta,
         ganancia_neta=round(total_venta - costo_total, 2),
         vendedor=c.vendedor or "sistema",
-        fecha=(c.fecha or date.today().isoformat())[:10],
+        fecha=date.today().isoformat(),
         notas=f"Autorizado desde cotización #{c.id}: {c.descripcion or ''}".strip(),
         pago=pago,
     )
@@ -540,6 +540,31 @@ async def _contar_en_ventas(db: AsyncSession, c: CotizacionEnEspera):
     d["autorizada"] = True
     d["pago"] = pago
     c.detalles = d
+
+
+async def asegurar_ordenes_en_ventas(db: AsyncSession) -> None:
+    """Las órdenes pagadas, adeudadas o ya avanzadas entran a ventas si todavía no tienen registro."""
+    result = await db.execute(select(CotizacionEnEspera))
+    cambio = False
+    for c in result.scalars().all():
+        d = dict(c.detalles or {})
+        if d.get("borrador"):
+            continue
+        pago = d.get("pago") if d.get("pago") in ("pagado", "adeudado") else None
+        estado = d.get("estado") or ""
+        cuenta = pago is not None or estado in ("aprobado", "en_produccion", "entregado")
+        if not cuenta:
+            continue
+        if not d.get("venta_id"):
+            await _contar_en_ventas(db, c)
+            cambio = True
+            continue
+        venta = await db.get(Venta, d.get("venta_id"))
+        if venta and pago and venta.pago != pago:
+            venta.pago = pago
+            cambio = True
+    if cambio:
+        await db.commit()
 
 
 @router.patch("/{cotizacion_id}", response_model=CotizacionEnEsperaResponse)
@@ -558,14 +583,15 @@ async def update_cotizacion(
     if body.detalles is not None:
         c.detalles = {**(c.detalles or {}), **body.detalles}
         pago = (c.detalles or {}).get("pago")
+        estado = (c.detalles or {}).get("estado")
+        borrador = (c.detalles or {}).get("borrador")
+        if not borrador and (pago in ("pagado", "adeudado") or estado in ("aprobado", "en_produccion", "entregado")) and not (c.detalles or {}).get("venta_id"):
+            await _contar_en_ventas(db, c)
         venta_id = (c.detalles or {}).get("venta_id")
         if pago in ("pagado", "adeudado") and venta_id:
             venta = await db.get(Venta, venta_id)
             if venta:
                 venta.pago = pago
-        estado = (c.detalles or {}).get("estado")
-        if estado in ("aprobado", "en_produccion", "entregado") and not (c.detalles or {}).get("venta_id") and not (c.detalles or {}).get("borrador"):
-            await _contar_en_ventas(db, c)
     if body.descripcion is not None and body.descripcion.strip():
         c.descripcion = body.descripcion.strip()[:500]
     if body.fecha is not None:

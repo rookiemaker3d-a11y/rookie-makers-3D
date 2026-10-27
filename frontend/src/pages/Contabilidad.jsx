@@ -190,11 +190,27 @@ export default function Contabilidad() {
       </div>
 
       <Card>
-        <h3 className="font-semibold theme-text mb-2">Detalle de cada venta</h3>
-        <p className="text-sm theme-text-muted">
-          Aquí solo ves el total del periodo. Nombre, fecha, quién vendió, costo y ganancia están en Ventas.
-          Al abrir una venta aparece el desglose de material, tiempo de máquina y mano de obra.
+        <h3 className="font-semibold theme-text mb-2">Órdenes de este periodo</h3>
+        <p className="text-sm theme-text mb-3">
+          Entran al marcar Pagado o Adeudado, o al pasar la orden a Aprobado. El material y el tiempo siguen en el desglose de cada venta.
         </p>
+        {movimientos.length === 0 ? (
+          <p className="text-sm theme-text">Ninguna orden en este rango.</p>
+        ) : (
+          <ul className="space-y-2">
+            {movimientos.map((m) => {
+              const nombre = m.v.cliente_nombre || m.v.productos?.[0]?.descripcion || m.v.notas || 'Venta'
+              const pago = m.v.pago === 'pagado' ? 'Pagado' : m.v.pago === 'adeudado' ? 'Adeudado' : 'Pago sin marcar'
+              return (
+                <li key={m.v.id} className="flex flex-wrap justify-between gap-2 text-sm border-b pb-2" style={{ borderColor: 'var(--theme-border)' }}>
+                  <span className="font-semibold theme-text">{nombre}</span>
+                  <span className="theme-text">{m.v.fecha} · {pago}</span>
+                  <span className="theme-text">Venta ${m.ingreso.toFixed(2)} · Ganancia ${m.ganancia.toFixed(2)}</span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
         <Link to="/ventas" className="inline-block mt-3 text-sm text-cyan-400 underline">Ir a Ventas</Link>
       </Card>
 

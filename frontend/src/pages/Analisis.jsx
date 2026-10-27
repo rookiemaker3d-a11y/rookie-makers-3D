@@ -15,7 +15,21 @@ import { Card, SectionHeader } from '../components/ui'
 import { TrendingUp, Package, DollarSign, Calculator, ChevronDown, ChevronUp, Layers } from 'lucide-react'
 import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
 import EstadoResultadosOrden from '../components/cotizacion/EstadoResultadosOrden'
-import { sumarEstados } from '../utils/estadoResultados'
+import { cifrasMovimiento, sumarEstados } from '../utils/estadoResultados'
+
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function rangoPeriodo(p) {
+  const fin = new Date()
+  const inicio = new Date(fin)
+  if (p === '7dias' || p === 'semana') inicio.setDate(inicio.getDate() - 7)
+  else if (p === 'mes') inicio.setDate(1)
+  else if (p === '3meses') inicio.setMonth(inicio.getMonth() - 3)
+  else inicio.setDate(inicio.getDate() - 7)
+  return [ymd(inicio), ymd(fin)]
+}
 
 const COLORS = ['#4f8ef7', '#22c55e', '#eab308', '#f97316', '#ec4899']
 
@@ -42,6 +56,7 @@ export default function Analisis() {
   const [totals, setTotals] = useState(null)
   const [productos, setProductos] = useState([])
   const [cotizaciones, setCotizaciones] = useState([])
+  const [ventasPeriodo, setVentasPeriodo] = useState([])
   const [loading, setLoading] = useState(true)
   const [periodo, setPeriodo] = useState('mes')
   const [showFormulas, setShowFormulas] = useState(false)
@@ -90,6 +105,16 @@ export default function Analisis() {
       .finally(() => setLoading(false))
   }, [api, isAdmin])
 
+  useEffect(() => {
+    const [desde, hasta] = rangoPeriodo(periodo)
+    let cancel = false
+    api(`/ventas?desde=${desde}&hasta=${hasta}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((v) => { if (!cancel) setVentasPeriodo(Array.isArray(v) ? v : []) })
+      .catch(() => { if (!cancel) setVentasPeriodo([]) })
+    return () => { cancel = true }
+  }, [api, periodo])
+
   /** Rango [inicio, fin] en ISO para el periodo elegido (fin = hoy). */
   const getDateRange = (p) => {
     const fin = new Date()
@@ -121,18 +146,25 @@ export default function Analisis() {
     )
   }
 
+  const filasVentas = ventasPeriodo.map((v) => {
+    const cifras = cifrasMovimiento(v, productos)
+    const nombre = v.cliente_nombre || v.productos?.[0]?.descripcion || v.notas || 'Venta'
+    return { v, nombre, ...cifras }
+  })
+  const totalVenta = filasVentas.reduce((s, f) => s + f.ingreso, 0)
+  const totalCosto = filasVentas.reduce((s, f) => s + f.costo, 0)
+  const ganancia = filasVentas.reduce((s, f) => s + f.ganancia, 0)
+  const cantidad = filasVentas.length
+  const ticketPromedio = cantidad > 0 ? totalVenta / cantidad : 0
+  const margenPromedio = totalVenta > 0 ? (ganancia / totalVenta) * 100 : 0
+  const estadosVentas = filasVentas.map((f) => f.estado).filter(Boolean)
+  const estadoPeriodoVentas = estadosVentas.length ? sumarEstados(estadosVentas) : null
+
   const costoDeProducto = (p) => {
     const e = p?.detalles?.estado_resultados
     if (e && e.costo_real != null) return Number(e.costo_real) || 0
     return Number(p.costo_base) || 0
   }
-  const totalVenta = productosFiltrados.reduce((s, p) => s + (Number(p.costo_final) || 0), 0)
-  const totalCosto = productosFiltrados.reduce((s, p) => s + costoDeProducto(p), 0)
-  const ganancia = totalVenta - totalCosto
-  const cantidad = productosFiltrados.length
-  const ticketPromedio = cantidad > 0 ? totalVenta / cantidad : 0
-  const margenPromedio = totalVenta > 0 ? (ganancia / totalVenta) * 100 : 0
-
   /** Extrae desglose de costos desde detalles del producto (simple o kit). */
   const getProductoDesglose = (p) => {
     const det = p?.detalles || {}
@@ -169,9 +201,6 @@ export default function Analisis() {
       ...getProductoDesglose(p),
     }
   })
-  const estadosPeriodo = desgloseProductos.map((d) => d.estado).filter(Boolean)
-  const estadoPeriodo = estadosPeriodo.length ? sumarEstados(estadosPeriodo) : null
-
   const totalesDesglose = desgloseProductos.reduce(
     (acc, d) => ({
       material: acc.material + d.material,
@@ -499,17 +528,27 @@ export default function Analisis() {
         </Card>
       )}
 
-      {estadoPeriodo && (
-        <Card>
-          <h3 className="text-sm font-semibold theme-text mb-4">Estado de resultados del periodo</h3>
-          <EstadoResultadosOrden estado={estadoPeriodo} titulo="Gasto y ganancia reales" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-            {desgloseProductos.filter((d) => d.estado).map((d) => (
-              <EstadoResultadosOrden key={d.id} estado={d.estado} titulo={d.descripcion} />
-            ))}
-          </div>
-        </Card>
-      )}
+      <Card>
+        <h3 className="text-sm font-semibold theme-text mb-2">Órdenes pagadas y adeudadas del periodo</h3>
+        <p className="text-sm theme-text mb-3">Estas son las que ya cuentan en contabilidad. El material y el tiempo están dentro de cada una, no en el catálogo.</p>
+        {filasVentas.length === 0 ? (
+          <p className="text-sm theme-text">Ninguna orden en este rango.</p>
+        ) : (
+          <ul className="space-y-2 mb-4">
+            {filasVentas.map((f) => {
+              const pago = f.v.pago === 'pagado' ? 'Pagado' : f.v.pago === 'adeudado' ? 'Adeudado' : 'Pago sin marcar'
+              return (
+                <li key={f.v.id} className="flex flex-wrap justify-between gap-2 text-sm border-b pb-2" style={{ borderColor: 'var(--theme-border)' }}>
+                  <span className="font-semibold theme-text">{f.nombre}</span>
+                  <span className="theme-text">{f.v.fecha} · {pago}</span>
+                  <span className="theme-text">Venta ${f.ingreso.toFixed(2)} · Ganancia ${f.ganancia.toFixed(2)}</span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+        {estadoPeriodoVentas && <EstadoResultadosOrden estado={estadoPeriodoVentas} titulo="Gasto y ganancia reales" />}
+      </Card>
 
       {desgloseProductos.length > 0 && (
         <Card>
