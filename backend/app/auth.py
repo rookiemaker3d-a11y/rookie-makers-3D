@@ -50,6 +50,29 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
+def create_device_token(user_id: int) -> str:
+    """Este navegador ya verificó a la persona. Vale 30 días y no abre la sesión por sí solo."""
+    now = datetime.utcnow()
+    expire = now + timedelta(days=30)
+    return jwt.encode(
+        {"sub": str(user_id), "type": "device", "exp": expire, "iat": now},
+        settings.secret_key,
+        algorithm=settings.algorithm,
+    )
+
+
+def device_token_user_id(token: str) -> Optional[int]:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        if payload.get("type") != "device":
+            return None
+        return int(payload.get("sub"))
+    except (JWTError, ValueError, TypeError):
+        return None
+
+
 def create_mfa_pending_token(user_id: int, channel: str = "totp") -> str:
     """Token de un solo uso para completar login con MFA (válido 10 min)."""
     now = datetime.utcnow()
@@ -93,6 +116,8 @@ async def get_current_user(
         return None
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        if payload.get("type") in ("mfa_pending", "device"):
+            return None
         sub = payload.get("sub")
         if sub is None:
             return None

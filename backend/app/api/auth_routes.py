@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.database import get_db
-from app.auth import get_password_hash, create_access_token, create_mfa_pending_token, decode_mfa_pending_token, decode_mfa_pending_payload, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
+from app.auth import get_password_hash, create_access_token, create_device_token, device_token_user_id, create_mfa_pending_token, decode_mfa_pending_token, decode_mfa_pending_payload, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
 from app.models import User, Vendedor
 from app.schemas import (
     LoginRequest,
@@ -96,12 +96,15 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
     clear_failed_logins(email)
     await log_audit(db, "login_success", user_id=user.id, ip=ip, details={"email": email})
-    # La contraseña no abre la sesión. Primero el código del teléfono.
+    # Este navegador ya pasó la verificación: no volver a pedirla al recargar o cerrar.
+    if device_token_user_id(data.device_token or "") == user.id:
+        return await _session_for(user, db)
     return await _phone_step(user, db)
 
 
 async def _session_for(user: User, db: AsyncSession):
     token = create_access_token(data={"sub": str(user.id)})
+    device_token = create_device_token(user.id)
     vendedor_nombre = None
     vendedor_correo = None
     vendedor_telefono = None
@@ -124,6 +127,7 @@ async def _session_for(user: User, db: AsyncSession):
     return {
         "access_token": token,
         "token_type": "bearer",
+        "device_token": device_token,
         "user": {
             "id": user.id,
             "email": user.email,

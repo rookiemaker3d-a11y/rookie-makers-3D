@@ -13,6 +13,7 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+    device_token: Optional[str] = None
 
 
 # ----- User -----

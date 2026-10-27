@@ -23,7 +23,11 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
       res = await fetch(`${API_BASE}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: (email || '').trim().toLowerCase(), password: password || '' }),
+        body: JSON.stringify({
+          email: (email || '').trim().toLowerCase(),
+          password: password || '',
+          device_token: localStorage.getItem('device_token') || '',
+        }),
       })
     } catch (err) {
       const base = import.meta.env.VITE_API_URL || ''
@@ -61,6 +65,7 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
     const u = { ...data.user, token: data.access_token }
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('user', JSON.stringify(data.user))
+    if (data.device_token) localStorage.setItem('device_token', data.device_token)
     setUser(u)
     return u
   }, [])
@@ -89,6 +94,7 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
     const u = { ...data.user, token: data.access_token }
     localStorage.setItem('token', data.access_token)
     localStorage.setItem('user', JSON.stringify(data.user))
+    if (data.device_token) localStorage.setItem('device_token', data.device_token)
     setUser(u)
     return u
   }, [])
