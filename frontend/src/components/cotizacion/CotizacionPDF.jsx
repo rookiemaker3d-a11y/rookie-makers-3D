@@ -131,7 +131,7 @@ export default function CotizacionPDF({
     ? lineas
     : [{
       id_producto: 'P001',
-      nombre_producto: (proyecto?.nombre || 'Producto'),
+      nombre_producto: (proyecto?.nombre || 'Impresión'),
       descripcion: 'Impresión',
       costo_unitario: subTotal,
       cantidad: 1,
@@ -220,21 +220,15 @@ export default function CotizacionPDF({
         <View style={{ marginBottom: 14 }}>
           <View style={[styles.tableWrap, { borderTopWidth: 0 }]}>
             <View style={[styles.tableRow, styles.blackBar, { marginBottom: 0, borderBottomWidth: 0 }]}>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack]}>ID DE PRODUCTO</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 2 }]}>PRODUCTO</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 1.5 }]}>DESCRIPCION</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>CANTIDAD</Text>
-              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO FINAL</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 2 }]}>PIEZA</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack]}>TIEMPO</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack]}>COLOR A USAR</Text>
             </View>
             {partidas.map((l, i) => (
               <View key={i} style={styles.tableRow}>
-                <Text style={styles.tableCell}>{l.id_producto || NA}</Text>
                 <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || NA}</Text>
-                <Text style={[styles.tableCell, { flex: 1.5 }]}>{l.descripcion || NA}</Text>
-                <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_unitario ?? 0).toFixed(2)}</Text>
-                <Text style={[styles.tableCell, styles.tableRight]}>{l.cantidad ?? 1}</Text>
-                <Text style={[styles.tableCell, styles.tableRight]}>${(l.costo_final ?? 0).toFixed(2)}</Text>
+                <Text style={styles.tableCell}>{l.horas_impresion != null && l.horas_impresion !== '' ? `${l.horas_impresion} h` : NA}</Text>
+                <Text style={styles.tableCell}>{l.color_producto || NA}</Text>
               </View>
             ))}
           </View>

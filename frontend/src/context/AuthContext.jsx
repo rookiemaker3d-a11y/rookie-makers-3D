@@ -47,7 +47,13 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
     }
     // Login con MFA: el backend pide código en segundo paso
     if (data.mfa_required && data.temp_token) {
-      return { mfaRequired: true, tempToken: data.temp_token, email: data.email || '' }
+      return {
+        mfaRequired: true,
+        tempToken: data.temp_token,
+        email: data.email || '',
+        channel: data.channel || 'totp',
+        devCode: data.dev_code || '',
+      }
     }
     if (!data.access_token || !data.user) {
       throw new Error('Respuesta del servidor incorrecta')

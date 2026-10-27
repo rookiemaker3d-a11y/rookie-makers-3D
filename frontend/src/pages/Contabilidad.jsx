@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { DollarSign, TrendingUp, Package, Wrench, Printer, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { DollarSign, TrendingUp, Package, Wrench, Printer } from 'lucide-react'
+import { cifrasMovimiento } from '../utils/estadoResultados'
 
 const todayISO = () => new Date().toISOString().split('T')[0]
 const firstDayOfMonth = () => {
@@ -21,13 +22,6 @@ function margenPct(total, ganancia) {
   const t = Number(total) || 0
   if (t <= 0) return 0
   return (Number(ganancia) || 0) / t * 100
-}
-
-function veredicto(ganancia, pct) {
-  if (ganancia > 0 && pct >= 15) return { ok: true, label: 'Sí renta', tone: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/40' }
-  if (ganancia > 0 && pct > 0) return { ok: true, label: 'Renta poco', tone: 'text-amber-300', bg: 'bg-amber-500/15 border-amber-500/40' }
-  if (ganancia === 0) return { ok: false, label: 'Sin margen', tone: 'text-slate-300', bg: 'bg-slate-500/15 border-slate-500/40' }
-  return { ok: false, label: 'No renta (pérdida)', tone: 'text-red-400', bg: 'bg-red-500/15 border-red-500/40' }
 }
 
 export default function Contabilidad() {
@@ -69,16 +63,21 @@ export default function Contabilidad() {
     load()
   }, [api, desde, hasta])
 
+  const movimientos = useMemo(
+    () => ventas.map((v) => ({ v, ...cifrasMovimiento(v, productos) })),
+    [ventas, productos],
+  )
+
   const totals = useMemo(() => {
-    const ingreso = ventas.reduce((s, v) => s + (Number(v.total) || 0), 0)
-    const ganancia = ventas.reduce((s, v) => s + (Number(v.ganancia_neta) || 0), 0)
-    const costo = ingreso - ganancia
+    const ingreso = movimientos.reduce((s, m) => s + m.ingreso, 0)
+    const ganancia = movimientos.reduce((s, m) => s + m.ganancia, 0)
+    const costo = movimientos.reduce((s, m) => s + m.costo, 0)
     const pct = margenPct(ingreso, ganancia)
     const porOrigen = { servicio: { ingreso: 0, ganancia: 0, n: 0 }, impresion: { ingreso: 0, ganancia: 0, n: 0 }, otro: { ingreso: 0, ganancia: 0, n: 0 } }
-    for (const v of ventas) {
-      const o = origenVenta(v)
-      porOrigen[o].ingreso += Number(v.total) || 0
-      porOrigen[o].ganancia += Number(v.ganancia_neta) || 0
+    for (const m of movimientos) {
+      const o = origenVenta(m.v)
+      porOrigen[o].ingreso += m.ingreso
+      porOrigen[o].ganancia += m.ganancia
       porOrigen[o].n += 1
     }
     const prodBase = productos.reduce((s, p) => s + (Number(p.costo_base) || 0), 0)
@@ -88,13 +87,12 @@ export default function Contabilidad() {
       ganancia,
       costo,
       pct,
-      verd: veredicto(ganancia, pct),
       porOrigen,
       prodBase,
       prodFinal,
       margenProd: prodFinal - prodBase,
     }
-  }, [ventas, productos])
+  }, [movimientos, productos])
 
   return (
     <div className="space-y-6">
@@ -103,19 +101,15 @@ export default function Contabilidad() {
         subtitle="Conectada al ERP: al autorizar una cotización de impresión o al terminar un servicio/reparación, el dinero entra aquí con costo, ingreso y ganancia."
       />
 
-      <div className={`rounded-xl border px-4 py-3 flex flex-wrap items-center gap-3 ${totals.verd.bg}`}>
-        {totals.verd.ok ? (
-          <CheckCircle2 className={`w-6 h-6 ${totals.verd.tone}`} />
-        ) : (
-          <AlertTriangle className={`w-6 h-6 ${totals.verd.tone}`} />
-        )}
-        <div>
-          <div className={`text-lg font-bold ${totals.verd.tone}`}>{totals.verd.label}</div>
-          <p className="text-sm theme-text-muted">
-            En el periodo: margen {totals.pct.toFixed(1)}% · ganancia ${totals.ganancia.toFixed(2)} sobre ingresos ${totals.ingreso.toFixed(2)}
-            {totals.ingreso <= 0 ? ' (aún no hay ventas cerradas en este rango).' : '.'}
-          </p>
+      <div className="rounded-xl border border-white/10 px-4 py-3">
+        <div className={`text-lg font-bold ${totals.ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+          Ganancia ${totals.ganancia.toFixed(2)}
         </div>
+        <p className="text-sm theme-text-muted">
+          En el periodo: margen {totals.pct.toFixed(1)}% sobre ingresos ${totals.ingreso.toFixed(2)}.
+          El costo suma material, tiempo de máquina y mano de obra.
+          {totals.ingreso <= 0 ? ' Aún no hay ventas cerradas en este rango.' : ''}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-3 items-end">
@@ -194,63 +188,12 @@ export default function Contabilidad() {
       </div>
 
       <Card>
-        <h3 className="font-semibold theme-text mb-3">Movimientos (impresiones + servicios)</h3>
-        {loading ? (
-          <p className="text-sm theme-text-muted">Cargando…</p>
-        ) : ventas.length === 0 ? (
-          <p className="text-sm theme-text-muted">
-            Aún no hay ventas cerradas en este rango. Los borradores o “cotizando / espera / pagado” no cuentan hasta que
-            termines el servicio o autorices la pieza.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left theme-text-dim border-b border-white/10">
-                  <th className="py-2 pr-2">Fecha</th>
-                  <th className="py-2 pr-2">Origen</th>
-                  <th className="py-2 pr-2">Cliente</th>
-                  <th className="py-2 pr-2">Detalle</th>
-                  <th className="py-2 pr-2">Ingreso</th>
-                  <th className="py-2 pr-2">Costo</th>
-                  <th className="py-2 pr-2">Ganancia</th>
-                  <th className="py-2">¿Renta?</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ventas.map((v) => {
-                  const total = Number(v.total) || 0
-                  const gan = Number(v.ganancia_neta) || 0
-                  const costo = total - gan
-                  const pct = margenPct(total, gan)
-                  const verd = veredicto(gan, pct)
-                  const o = origenVenta(v)
-                  return (
-                    <tr key={v.id} className="border-b border-white/5">
-                      <td className="py-2 pr-2 theme-text-muted">{v.fecha}</td>
-                      <td className="py-2 pr-2">
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-white/10">
-                          {o === 'servicio' ? 'Servicio' : o === 'impresion' ? 'Pieza' : 'Otro'}
-                        </span>
-                      </td>
-                      <td className="py-2 pr-2">{v.cliente_nombre || '—'}</td>
-                      <td className="py-2 pr-2 theme-text-muted max-w-[200px] truncate">
-                        {v.notas || (v.productos || []).map((p) => p.descripcion).join(', ')}
-                      </td>
-                      <td className="py-2 pr-2 font-medium">${total.toFixed(2)}</td>
-                      <td className="py-2 pr-2 theme-text-dim">${costo.toFixed(2)}</td>
-                      <td className={`py-2 pr-2 ${gan >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        ${gan.toFixed(2)}
-                        <span className="theme-text-dim text-xs ml-1">({pct.toFixed(0)}%)</span>
-                      </td>
-                      <td className={`py-2 text-xs font-semibold ${verd.tone}`}>{verd.label}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <h3 className="font-semibold theme-text mb-2">Detalle de cada venta</h3>
+        <p className="text-sm theme-text-muted">
+          Aquí solo ves el total del periodo. Nombre, fecha, quién vendió, costo y ganancia están en Ventas.
+          Al abrir una venta aparece el desglose de material, tiempo de máquina y mano de obra.
+        </p>
+        <Link to="/ventas" className="inline-block mt-3 text-sm text-cyan-400 underline">Ir a Ventas</Link>
       </Card>
 
       <Card>
@@ -266,7 +209,6 @@ export default function Contabilidad() {
               const fin = Number(s.costo_final) || 0
               const gan = fin - base
               const pct = margenPct(fin, gan)
-              const verd = veredicto(gan, pct)
               return (
                 <li key={s.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2">
                   <div>
@@ -279,8 +221,8 @@ export default function Contabilidad() {
                   <div className="text-right">
                     <div className="theme-text-dim text-xs">Costo ${base.toFixed(2)}</div>
                     <div>Cobrado ${fin.toFixed(2)}</div>
-                    <div className={`text-xs font-semibold ${verd.tone}`}>
-                      {verd.label} · ${gan.toFixed(2)} ({pct.toFixed(0)}%)
+                    <div className={`text-xs font-semibold ${gan >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      ${gan.toFixed(2)} ({pct.toFixed(0)}%)
                     </div>
                   </div>
                 </li>

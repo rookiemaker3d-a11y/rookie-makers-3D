@@ -1,7 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   User,
-  FileText,
   Calculator,
   Eye,
   FileDown,
@@ -10,20 +8,18 @@ import {
 
 const STEPS = [
   { id: 1, label: 'Cliente', icon: User },
-  { id: 2, label: 'Proyecto', icon: FileText },
-  { id: 3, label: 'Costos', icon: Calculator },
-  { id: 4, label: 'Vista previa', icon: Eye },
-  { id: 5, label: 'PDF', icon: FileDown },
-  { id: 6, label: 'Confirmación', icon: CheckCircle },
+  { id: 2, label: 'Costos', icon: Calculator },
+  { id: 3, label: 'Vista previa', icon: Eye },
+  { id: 4, label: 'PDF', icon: FileDown },
+  { id: 5, label: 'Confirmación', icon: CheckCircle },
 ]
 
 const STEPS_VENDEDOR = [
   { id: 1, label: 'Cliente', icon: User },
-  { id: 2, label: 'Proyecto', icon: FileText },
-  { id: 3, label: 'Empaque y envío', icon: Calculator },
-  { id: 4, label: 'Vista previa', icon: Eye },
-  { id: 5, label: 'PDF', icon: FileDown },
-  { id: 6, label: 'Confirmación', icon: CheckCircle },
+  { id: 2, label: 'Empaque y envío', icon: Calculator },
+  { id: 3, label: 'Vista previa', icon: Eye },
+  { id: 4, label: 'PDF', icon: FileDown },
+  { id: 5, label: 'Confirmación', icon: CheckCircle },
 ]
 
 export default function StepperCotizacion({ pasoActual, onPasoClick, isVendedorVentas = false }) {
@@ -60,7 +56,7 @@ export default function StepperCotizacion({ pasoActual, onPasoClick, isVendedorV
               </span>
               <span className="text-xs font-medium hidden sm:block">{step.label}</span>
             </button>
-            {index < STEPS.length - 1 && (
+            {index < steps.length - 1 && (
               <div
                 className={`w-6 h-0.5 sm:w-10 mx-1 rounded ${
                   isPast ? 'bg-emerald-500/40' : 'bg-white/[0.08]'

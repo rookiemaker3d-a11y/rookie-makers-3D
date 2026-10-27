@@ -27,6 +27,9 @@ class User(Base):
     recibir_alertas_suscripcion = Column(Boolean, default=True)
     mfa_secret = Column(String(64), nullable=True)  # TOTP secret (base32)
     mfa_enabled = Column(Boolean, default=False)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
+    email_code_hash = Column(String(128), nullable=True)
+    email_code_expires = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     vendedor = relationship("Vendedor", back_populates="user", uselist=False)
 

@@ -173,6 +173,45 @@ async def _recordatorios_suscripcion_pago():
         await db.commit()
 
 
+async def _recordatorio_anticipo():
+    """Un correo por cotización, 24 h después, si sigue en espera de anticipo."""
+    settings = get_settings()
+    if not getattr(settings, "smtp_user", None) or not getattr(settings, "smtp_password", None):
+        return
+    now = datetime.now(timezone.utc)
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(CotizacionEnEspera))
+        for c in result.scalars().all():
+            d = dict(c.detalles or {})
+            if d.get("borrador") or d.get("anticipo_recordatorio_enviado"):
+                continue
+            estado = d.get("estado") or "espera"
+            if estado not in ("espera", "pendiente"):
+                continue
+            created = c.created_at
+            if not created:
+                continue
+            if isinstance(created, datetime) and created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            if now - created < timedelta(hours=24):
+                continue
+            folio = d.get("folio") or f"#{c.id}"
+            nombre = d.get("proyecto") or c.descripcion or "Cotización"
+            to = (c.vendedor or "").strip()
+            if "@" not in to:
+                to = (getattr(settings, "admin_notify_email", None) or "").strip() or "norbertomoro4@gmail.com"
+            subject = f"Cotización {folio}: sigue en espera de anticipo"
+            body = (
+                f"La cotización {folio} ({nombre}) lleva más de 24 horas en espera de anticipo.\n\n"
+                "Hay que continuar con la venta.\n"
+                "Este aviso se envía una sola vez para esta orden.\n"
+            )
+            if send_email(to, subject, body, None):
+                d["anticipo_recordatorio_enviado"] = now.isoformat()
+                c.detalles = d
+        await db.commit()
+
+
 def start_scheduler():
     """Arranca el scheduler que ejecuta recordatorios cada 30 min."""
     scheduler = AsyncIOScheduler()
@@ -180,6 +219,7 @@ def start_scheduler():
     scheduler.add_job(_enviar_alertas_programadas, "interval", seconds=ALERTAS_INTERVAL_SECONDS, id="alertas_programadas")
     scheduler.add_job(_cerrar_perfiles_expirados, "interval", minutes=SUSCRIPCIONES_INTERVAL_MINUTES, id="cerrar_perfiles_expirados")
     scheduler.add_job(_recordatorios_suscripcion_pago, "interval", hours=24, id="recordatorios_suscripcion_pago")
+    scheduler.add_job(_recordatorio_anticipo, "interval", hours=1, id="recordatorio_anticipo")
     scheduler.add_job(_expirar_paquetes_horas, "interval", hours=1, id="expirar_paquetes_horas")
     scheduler.start()
     return scheduler

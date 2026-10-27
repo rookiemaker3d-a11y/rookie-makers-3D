@@ -4,8 +4,6 @@ import {
   Clock,
   CheckCircle,
   Settings,
-  Package,
-  Camera,
   Truck,
   ChevronRight,
   Trash2,
@@ -14,16 +12,20 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import AnexoFotosCard from '../components/cotizacion/AnexoFotosCard'
+import EstadoResultadosOrden from '../components/cotizacion/EstadoResultadosOrden'
+import { sumarEstados } from '../utils/estadoResultados'
 
 const ESTADOS = [
   { id: 'espera', label: 'Cotización en espera', color: 'slate', icon: Clock },
   { id: 'aprobado', label: 'Aprobado y pagado', color: 'emerald', icon: CheckCircle },
   { id: 'en_produccion', label: 'En producción', color: 'amber', icon: Settings },
-  { id: 'post_proceso', label: 'Post-proceso', color: 'orange', icon: Package },
-  { id: 'anexo_foto', label: 'Anexo de foto', color: 'blue', icon: Camera },
   { id: 'entregado', label: 'Entregado', color: 'emerald', icon: Truck },
 ]
+
+const ESTADO_EQUIV = {
+  post_proceso: 'en_produccion',
+  anexo_foto: 'en_produccion',
+}
 
 const colorClasses = {
   slate: 'border-slate-500/30 bg-slate-500/10',
@@ -31,6 +33,29 @@ const colorClasses = {
   amber: 'border-amber-500/30 bg-amber-500/10',
   orange: 'border-orange-500/30 bg-orange-500/10',
   blue: 'border-blue-500/30 bg-blue-500/10',
+}
+
+function estadoDeOrden(cotizacion) {
+  const lineas = cotizacion?.detalles?.lineas
+  if (!Array.isArray(lineas)) return null
+  const partes = lineas.map((l) => {
+    const e = l?.estado_resultados
+    if (!e) return null
+    const cant = Number(l.cantidad) || 1
+    return {
+      material: (Number(e.material) || 0) * cant,
+      luz: (Number(e.luz) || 0) * cant,
+      internet: (Number(e.internet) || 0) * cant,
+      desgaste: (Number(e.desgaste) || 0) * cant,
+      mano_obra: (Number(e.mano_obra) || 0) * cant,
+      costo_real: (Number(e.costo_real) || 0) * cant,
+      precio: (Number(e.precio) || 0) * cant,
+      ganancia: (Number(e.ganancia) || 0) * cant,
+      horas: (Number(e.horas) || 0) * cant,
+      gramos: (Number(e.gramos) || 0) * cant,
+    }
+  }).filter(Boolean)
+  return partes.length ? sumarEstados(partes) : null
 }
 
 export default function CotizacionesEspera() {
@@ -123,7 +148,10 @@ export default function CotizacionesEspera() {
     }
   }
 
-  const getEstado = (c) => (c.detalles && c.detalles.estado) || 'espera'
+  const getEstado = (c) => {
+    const raw = (c.detalles && c.detalles.estado) || 'espera'
+    return ESTADO_EQUIV[raw] || raw
+  }
   const getEstadoVendedor = (c) => (c.detalles && c.detalles.estado_cotizacion_vendedor) || 'pendiente'
   const isOrdenVendedor = (c) => !!(c.detalles && c.detalles.orden_vendedor)
   const isDesigner = user?.role === 'administrador' || user?.role === 'vendedor'
@@ -241,7 +269,7 @@ export default function CotizacionesEspera() {
         title="Pipeline de pedidos"
         subtitle={user?.role === 'vendedor_ventas' ? 'Tus órdenes enviadas. "En espera" = sin cotizar aún. "Recibido" = ya cotizado.' : 'Cotizaciones por etapa. Usa el botón para avanzar de estado.'}
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 overflow-x-auto pb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 overflow-x-auto pb-4">
         {ESTADOS.map((est) => {
           const list = byEstado[est.id] || []
           const Icon = est.icon
@@ -259,80 +287,19 @@ export default function CotizacionesEspera() {
               <span className="theme-text-muted text-xs mb-2">{list.length} pedido(s)</span>
               <div className="flex-1 overflow-y-auto space-y-2">
                 {list.map((c) => {
-                  const estadoVendedor = getEstadoVendedor(c)
-                  const ordenVendedor = isOrdenVendedor(c)
-                  const pendienteCotizar = ordenVendedor && estadoVendedor === 'pendiente' && isDesigner
+                  const estadoOrden = estadoDeOrden(c)
+                  const costo = estadoOrden ? Number(estadoOrden.costo_real) || 0 : Number(c.costo_base) || 0
+                  const precio = Number(c.costo_final) || 0
+                  const ganancia = Math.round((precio - costo) * 100) / 100
                   return (
                   <Card key={c.id} padding className="p-3 text-left">
-                    {ordenVendedor && (
-                      <span className={`inline-block text-xs px-1.5 py-0.5 rounded mb-1.5 ${estadoVendedor === 'cotizado' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                        {estadoVendedor === 'cotizado' ? 'Recibido' : 'En espera'}
-                      </span>
-                    )}
-                    <p className="theme-text font-medium text-sm truncate" title={c.descripcion}>
-                      {c.descripcion}
-                    </p>
-                    <p className="theme-text-muted text-xs mt-0.5">${(c.costo_final || 0).toFixed(2)} · {c.vendedor}</p>
-                    <p className="theme-text-dim text-xs mt-0.5">{formatDate(c.created_at)}</p>
-                    {est.id === 'anexo_foto' && (
-                      <AnexoFotosCard cotizacion={c} onSave={() => load()} api={api} setUpdating={setUpdating} />
-                    )}
-                    <div className="flex items-center justify-between gap-1 mt-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setOrdenAbierta(c.id)}
-                        className="text-xs px-2 py-1 rounded bg-white/10 hover:bg-white/20 theme-text"
-                      >
-                        Ver orden
-                      </button>
-                      {pendienteCotizar && (
-                        <button
-                          type="button"
-                          onClick={() => setCotizarModal({ id: c.id, descripcion: c.descripcion, costo_base: c.costo_base || 0, costo_final: c.costo_final || 0 })}
-                          className="text-xs px-2 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white"
-                        >
-                          Cotizar
-                        </button>
-                      )}
-                      {ESTADOS.findIndex((e) => e.id === est.id) < ESTADOS.length - 1 ? (
-                        <button
-                          type="button"
-                          onClick={() => setEstado(c.id, ESTADOS[ESTADOS.findIndex((e) => e.id === est.id) + 1].id)}
-                          disabled={updating === c.id}
-                          className="text-xs flex items-center gap-0.5 theme-text-muted hover:text-[var(--theme-text)]"
-                        >
-                          Siguiente <ChevronRight className="w-3 h-3" />
-                        </button>
-                      ) : (
-                        <span />
-                      )}
-                      {(user?.role === 'administrador' || user?.role === 'vendedor') && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => autorizarVenta(c.id, 'general')}
-                            className="text-xs px-2 py-1 rounded bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400"
-                          >
-                            Producto general
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => autorizarVenta(c.id, 'propio')}
-                            className="text-xs px-2 py-1 rounded bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-400"
-                          >
-                            Producto propio
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => deleteOne(c.id)}
-                        className="text-red-400 hover:text-red-300 p-0.5"
-                        aria-label="Eliminar"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    </div>
+                    <button type="button" onClick={() => setOrdenAbierta(c.id)} className="w-full text-left space-y-0.5">
+                      <p className="theme-text font-medium text-sm truncate" title={c.descripcion}>{c.descripcion}</p>
+                      <p className="theme-text-dim text-xs">{formatDate(c.created_at)}</p>
+                      <p className="theme-text-muted text-xs truncate">{c.vendedor || '—'}</p>
+                      <p className="text-xs theme-text">Costo ${costo.toFixed(2)}</p>
+                      <p className={`text-xs font-medium ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>Ganancia ${ganancia.toFixed(2)}</p>
+                    </button>
                   </Card>
                   )
                 })}
@@ -349,8 +316,8 @@ export default function CotizacionesEspera() {
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.2 }}
-            className="w-full max-w-md bg-[var(--theme-bg-card)] border-l shadow-xl overflow-y-auto"
-            style={{ borderColor: 'var(--theme-border)' }}
+            className="w-full max-w-md border-l shadow-xl overflow-y-auto"
+            style={{ borderColor: 'var(--theme-border)', background: 'color-mix(in srgb, var(--theme-bg-page) 90%, black)' }}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 flex items-center justify-between border-b" style={{ borderColor: 'var(--theme-border)' }}>
@@ -396,8 +363,41 @@ export default function CotizacionesEspera() {
                           <span className="theme-text-muted">Envío / Empaque:</span> ${Number(ordenAbiertaData.detalles.envio || 0).toFixed(2)} / ${Number(ordenAbiertaData.detalles.empaque || 0).toFixed(2)}
                         </p>
                       )}
+                      {estadoDeOrden(ordenAbiertaData) && (
+                        <EstadoResultadosOrden estado={estadoDeOrden(ordenAbiertaData)} titulo="Estado de resultados" />
+                      )}
                     </div>
                   )}
+                  <div className="flex flex-wrap gap-2">
+                    {ESTADOS.findIndex((e) => e.id === getEstado(ordenAbiertaData)) < ESTADOS.length - 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setEstado(ordenAbiertaData.id, ESTADOS[ESTADOS.findIndex((e) => e.id === getEstado(ordenAbiertaData)) + 1].id)}
+                        disabled={updating === ordenAbiertaData.id}
+                        className="text-xs px-2 py-1 rounded bg-white/10 theme-text inline-flex items-center gap-1"
+                      >
+                        Siguiente <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
+                    {isOrdenVendedor(ordenAbiertaData) && getEstadoVendedor(ordenAbiertaData) === 'pendiente' && isDesigner && (
+                      <button
+                        type="button"
+                        onClick={() => setCotizarModal({ id: ordenAbiertaData.id, descripcion: ordenAbiertaData.descripcion, costo_base: ordenAbiertaData.costo_base || 0, costo_final: ordenAbiertaData.costo_final || 0 })}
+                        className="text-xs px-2 py-1 rounded bg-cyan-600 text-white"
+                      >
+                        Cotizar
+                      </button>
+                    )}
+                    {(user?.role === 'administrador' || user?.role === 'vendedor') && (
+                      <>
+                        <button type="button" onClick={() => autorizarVenta(ordenAbiertaData.id, 'general')} className="text-xs px-2 py-1 rounded bg-emerald-600/20 text-emerald-400">Producto general</button>
+                        <button type="button" onClick={() => autorizarVenta(ordenAbiertaData.id, 'propio')} className="text-xs px-2 py-1 rounded bg-cyan-600/20 text-cyan-400">Producto propio</button>
+                      </>
+                    )}
+                    <button type="button" onClick={() => deleteOne(ordenAbiertaData.id)} className="text-red-400 p-1" aria-label="Eliminar">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   {ordenAbiertaData.has_archivo && (
                     <div>
                       <button
@@ -460,7 +460,7 @@ export default function CotizacionesEspera() {
 
       {cotizarModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setCotizarModal(null)}>
-          <div className="bg-[var(--theme-bg-card)] border rounded-2xl shadow-xl max-w-md w-full p-6" style={{ borderColor: 'var(--theme-border)' }} onClick={(e) => e.stopPropagation()}>
+          <div className="border rounded-2xl shadow-xl max-w-md w-full p-6" style={{ borderColor: 'var(--theme-border)', background: 'color-mix(in srgb, var(--theme-bg-page) 90%, black)' }} onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold theme-text mb-2">Ya cotisé — Marcar como recibido para el vendedor</h3>
             <p className="theme-text-muted text-sm mb-4 truncate" title={cotizarModal.descripcion}>{cotizarModal.descripcion}</p>
             <div className="space-y-3">

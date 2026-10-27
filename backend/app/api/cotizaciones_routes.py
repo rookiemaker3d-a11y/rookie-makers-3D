@@ -23,6 +23,7 @@ class CotizacionUpdate(BaseModel):
     fecha: str | None = None
     costo_base: float | None = None
     costo_final: float | None = None
+    descripcion: str | None = None
 
 
 router = APIRouter(prefix="/cotizaciones-en-espera", tags=["cotizaciones"])
@@ -288,6 +289,44 @@ async def _descontar_inventario(db: AsyncSession, detalles: dict, vendedor_nombr
     return warnings
 
 
+def _estado_escalado(linea: dict):
+    """Estado de resultados de la partida, multiplicado por la cantidad."""
+    if not isinstance(linea, dict):
+        return None
+    er = linea.get("estado_resultados")
+    if not isinstance(er, dict) or "costo_real" not in er:
+        return None
+    cant = float(linea.get("cantidad") or 1) or 1
+    keys = (
+        "material", "luz", "internet", "desgaste", "mano_obra",
+        "costo_real", "precio", "ganancia", "horas", "gramos",
+    )
+    out = {}
+    for k in keys:
+        out[k] = round(float(er.get(k) or 0) * cant, 2)
+    out["margen"] = (out["ganancia"] / out["precio"]) if out["precio"] else 0
+    return out
+
+
+def _sumar_estados(lineas) -> dict | None:
+    partes = [_estado_escalado(l) for l in (lineas or [])]
+    partes = [p for p in partes if p]
+    if not partes:
+        return None
+    keys = (
+        "material", "luz", "internet", "desgaste", "mano_obra",
+        "costo_real", "precio", "ganancia", "horas", "gramos",
+    )
+    acc = {k: 0.0 for k in keys}
+    for p in partes:
+        for k in keys:
+            acc[k] += p[k]
+    for k in keys:
+        acc[k] = round(acc[k], 2)
+    acc["margen"] = (acc["ganancia"] / acc["precio"]) if acc["precio"] else 0
+    return acc
+
+
 @router.post("/autorizar-venta")
 async def autorizar_venta(
     body: AutorizarVentaRequest,
@@ -317,24 +356,33 @@ async def autorizar_venta(
             venta_lineas = []
             # Si la cotización trae múltiples partidas (Nueva cotización), decidir si se autoriza como kit o por partida
             if isinstance(lineas, list) and len(lineas) > 0:
+                estado_orden = _sumar_estados(lineas)
                 if modo == "kit":
                     nombre = kit_nombre or c.descripcion
+                    costo_real = float(estado_orden["costo_real"]) if estado_orden else float(c.costo_base or 0)
                     p = Producto(
                         descripcion=f"KIT: {nombre}",
-                        costo_base=c.costo_base,
+                        costo_base=costo_real,
                         costo_final=c.costo_final,
                         cantidad=1,
                         vendedor=c.vendedor,
-                        detalles={**detalles_producto, "tipo_producto": "kit"},
+                        detalles={
+                            **detalles_producto,
+                            "tipo_producto": "kit",
+                            **({"estado_resultados": estado_orden} if estado_orden else {}),
+                        },
                     )
                     db.add(p)
-                    venta_lineas.append({
+                    linea_kit = {
                         "descripcion": f"KIT: {nombre}",
                         "cantidad": 1,
-                        "costo_unitario": float(c.costo_base or 0),
+                        "costo_unitario": costo_real,
                         "precio_unitario": float(c.costo_final or 0),
                         "subtotal": float(c.costo_final or 0),
-                    })
+                    }
+                    if estado_orden:
+                        linea_kit["estado_resultados"] = estado_orden
+                    venta_lineas.append(linea_kit)
                 else:
                     # Un producto por partida
                     for l in lineas:
@@ -342,7 +390,13 @@ async def autorizar_venta(
                             continue
                         nombre_prod = (l.get("nombre_producto") or c.descripcion or "Producto").strip()
                         cant = float(l.get("cantidad") or 1)
-                        costo_base_total = float(l.get("costo_base_total") or l.get("costo_final") or 0)
+                        estado_linea = _estado_escalado(l)
+                        if estado_linea:
+                            costo_base_total = float(estado_linea["costo_real"])
+                        elif "costo_base_total" in l:
+                            costo_base_total = float(l.get("costo_base_total") or 0)
+                        else:
+                            costo_base_total = float(l.get("costo_final") or 0)
                         costo_final = float(l.get("costo_final") or 0)
                         p = Producto(
                             descripcion=nombre_prod,
@@ -350,18 +404,26 @@ async def autorizar_venta(
                             costo_final=costo_final,
                             cantidad=cant,
                             vendedor=c.vendedor,
-                            detalles={**detalles_producto, "tipo_producto": "unico", "linea": l},
+                            detalles={
+                                **detalles_producto,
+                                "tipo_producto": "unico",
+                                "linea": l,
+                                **({"estado_resultados": estado_linea} if estado_linea else {}),
+                            },
                         )
                         db.add(p)
                         unit_cost = (costo_base_total / cant) if cant else costo_base_total
                         unit_price = (costo_final / cant) if cant else costo_final
-                        venta_lineas.append({
+                        linea_venta = {
                             "descripcion": nombre_prod,
                             "cantidad": cant,
                             "costo_unitario": unit_cost,
                             "precio_unitario": unit_price,
                             "subtotal": costo_final,
-                        })
+                        }
+                        if estado_linea:
+                            linea_venta["estado_resultados"] = estado_linea
+                        venta_lineas.append(linea_venta)
             else:
                 # Cotización simple (una sola pieza)
                 p = Producto(
@@ -419,6 +481,8 @@ async def update_cotizacion(
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
     if body.detalles is not None:
         c.detalles = {**(c.detalles or {}), **body.detalles}
+    if body.descripcion is not None and body.descripcion.strip():
+        c.descripcion = body.descripcion.strip()[:500]
     if body.fecha is not None:
         c.fecha = body.fecha
     if body.costo_base is not None:

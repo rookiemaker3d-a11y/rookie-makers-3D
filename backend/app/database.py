@@ -348,10 +348,33 @@ def _migrate_cotizaciones_servicios_reparacion(sync_conn):
             pass
 
 
+def _migrate_add_email_login_code(sync_conn):
+    """Código de correo para verificar a la persona la primera vez que entra."""
+    dialect = sync_conn.engine.dialect.name
+    if dialect == "postgresql":
+        stmts = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMPTZ",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_code_hash VARCHAR(128)",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_code_expires TIMESTAMPTZ",
+        ]
+    else:
+        stmts = [
+            "ALTER TABLE users ADD COLUMN email_verified_at DATETIME",
+            "ALTER TABLE users ADD COLUMN email_code_hash VARCHAR(128)",
+            "ALTER TABLE users ADD COLUMN email_code_expires DATETIME",
+        ]
+    for stmt in stmts:
+        try:
+            sync_conn.execute(text(stmt))
+        except Exception:
+            pass
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_migrate_add_mfa_columns)
+        await conn.run_sync(_migrate_add_email_login_code)
         await conn.run_sync(_migrate_add_vendedor_clabe)
         await conn.run_sync(_migrate_add_vendedor_tarjeta)
         await conn.run_sync(_migrate_add_user_nombre)

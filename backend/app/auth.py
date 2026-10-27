@@ -50,28 +50,38 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
 
 
-def create_mfa_pending_token(user_id: int) -> str:
-    """Token de un solo uso para completar login con MFA (válido 5 min)."""
+def create_mfa_pending_token(user_id: int, channel: str = "totp") -> str:
+    """Token de un solo uso para completar login con MFA (válido 10 min)."""
     now = datetime.utcnow()
-    expire = now + timedelta(minutes=5)
+    expire = now + timedelta(minutes=10)
     return jwt.encode(
-        {"sub": str(user_id), "type": "mfa_pending", "exp": expire, "iat": now},
+        {"sub": str(user_id), "type": "mfa_pending", "channel": channel, "exp": expire, "iat": now},
         settings.secret_key,
         algorithm=settings.algorithm,
     )
 
 
-def decode_mfa_pending_token(token: str) -> Optional[int]:
-    """Decodifica temp token MFA; retorna user_id o None."""
+def decode_mfa_pending_payload(token: str) -> Optional[dict]:
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         if payload.get("type") != "mfa_pending":
             return None
-        sub = payload.get("sub")
-        if sub is None:
-            return None
-        return int(sub)
+        return payload
     except JWTError:
+        return None
+
+
+def decode_mfa_pending_token(token: str) -> Optional[int]:
+    """Decodifica temp token MFA; retorna user_id o None."""
+    payload = decode_mfa_pending_payload(token)
+    if not payload:
+        return None
+    sub = payload.get("sub")
+    if sub is None:
+        return None
+    try:
+        return int(sub)
+    except (ValueError, TypeError):
         return None
 
 

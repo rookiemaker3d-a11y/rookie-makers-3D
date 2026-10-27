@@ -6,17 +6,17 @@ import { useAuth } from '../context/AuthContext'
 import { useCotizador, materialesFromAPI } from '../hooks/useCotizador'
 import StepperCotizacion from '../components/cotizacion/StepperCotizacion'
 import PasoCliente from '../components/cotizacion/PasoCliente'
-import PasoProyecto from '../components/cotizacion/PasoProyecto'
 import PasoCalculadora from '../components/cotizacion/PasoCalculadora'
 import PasoEmpaqueEnvio from '../components/cotizacion/PasoEmpaqueEnvio'
 import PasoPreview from '../components/cotizacion/PasoPreview'
 import { folio as genFolio } from '../components/cotizacion/PasoPreview'
 import PasoPDF from '../components/cotizacion/PasoPDF'
 import PasoConfirmacion from '../components/cotizacion/PasoConfirmacion'
+import CotizacionesEspera from './CotizacionesEspera'
 import { SectionHeader } from '../components/ui'
 import { buildLineasParaPDF, sumLineasFinal } from '../utils/cotizacionPdfLines'
 
-const TOTAL_PASOS = 6
+const TOTAL_PASOS = 5
 
 export default function NuevaCotizacion() {
   const { api, apiUpload, user } = useAuth()
@@ -25,6 +25,7 @@ export default function NuevaCotizacion() {
   const restoringRef = useRef(false)
   const saveTimerRef = useRef(null)
   const remoteTimerRef = useRef(null)
+  const cotizacionCerradaRef = useRef(false)
   const [materiales, setMateriales] = useState([])
   const [vendedores, setVendedores] = useState([])
   const [vendedorSeleccionadoId, setVendedorSeleccionadoId] = useState(null)
@@ -43,7 +44,6 @@ export default function NuevaCotizacion() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [showCostosFilamento, setShowCostosFilamento] = useState(false)
-  const [ordenEnviadaMsg, setOrdenEnviadaMsg] = useState('')
   const [draftInfo, setDraftInfo] = useState(null)
   const [remoteDraftId, setRemoteDraftId] = useState(null)
   const [remoteStatus, setRemoteStatus] = useState('') // '', 'guardando', 'ok', 'error'
@@ -92,8 +92,9 @@ export default function NuevaCotizacion() {
   }, [isAdmin, vendedores, vendedorSeleccionadoId])
 
   const descripcionActual = useMemo(() => {
-    return `${wizardData.proyecto?.nombre ?? 'Proyecto'} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
-  }, [wizardData.cliente?.nombre, wizardData.proyecto?.nombre])
+    const nombreProd = wizardData.lineas?.[0]?.nombre_producto || wizardData.proyecto?.nombre || 'Impresión'
+    return `${nombreProd} - ${wizardData.cliente?.nombre ?? 'Cliente'}`
+  }, [wizardData.cliente?.nombre, wizardData.lineas, wizardData.proyecto?.nombre])
 
   const detallesRemoteBase = useMemo(() => {
     const base = {
@@ -228,7 +229,7 @@ export default function NuevaCotizacion() {
     }
   }, [draftKey, paso, wizardData, notas, vendedorSeleccionadoId])
 
-  const shouldRemoteDraft = !!wizardData?.cliente && !!wizardData?.proyecto?.nombre?.trim()
+  const shouldRemoteDraft = !!wizardData?.cliente && !cotizacionCerradaRef.current
 
   // Crear borrador remoto (una vez) cuando ya hay cliente+proyecto
   useEffect(() => {
@@ -280,12 +281,15 @@ export default function NuevaCotizacion() {
     if (restoringRef.current) return
     if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current)
     remoteTimerRef.current = setTimeout(async () => {
+      if (cotizacionCerradaRef.current) return
       setRemoteStatus('guardando')
       try {
         const payload = {
+          descripcion: descripcionActual,
           detalles: {
             ...detallesRemoteBase,
             paso_actual: paso,
+            lineas: (wizardData.lineas || []).length ? wizardData.lineas : undefined,
           },
           costo_base: 0,
           costo_final: 0,
@@ -319,11 +323,16 @@ export default function NuevaCotizacion() {
 
   const canGoNext = () => {
     if (paso === 1) return !!wizardData.cliente
-    if (paso === 2) return !!(wizardData.proyecto?.nombre?.trim())
     return true
   }
 
   const handleNext = () => {
+    if (paso === 2) {
+      setWizardData((d) => {
+        const nombre = (d.lineas?.[0]?.nombre_producto || d.proyecto?.nombre || 'Impresión').trim() || 'Impresión'
+        return { ...d, proyecto: { ...(d.proyecto || {}), nombre } }
+      })
+    }
     if (paso < TOTAL_PASOS && canGoNext()) setPaso((p) => p + 1)
   }
 
@@ -333,61 +342,6 @@ export default function NuevaCotizacion() {
 
   const isVendedorVentas = user?.role === 'vendedor_ventas'
 
-  const handleEnviarOrdenDesdePaso2 = async () => {
-    if (!wizardData.cliente || !wizardData.proyecto?.nombre?.trim()) return
-    setSaveError('')
-    setOrdenEnviadaMsg('')
-    setSaving(true)
-    try {
-      const res = await api('/cotizaciones-en-espera', {
-        method: 'POST',
-        body: JSON.stringify({
-          descripcion: descripcionActual,
-          cantidad: 1,
-          costo_base: 0,
-          costo_final: 0,
-          detalles: {
-            orden_vendedor: true,
-            estado_cotizacion_vendedor: 'pendiente',
-            visto_por_vendedor: false,
-            folio: genFolio(),
-            cliente_id: wizardData.cliente?.id,
-            proyecto: wizardData.proyecto?.nombre,
-            cliente_nombre: wizardData.cliente?.nombre,
-            ...(isAdmin
-              ? {
-                  vendedor_id: vendedorSeleccionado?.id ?? undefined,
-                  vendedor_nombre: vendedorSeleccionado?.nombre ?? undefined,
-                  vendedor_email: vendedorSeleccionado?.correo ?? undefined,
-                }
-              : {}),
-          },
-        }),
-      })
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        setSaveError(errData?.detail || res.statusText || 'Error al enviar la orden')
-        return
-      }
-      const data = await res.json()
-      const file = wizardData.proyecto?.file
-      if (file && data?.id != null) {
-        const formData = new FormData()
-        formData.append('file', file)
-        try {
-          await apiUpload(`/cotizaciones-en-espera/${data.id}/archivo`, formData)
-        } catch (_) {
-          // Orden ya creada; fallo en archivo no bloquea
-        }
-      }
-      setOrdenEnviadaMsg('Orden enviada a Norberto. Aparece en su dashboard (Pipeline de pedidos). Verás "Recibido" cuando él la cotice.')
-      clearDraft()
-    } catch (e) {
-      setSaveError(e?.message || 'Error al enviar la orden')
-    } finally {
-      setSaving(false)
-    }
-  }
   const lineas = wizardData.lineas || []
   const materialesExtra = Array.isArray(wizardData.materiales_extra) ? wizardData.materiales_extra : []
   const lineasMateriales = materialesExtra.map((m, idx) => ({
@@ -444,6 +398,8 @@ export default function NuevaCotizacion() {
   }, [lineasParaPDF.length, subTotalPDF, descuento, envio, empaque, totalFinal])
 
   const handleConfirm = async () => {
+    cotizacionCerradaRef.current = true
+    if (remoteTimerRef.current) clearTimeout(remoteTimerRef.current)
     setSaveError('')
     setSaving(true)
     try {
@@ -453,7 +409,7 @@ export default function NuevaCotizacion() {
         ...(esOrdenVendedor ? {} : d),
         ...detallesRemoteBase,
         estado: 'espera',
-        borrador: undefined,
+        borrador: false,
         borrador_finalizado_at: new Date().toISOString(),
         orden_vendedor: esOrdenVendedor || undefined,
         lineas: lineasParaCotizacion.length ? lineasParaCotizacion : undefined,
@@ -476,6 +432,7 @@ export default function NuevaCotizacion() {
         res = await api(`/cotizaciones-en-espera/${remoteDraftId}`, {
           method: 'PATCH',
           body: JSON.stringify({
+            descripcion: descripcionActual,
             detalles,
             costo_base: costoBaseFinal,
             costo_final: totalFinal,
@@ -494,6 +451,7 @@ export default function NuevaCotizacion() {
         })
       }
       if (!res.ok) {
+        cotizacionCerradaRef.current = false
         const errData = await res.json().catch(() => ({}))
         setSaveError(errData?.detail || res.statusText || 'Error al guardar')
         return false
@@ -513,6 +471,7 @@ export default function NuevaCotizacion() {
       clearDraft()
       return true
     } catch (e) {
+      cotizacionCerradaRef.current = false
       const msg = e?.message || (e?.status === 403 ? 'No tienes permiso para crear cotizaciones.' : 'Error al guardar')
       setSaveError(msg)
       return false
@@ -588,7 +547,7 @@ export default function NuevaCotizacion() {
       {/* Modal: tabla de costos de filamentos */}
       {showCostosFilamento && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setShowCostosFilamento(false)}>
-          <div className="bg-[var(--theme-bg-card)] border rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col" style={{ borderColor: 'var(--theme-border)' }} onClick={(e) => e.stopPropagation()}>
+          <div className="border rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col" style={{ borderColor: 'var(--theme-border)', background: 'rgb(2 5 21)' }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--theme-border)' }}>
               <h3 className="text-lg font-semibold theme-text">Costos de filamentos (para cotización)</h3>
               <button type="button" onClick={() => setShowCostosFilamento(false)} className="p-2 rounded-lg theme-text-muted hover:bg-white/[0.06]" aria-label="Cerrar">
@@ -639,38 +598,27 @@ export default function NuevaCotizacion() {
             onValid={() => {}}
           />
         )}
-        {paso === 2 && (
-          <PasoProyecto
-            key="paso2"
-            data={wizardData}
-            onChange={(patch) => setWizardData((d) => ({ ...d, ...patch }))}
-            isVendedorVentas={isVendedorVentas}
-            onEnviarOrden={handleEnviarOrdenDesdePaso2}
-            enviando={saving}
-            ordenEnviadaMsg={ordenEnviadaMsg}
-          />
-        )}
-        {paso === 3 && isVendedorVentas ? (
+        {paso === 2 && isVendedorVentas ? (
           <PasoEmpaqueEnvio
-            key="paso3"
+            key="paso2"
             wizardData={wizardData}
             setWizardData={setWizardData}
-            onNext={() => setPaso(4)}
+            onNext={() => setPaso(3)}
             api={api}
           />
-        ) : paso === 3 && (
+        ) : paso === 2 && (
           <PasoCalculadora
-            key="paso3"
+            key="paso2"
             cotizador={cotizador}
             wizardData={wizardData}
             setWizardData={setWizardData}
-            onNext={() => setPaso(4)}
+            onNext={() => setPaso(3)}
             api={api}
           />
         )}
-        {paso === 4 && (
+        {paso === 3 && (
           <PasoPreview
-            key="paso4"
+            key="paso3"
             wizardData={wizardData}
             setWizardData={setWizardData}
             desglose={cotizador?.desglose ?? {}}
@@ -682,7 +630,7 @@ export default function NuevaCotizacion() {
             totalFinal={totalFinal}
             notas={notas}
             setNotas={setNotas}
-            onMasProductos={isVendedorVentas ? undefined : () => setPaso(3)}
+            onMasProductos={isVendedorVentas ? undefined : () => setPaso(2)}
             isVendedorVentas={isVendedorVentas}
             isAdmin={isAdmin}
             vendedores={vendedores}
@@ -690,9 +638,9 @@ export default function NuevaCotizacion() {
             onChangeVendedorSeleccionadoId={setVendedorSeleccionadoId}
           />
         )}
-        {paso === 5 && (
+        {paso === 4 && (
           <PasoPDF
-            key="paso5"
+            key="paso4"
             folio={folio}
             wizardData={wizardData}
             desglose={isVendedorVentas && !lineas.length ? null : (cotizador?.desglose ?? null)}
@@ -745,21 +693,23 @@ export default function NuevaCotizacion() {
             }
           />
         )}
-        {paso === 6 && (
-          <PasoConfirmacion
-            key="paso6"
-            folio={folio}
-            wizardData={wizardData}
-            desglose={cotizador.desglose}
-            lineas={lineas}
-            totalFinal={totalFinal}
-            onConfirm={handleConfirm}
-            saving={saving}
-          />
+        {paso === 5 && (
+          <div key="paso5" className="space-y-8">
+            <PasoConfirmacion
+              folio={folio}
+              wizardData={wizardData}
+              desglose={cotizador.desglose}
+              lineas={lineas}
+              totalFinal={totalFinal}
+              onConfirm={handleConfirm}
+              saving={saving}
+            />
+            <CotizacionesEspera />
+          </div>
         )}
       </AnimatePresence>
 
-      {paso < 6 && (
+      {paso < 5 && (
         <div className="flex justify-between pt-4">
           <button
             type="button"
@@ -775,22 +725,17 @@ export default function NuevaCotizacion() {
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}
-          {paso === 2 && (
-            <button type="button" onClick={handleNext} disabled={!wizardData.proyecto?.nombre?.trim()} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08] disabled:opacity-40 disabled:pointer-events-none">
-              Siguiente <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
-          {paso === 3 && !isVendedorVentas && lineas.length === 0 && (
+          {paso === 2 && !isVendedorVentas && lineas.length === 0 && (
             <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08]">
               Siguiente (un solo total) <ArrowRight className="w-4 h-4" />
             </button>
           )}
-          {paso === 4 && (
+          {paso === 3 && (
             <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.1] hover:bg-white/[0.14] theme-text font-medium border border-white/[0.08]">
               Siguiente <ArrowRight className="w-4 h-4" />
             </button>
           )}
-          {paso === 5 && (
+          {paso === 4 && (
             <button type="button" onClick={handleNext} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium">
               Confirmar y registrar <ArrowRight className="w-4 h-4" />
             </button>

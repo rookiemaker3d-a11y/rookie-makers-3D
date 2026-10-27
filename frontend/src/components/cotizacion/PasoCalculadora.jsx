@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion'
+import { estadoResultadosPieza } from '../../utils/estadoResultados'
+import EstadoResultadosOrden from './EstadoResultadosOrden'
 import { Plus, ArrowRight } from 'lucide-react'
 import { Card } from '../ui'
 import { useEffect, useMemo, useState } from 'react'
@@ -9,7 +11,7 @@ const inputClass =
 export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardData, onNext, soloResumen = false, api }) {
   if (!cotizador) return null
   const lineas = wizardData.lineas || []
-  const proyectoNombre = wizardData.proyecto?.nombre || 'Producto'
+  const proyectoNombre = wizardData.proyecto?.nombre || 'Impresión'
   const nombreProductoDraft = (wizardData?.productoNombreDraft ?? proyectoNombre).toString()
   const descuento = Number(wizardData.descuento) || 0
   const round2 = (n) => Math.round((n ?? 0) * 100) / 100
@@ -26,8 +28,18 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
     const id = `P${String(lineas.length + 1).padStart(3, '0')}`
     const nombreProducto = (nombreProductoDraft || proyectoNombre).trim() || proyectoNombre
     const tipoMat = material?.nombre || MATERIALES.find((m) => m.id === materialId)?.nombre || ''
+    const estado = estadoResultadosPieza({
+      horas: Number(horasMaquina) || 0,
+      gramos: Number(gramos) || 0,
+      precio: costoUnit,
+      costoKg: material?.costoPorKg,
+    })
     setWizardData((prev) => ({
       ...prev,
+      proyecto: {
+        ...(prev.proyecto || {}),
+        nombre: (prev.proyecto?.nombre || nombreProducto).trim() || nombreProducto,
+      },
       lineas: [
         ...(prev.lineas || []),
         {
@@ -43,6 +55,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
           cantidad,
           costo_base_total: round2(costoBaseUnit * cantidad),
           costo_final: round2(costoUnit * cantidad),
+          estado_resultados: estado,
         },
       ],
     }))
@@ -90,6 +103,12 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
 
   // Estado local para el input de horas máquina (permite escribir "2:30" sin normalización instantánea)
   const [horasMaquinaRaw, setHorasMaquinaRaw] = useState('')
+
+  useEffect(() => {
+    const n = Number(margenPorcentaje)
+    if (!Number.isFinite(n)) return
+    if (n > 100 || n < 0) setMargenPorcentaje(Math.min(100, Math.max(0, n)))
+  }, [margenPorcentaje, setMargenPorcentaje])
 
   useEffect(() => {
     if (!horasMaquina) { setHorasMaquinaRaw(''); return }
@@ -165,11 +184,18 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
           <div className="pt-2">
             <input
               value={nombreProductoDraft}
-              onChange={(e) => setWizardData((prev) => ({ ...prev, productoNombreDraft: e.target.value }))}
+              onChange={(e) => {
+                const nombre = e.target.value
+                setWizardData((prev) => ({
+                  ...prev,
+                  productoNombreDraft: nombre,
+                  proyecto: { ...(prev.proyecto || {}), nombre },
+                }))
+              }}
               placeholder="Ej. Separador de pilas"
               className={inputClass}
             />
-            <p className="theme-text-dim text-xs mt-1">Tip: el nombre del Paso 2 se usa como sugerencia, pero aquí lo puedes cambiar por cada producto.</p>
+            <p className="theme-text-dim text-xs mt-1">Este nombre sale en el PDF. Si lo dejas vacío, la cotización usa «Impresión».</p>
           </div>
         </Card>
         <Card>
@@ -264,6 +290,33 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                 </p>
               </div>
             )}
+            <div>
+              <label className="theme-text-muted text-sm">Horas de impresión</label>
+              <p className="theme-text-dim text-xs mt-0.5">${config.costoHoraMaquina} MXN/hr + {config.calibracionMin} min de calibración</p>
+              <input
+                type="text"
+                value={horasMaquinaRaw}
+                onChange={(e) => {
+                  const val = e.target.value
+                  const cleaned = val.replace(/[^0-9.:]/g, '')
+                  setHorasMaquinaRaw(cleaned)
+                }}
+                onBlur={() => {
+                  const val = horasMaquinaRaw.trim()
+                  if (!val) { setHorasMaquina(0); return }
+                  if (val.includes(':')) {
+                    const parts = val.split(':')
+                    const hours = Number(parts[0]) || 0
+                    const minutes = Number(parts[1]) || 0
+                    setHorasMaquina(Math.round((hours + minutes / 60) * 100) / 100)
+                  } else {
+                    setHorasMaquina(Number(val) || 0)
+                  }
+                }}
+                placeholder="Ej: 2:20 = 2h 20min o 2.5 = 2h 30min"
+                className={`${inputClass} mt-1`}
+              />
+            </div>
           </div>
         </Card>
 
@@ -338,41 +391,6 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
             )}
           </Card>
         )}
-
-        {/* B — Tiempo máquina */}
-        <Card>
-          <div className="border-b border-white/[0.08] pb-3 mb-3">
-            <h3 className="text-sm font-semibold theme-text">Tiempo de máquina</h3>
-            <p className="theme-text-dim text-xs mt-0.5">${config.costoHoraMaquina} MXN/hr</p>
-          </div>
-          <div className="space-y-3 pt-2">
-            <input
-              type="text"
-              value={horasMaquinaRaw}
-              onChange={(e) => {
-                const val = e.target.value
-                // Solo permitir dígitos, punto decimal y dos puntos (HH:MM)
-                const cleaned = val.replace(/[^0-9.:]/g, '')
-                setHorasMaquinaRaw(cleaned)
-              }}
-              onBlur={() => {
-                const val = horasMaquinaRaw.trim()
-                if (!val) { setHorasMaquina(0); return }
-                if (val.includes(':')) {
-                  const parts = val.split(':')
-                  const hours = Number(parts[0]) || 0
-                  const minutes = Number(parts[1]) || 0
-                  setHorasMaquina(Math.round((hours + minutes / 60) * 100) / 100)
-                } else {
-                  setHorasMaquina(Number(val) || 0)
-                }
-              }}
-              placeholder="Ej: 2:20 = 2h 20min o 2.5 = 2h 30min"
-              className={inputClass}
-            />
-            <p className="theme-text-dim text-xs mt-1">Escribe horas:minutos (2:20) o decimal (2.5)</p>
-          </div>
-        </Card>
 
         {/* C — Diseño y corrección */}
         <Card>
@@ -531,15 +549,28 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                   </div>
                   <div className="pt-2">
                     <label className="theme-text-muted text-xs">Margen deseado (%)</label>
-                    <input
-                      type="range"
-                      min={config.margenMin}
-                      max={config.margenMax}
-                      value={margenPorcentaje}
-                      onChange={(e) => setMargenPorcentaje(Number(e.target.value))}
-                      className="w-full mt-1"
-                    />
-                    <p className="theme-text-dim text-xs mt-0.5">{margenPorcentaje}%</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={Math.min(100, Math.max(0, Number(margenPorcentaje) || 0))}
+                        onChange={(e) => setMargenPorcentaje(Number(e.target.value))}
+                        className="flex-1"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={margenPorcentaje}
+                        onChange={(e) => {
+                          const n = Number(e.target.value)
+                          if (Number.isNaN(n)) return
+                          setMargenPorcentaje(Math.min(100, Math.max(0, n)))
+                        }}
+                        className={`w-16 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-sm tabular-nums text-right ${(Number(margenPorcentaje) || 0) < (config.margenAlerta ?? 30) ? 'text-red-400' : 'text-emerald-400'}`}
+                      />
+                    </div>
                   </div>
                 </>
               )}
@@ -554,7 +585,7 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
                 </div>
               )}
               {!soloResumen && (
-                <div className="flex justify-between text-emerald-400">
+                <div className={`flex justify-between ${(Number(margenPorcentaje) || 0) < (config.margenAlerta ?? 30) ? 'text-red-400' : 'text-emerald-400'}`}>
                   <span>Ganancia</span>
                   <span className="tabular-nums">${ganancia.toFixed(2)}</span>
                 </div>
@@ -586,11 +617,16 @@ export default function PasoCalculadora({ cotizador, wizardData = {}, setWizardD
               {lineas.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-white/[0.08]">
                   <p className="theme-text-muted text-xs mb-2">Partidas añadidas: {lineas.length}</p>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
                     {lineas.map((l, i) => (
-                      <div key={i} className="flex justify-between text-xs theme-text-secondary">
-                        <span>{l.id_producto} – {l.nombre_producto}</span>
-                        <span className="tabular-nums">${(l.costo_final || 0).toFixed(2)}</span>
+                      <div key={i} className="space-y-1">
+                        <div className="flex justify-between text-xs theme-text-secondary">
+                          <span>{l.id_producto} – {l.nombre_producto}</span>
+                          <span className="tabular-nums">${(l.costo_final || 0).toFixed(2)}</span>
+                        </div>
+                        {l.estado_resultados && (
+                          <EstadoResultadosOrden estado={l.estado_resultados} titulo={`${l.id_producto} · estado de resultados`} />
+                        )}
                       </div>
                     ))}
                   </div>

@@ -14,6 +14,8 @@ import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
 import { TrendingUp, Package, DollarSign, Calculator, ChevronDown, ChevronUp, Layers } from 'lucide-react'
 import { COTIZADOR_DEFAULTS, EXTRAS_CONFIG } from '../config/cotizador'
+import EstadoResultadosOrden from '../components/cotizacion/EstadoResultadosOrden'
+import { sumarEstados } from '../utils/estadoResultados'
 
 const COLORS = ['#4f8ef7', '#22c55e', '#eab308', '#f97316', '#ec4899']
 
@@ -44,6 +46,7 @@ export default function Analisis() {
   const [periodo, setPeriodo] = useState('mes')
   const [showFormulas, setShowFormulas] = useState(false)
   const [formulaVars, setFormulaVars] = useState(DEFAULT_FORMULA_VARS)
+  const [materialesFormula, setMaterialesFormula] = useState([])
 
   const isAdmin = user?.role === 'administrador'
 
@@ -58,6 +61,20 @@ export default function Analisis() {
   const ingReversaResult = (Number(formulaVars.ingReversaHoras) || 0) * (Number(formulaVars.ingReversaTarifa) || 0)
   const precioClienteResult = (Number(formulaVars.costoTotalEjemplo) || 0) * (1 + (Number(formulaVars.margenPorcentaje) || 0) / 100)
   const anticipoResult = precioClienteResult * ((Number(formulaVars.anticipoPorcentaje) || 0) / 100)
+
+  useEffect(() => {
+    api('/materiales-filamento')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        const list = Array.isArray(data) ? data : []
+        setMaterialesFormula(list)
+        const pla = list.find((m) => m.id_externo === 'pla') || list[0]
+        if (pla?.costo_por_kg != null) {
+          setFormulaVars((v) => ({ ...v, materialCostoKg: pla.costo_por_kg, materialId: pla.id }))
+        }
+      })
+      .catch(() => setMaterialesFormula([]))
+  }, [api])
 
   useEffect(() => {
     Promise.all([
@@ -104,8 +121,13 @@ export default function Analisis() {
     )
   }
 
+  const costoDeProducto = (p) => {
+    const e = p?.detalles?.estado_resultados
+    if (e && e.costo_real != null) return Number(e.costo_real) || 0
+    return Number(p.costo_base) || 0
+  }
   const totalVenta = productosFiltrados.reduce((s, p) => s + (Number(p.costo_final) || 0), 0)
-  const totalCosto = productosFiltrados.reduce((s, p) => s + (Number(p.costo_base) || 0), 0)
+  const totalCosto = productosFiltrados.reduce((s, p) => s + costoDeProducto(p), 0)
   const ganancia = totalVenta - totalCosto
   const cantidad = productosFiltrados.length
   const ticketPromedio = cantidad > 0 ? totalVenta / cantidad : 0
@@ -131,16 +153,24 @@ export default function Analisis() {
     }
   }
 
-  const desgloseProductos = productosFiltrados.map((p) => ({
-    id: p.id,
-    descripcion: p.descripcion || '—',
-    cantidad: Number(p.cantidad) || 1,
-    venta: Number(p.costo_final) || 0,
-    costo: Number(p.costo_base) || 0,
-    ganancia: (Number(p.costo_final) || 0) - (Number(p.costo_base) || 0),
-    margenPct: p.costo_final > 0 ? (((p.costo_final - p.costo_base) / p.costo_final) * 100) : 0,
-    ...getProductoDesglose(p),
-  }))
+  const desgloseProductos = productosFiltrados.map((p) => {
+    const venta = Number(p.costo_final) || 0
+    const costo = costoDeProducto(p)
+    const estado = p?.detalles?.estado_resultados || null
+    return {
+      id: p.id,
+      descripcion: p.descripcion || '—',
+      cantidad: Number(p.cantidad) || 1,
+      venta,
+      costo,
+      ganancia: venta - costo,
+      margenPct: venta > 0 ? ((venta - costo) / venta) * 100 : 0,
+      estado,
+      ...getProductoDesglose(p),
+    }
+  })
+  const estadosPeriodo = desgloseProductos.map((d) => d.estado).filter(Boolean)
+  const estadoPeriodo = estadosPeriodo.length ? sumarEstados(estadosPeriodo) : null
 
   const totalesDesglose = desgloseProductos.reduce(
     (acc, d) => ({
@@ -469,6 +499,18 @@ export default function Analisis() {
         </Card>
       )}
 
+      {estadoPeriodo && (
+        <Card>
+          <h3 className="text-sm font-semibold theme-text mb-4">Estado de resultados del periodo</h3>
+          <EstadoResultadosOrden estado={estadoPeriodo} titulo="Gasto y ganancia reales" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+            {desgloseProductos.filter((d) => d.estado).map((d) => (
+              <EstadoResultadosOrden key={d.id} estado={d.estado} titulo={d.descripcion} />
+            ))}
+          </div>
+        </Card>
+      )}
+
       {desgloseProductos.length > 0 && (
         <Card>
           <h3 className="text-sm font-semibold theme-text mb-4">Productos del periodo</h3>
@@ -539,8 +581,25 @@ export default function Analisis() {
                 <div className="flex flex-wrap items-center gap-2">
                   <input type="number" min={0} step={1} value={formulaVars.materialGramos} onChange={(e) => updateFormulaVar('materialGramos', e.target.value)} className="w-24 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
                   <span className="theme-text-muted text-sm">g ×</span>
-                  <input type="number" min={0} step={10} value={formulaVars.materialCostoKg} onChange={(e) => updateFormulaVar('materialCostoKg', e.target.value)} className="w-28 px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text" />
-                  <span className="theme-text-muted text-sm">$/kg =</span>
+                  {materialesFormula.length > 0 && (
+                    <select
+                      value={formulaVars.materialId || ''}
+                      onChange={(e) => {
+                        const m = materialesFormula.find((x) => String(x.id) === e.target.value)
+                        setFormulaVars((v) => ({
+                          ...v,
+                          materialId: m?.id ?? v.materialId,
+                          materialCostoKg: m?.costo_por_kg ?? v.materialCostoKg,
+                        }))
+                      }}
+                      className="px-3 py-2 rounded-lg border text-base bg-white/5 border-white/20 theme-text"
+                    >
+                      {materialesFormula.map((m) => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
+                  )}
+                  <span className="font-mono font-semibold theme-text text-lg">${Number(formulaVars.materialCostoKg) || 0}/kg =</span>
                   <span className="font-mono font-semibold theme-text text-lg">${materialResult.toFixed(0)}</span>
                 </div>
               </div>

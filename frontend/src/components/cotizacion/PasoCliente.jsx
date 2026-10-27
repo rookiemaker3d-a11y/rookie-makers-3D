@@ -51,17 +51,21 @@ export default function PasoCliente({ data, onChange, onValid }) {
 
   const guardarNuevo = async (e) => {
     e.preventDefault()
-    if (!nuevoForm.nombre.trim() || !nuevoForm.correo.trim()) return
+    if (!nuevoForm.nombre.trim() || !nuevoForm.telefono.trim()) return
     try {
       const res = await api('/clientes', {
         method: 'POST',
         body: JSON.stringify({
           nombre: nuevoForm.nombre.trim(),
-          correo: nuevoForm.correo.trim(),
-          telefono: nuevoForm.telefono.trim() || undefined,
-          direccion: nuevoForm.direccion.trim() || undefined,
+          telefono: nuevoForm.telefono.trim(),
+          correo: nuevoForm.correo.trim() || 'N/A',
+          direccion: nuevoForm.direccion.trim() || 'N/A',
         }),
       })
+      if (!res.ok) {
+        onValid?.(false)
+        return
+      }
       const c = await res.json()
       seleccionarCliente(c)
     } catch {
@@ -92,10 +96,8 @@ export default function PasoCliente({ data, onChange, onValid }) {
             </div>
             <div className="min-w-0">
               <p className="font-semibold theme-text">{clienteActual.nombre}</p>
-              <p className="theme-text-muted text-sm">{clienteActual.correo}</p>
-              {clienteActual.telefono && (
-                <p className="theme-text-muted text-sm">{clienteActual.telefono}</p>
-              )}
+              <p className="theme-text-muted text-sm">{clienteActual.correo || 'N/A'}</p>
+              <p className="theme-text-muted text-sm">{clienteActual.telefono || 'N/A'}</p>
               <p className="theme-text-dim text-xs mt-2">Historial y monto acumulado (próximamente)</p>
             </div>
             <button
@@ -171,17 +173,17 @@ export default function PasoCliente({ data, onChange, onValid }) {
                   required
                 />
                 <input
-                  type="email"
-                  placeholder="Correo *"
-                  value={nuevoForm.correo}
-                  onChange={(e) => setNuevoForm((f) => ({ ...f, correo: e.target.value }))}
+                  placeholder="Teléfono *"
+                  value={nuevoForm.telefono}
+                  onChange={(e) => setNuevoForm((f) => ({ ...f, telefono: e.target.value }))}
                   className="w-full px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim"
                   required
                 />
                 <input
-                  placeholder="Teléfono"
-                  value={nuevoForm.telefono}
-                  onChange={(e) => setNuevoForm((f) => ({ ...f, telefono: e.target.value }))}
+                  type="email"
+                  placeholder="Correo (opcional)"
+                  value={nuevoForm.correo}
+                  onChange={(e) => setNuevoForm((f) => ({ ...f, correo: e.target.value }))}
                   className="w-full px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim"
                 />
                 <select
@@ -194,7 +196,7 @@ export default function PasoCliente({ data, onChange, onValid }) {
                   ))}
                 </select>
                 <input
-                  placeholder="Dirección"
+                  placeholder="Dirección (opcional)"
                   value={nuevoForm.direccion}
                   onChange={(e) => setNuevoForm((f) => ({ ...f, direccion: e.target.value }))}
                   className="w-full px-4 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] theme-text placeholder-theme-dim"

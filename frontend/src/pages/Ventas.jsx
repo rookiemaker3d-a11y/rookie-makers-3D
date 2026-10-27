@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
-import { Plus, Trash2, Pencil, TrendingUp, DollarSign, Package, Calendar } from 'lucide-react'
+import { Plus, Trash2, Pencil, TrendingUp, DollarSign, Package, Calendar, ChevronDown, ChevronRight } from 'lucide-react'
+import EstadoResultadosOrden from '../components/cotizacion/EstadoResultadosOrden'
+import { cifrasMovimiento } from '../utils/estadoResultados'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend,
@@ -20,10 +22,10 @@ export default function Ventas() {
   const [msg, setMsg] = useState('')
   const [openForm, setOpenForm] = useState(false)
   const [editItem, setEditItem] = useState(null)
-  const [resumenMes, setResumenMes] = useState([])
-  const [resumenVendedor, setResumenVendedor] = useState([])
   const [desde, setDesde] = useState(firstDayOfMonth())
   const [hasta, setHasta] = useState(todayISO())
+  const [productos, setProductos] = useState([])
+  const [abierta, setAbierta] = useState(null)
 
   const isAdmin = user?.role === 'administrador'
 
@@ -39,41 +41,35 @@ export default function Ventas() {
     const qs = new URLSearchParams()
     if (desde) qs.append('desde', desde)
     if (hasta) qs.append('hasta', hasta)
-    api(`/ventas?${qs.toString()}`)
-      .then((r) => r.ok ? r.json() : [])
-      .then((data) => {
+    Promise.all([
+      api(`/ventas?${qs.toString()}`).then((r) => (r.ok ? r.json() : [])),
+      api('/productos').then((r) => (r.ok ? r.json() : [])),
+    ])
+      .then(([data, prods]) => {
         setItems(data || [])
+        setProductos(prods || [])
       })
-      .catch(() => setItems([]))
+      .catch(() => {
+        setItems([])
+        setProductos([])
+      })
       .finally(() => setLoading(false))
-  }
-
-  function loadResumen() {
-    const qs = new URLSearchParams()
-    if (desde) qs.append('desde', desde)
-    if (hasta) qs.append('hasta', hasta)
-    api(`/ventas/resumen/mes?${qs.toString()}`)
-      .then((r) => r.ok ? r.json() : [])
-      .then(setResumenMes)
-      .catch(() => setResumenMes([]))
-    if (isAdmin) {
-      api(`/ventas/resumen/vendedor?${qs.toString()}`)
-        .then((r) => r.ok ? r.json() : [])
-        .then(setResumenVendedor)
-        .catch(() => setResumenVendedor([]))
-    }
   }
 
   useEffect(() => {
     load()
-    loadResumen()
   }, [api, desde, hasta])
 
+  const filas = useMemo(
+    () => items.map((v) => ({ v, ...cifrasMovimiento(v, productos) })),
+    [items, productos],
+  )
+
   const totales = useMemo(() => {
-    const total = items.reduce((s, v) => s + (Number(v.total) || 0), 0)
-    const ganancia = items.reduce((s, v) => s + (Number(v.ganancia_neta) || 0), 0)
-    return { total, ganancia, count: items.length }
-  }, [items])
+    const total = filas.reduce((s, f) => s + f.ingreso, 0)
+    const ganancia = filas.reduce((s, f) => s + f.ganancia, 0)
+    return { total, ganancia, count: filas.length }
+  }, [filas])
 
   const updateForm = (patch) => setForm((f) => ({ ...f, ...patch }))
 
@@ -158,7 +154,6 @@ export default function Ventas() {
         productos: [{ descripcion: '', cantidad: 1, costo_unitario: 0, precio_unitario: 0, subtotal: 0 }],
       })
       load()
-      loadResumen()
     } catch (err) {
       setMsg(err.message || 'Error al guardar venta')
     }
@@ -182,20 +177,31 @@ export default function Ventas() {
     try {
       await api(`/ventas/${id}`, { method: 'DELETE' })
       load()
-      loadResumen()
     } catch (_) {}
   }
 
   const chartData = useMemo(() => {
-    // Fill missing months in range
-    if (!resumenMes.length) return []
-    const sorted = [...resumenMes].sort((a, b) => a.mes.localeCompare(b.mes))
-    return sorted.map((r) => ({
-      mes: r.mes,
-      ventas: Number(r.total_ventas || 0),
-      ganancia: Number(r.total_ganancia || 0),
-    }))
-  }, [resumenMes])
+    const byMonth = {}
+    for (const f of filas) {
+      const mes = (f.v.fecha || '').slice(0, 7)
+      if (!mes) continue
+      if (!byMonth[mes]) byMonth[mes] = { mes, ventas: 0, ganancia: 0 }
+      byMonth[mes].ventas += f.ingreso
+      byMonth[mes].ganancia += f.ganancia
+    }
+    return Object.values(byMonth).sort((a, b) => a.mes.localeCompare(b.mes))
+  }, [filas])
+
+  const porVendedor = useMemo(() => {
+    const map = {}
+    for (const f of filas) {
+      const nombre = f.v.vendedor || '—'
+      if (!map[nombre]) map[nombre] = { vendedor: nombre, total_ventas: 0, total_ganancia: 0 }
+      map[nombre].total_ventas += f.ingreso
+      map[nombre].total_ganancia += f.ganancia
+    }
+    return Object.values(map)
+  }, [filas])
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -244,7 +250,7 @@ export default function Ventas() {
       </div>
 
       {/* Gráficos */}
-      {(chartData.length > 0 || resumenVendedor.length > 0) && (
+      {(chartData.length > 0 || porVendedor.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {chartData.length > 0 && (
             <Card title="Ventas por mes">
@@ -263,11 +269,11 @@ export default function Ventas() {
               </div>
             </Card>
           )}
-          {isAdmin && resumenVendedor.length > 0 && (
+          {isAdmin && porVendedor.length > 0 && (
             <Card title="Ventas por vendedor">
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[...resumenVendedor].sort((a, b) => b.total_ventas - a.total_ventas)} layout="vertical">
+                  <BarChart data={[...porVendedor].sort((a, b) => b.total_ventas - a.total_ventas)} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--theme-border)" />
                     <XAxis type="number" stroke="var(--theme-text-dim)" fontSize={11} tickFormatter={(v) => `$${v}`} />
                     <YAxis dataKey="vendedor" type="category" stroke="var(--theme-text-dim)" fontSize={11} width={100} />
@@ -287,43 +293,69 @@ export default function Ventas() {
       <Card title="Historial de ventas">
         {loading ? (
           <p className="theme-text-muted text-sm">Cargando...</p>
-        ) : items.length === 0 ? (
+        ) : filas.length === 0 ? (
           <p className="theme-text-muted text-sm">No hay ventas registradas en este periodo.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.06]">
+                  <th className="text-left py-2 px-3 font-medium theme-text-muted">Nombre</th>
                   <th className="text-left py-2 px-3 font-medium theme-text-muted">Fecha</th>
-                  <th className="text-left py-2 px-3 font-medium theme-text-muted">Cliente</th>
-                  <th className="text-left py-2 px-3 font-medium theme-text-muted">Productos</th>
-                  <th className="text-right py-2 px-3 font-medium theme-text-muted">Total</th>
+                  <th className="text-left py-2 px-3 font-medium theme-text-muted">Quién vendió</th>
+                  <th className="text-right py-2 px-3 font-medium theme-text-muted">Costo</th>
                   <th className="text-right py-2 px-3 font-medium theme-text-muted">Ganancia</th>
-                  <th className="text-left py-2 px-3 font-medium theme-text-muted">Vendedor</th>
-                  <th className="text-right py-2 px-3 font-medium theme-text-muted">Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((v) => (
-                  <tr key={v.id} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
-                    <td className="py-2 px-3 theme-text">{v.fecha}</td>
-                    <td className="py-2 px-3 theme-text">{v.cliente_nombre || '—'}</td>
-                    <td className="py-2 px-3 theme-text">
-                      <span className="text-xs theme-text-muted">
-                        {Array.isArray(v.productos) ? v.productos.length : 0} producto(s)
-                      </span>
-                    </td>
-                    <td className="py-2 px-3 theme-text text-right tabular-nums">${Number(v.total || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })}</td>
-                    <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--accent-2)' }}>
-                      ${Number(v.ganancia_neta || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="py-2 px-3 theme-text text-xs">{v.vendedor}</td>
-                    <td className="py-2 px-3 text-right">
-                      <button onClick={() => openEdit(v)} className="p-1.5 rounded hover:bg-white/[0.08] theme-text-muted hover:theme-text"><Pencil size={14} /></button>
-                      <button onClick={() => deleteOne(v.id)} className="p-1.5 rounded hover:bg-red-500/10 text-red-400 hover:text-red-300"><Trash2 size={14} /></button>
-                    </td>
-                  </tr>
-                ))}
+                {filas.map(({ v, costo, ganancia, ingreso, estado }) => {
+                  const abiertaFila = abierta === v.id
+                  const nombre = v.cliente_nombre || v.productos?.[0]?.descripcion || v.notas || 'Venta'
+                  return (
+                    <Fragment key={v.id}>
+                      <tr
+                        className="border-b border-white/[0.04] hover:bg-white/[0.02] cursor-pointer"
+                        onClick={() => setAbierta(abiertaFila ? null : v.id)}
+                      >
+                        <td className="py-2 px-3 theme-text">
+                          <span className="inline-flex items-center gap-1">
+                            {abiertaFila ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                            {nombre}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3 theme-text">{v.fecha}</td>
+                        <td className="py-2 px-3 theme-text text-xs">{v.vendedor || '—'}</td>
+                        <td className="py-2 px-3 theme-text text-right tabular-nums">${costo.toFixed(2)}</td>
+                        <td className={`py-2 px-3 text-right tabular-nums font-medium ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          ${ganancia.toFixed(2)}
+                        </td>
+                      </tr>
+                      {abiertaFila && (
+                        <tr key={`${v.id}-detalle`} className="border-b border-white/[0.04] bg-black/20">
+                          <td colSpan={5} className="px-3 py-3">
+                            <div className="grid md:grid-cols-2 gap-3 items-start">
+                              {estado ? (
+                                <div className="space-y-2">
+                                  <p className="text-sm theme-text">Ingreso ${ingreso.toFixed(2)}</p>
+                                  <EstadoResultadosOrden estado={estado} titulo="Desglose" />
+                                </div>
+                              ) : (
+                                <p className="text-sm theme-text-muted">Esta venta no tiene desglose de material, máquina y mano de obra.</p>
+                              )}
+                              <div className="space-y-2">
+                                {v.notas && <p className="text-xs theme-text-dim">{v.notas}</p>}
+                                <div className="flex gap-2">
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/10 text-xs theme-text"><Pencil size={12} /> Editar</button>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); deleteOne(v.id) }} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 text-xs text-red-400"><Trash2 size={12} /> Eliminar</button>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
               </tbody>
             </table>
           </div>

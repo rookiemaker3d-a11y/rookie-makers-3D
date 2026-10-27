@@ -129,13 +129,16 @@ class VendedorVentasUpdate(BaseModel):
 # ----- Cliente -----
 class ClienteBase(BaseModel):
     nombre: str
-    correo: str
+    correo: Optional[str] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
 
 
-class ClienteCreate(ClienteBase):
-    pass
+class ClienteCreate(BaseModel):
+    nombre: str
+    telefono: str
+    correo: Optional[str] = None
+    direccion: Optional[str] = None
 
 
 class ClienteResponse(ClienteBase):

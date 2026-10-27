@@ -22,11 +22,19 @@ async def create_cliente(
     db: AsyncSession = Depends(get_db),
     _user=Depends(require_user),
 ):
+    nombre = (body.nombre or "").strip()
+    telefono = (body.telefono or "").strip()
+    if not nombre:
+        raise HTTPException(status_code=400, detail="El nombre es obligatorio")
+    if not telefono:
+        raise HTTPException(status_code=400, detail="El teléfono es obligatorio")
+    correo = (body.correo or "").strip() or "N/A"
+    direccion = (body.direccion or "").strip() or "N/A"
     c = Cliente(
-        nombre=body.nombre,
-        correo=body.correo,
-        telefono=body.telefono,
-        direccion=body.direccion,
+        nombre=nombre,
+        correo=correo,
+        telefono=telefono,
+        direccion=direccion,
     )
     db.add(c)
     await db.flush()

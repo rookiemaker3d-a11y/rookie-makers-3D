@@ -22,14 +22,19 @@ export default function Clientes() {
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!form.nombre || !form.correo) {
-      setMsg('Nombre y correo son obligatorios.')
+    if (!form.nombre.trim() || !form.telefono.trim()) {
+      setMsg('Nombre y teléfono son obligatorios.')
       return
     }
     try {
       const res = await api('/clientes', {
         method: 'POST',
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          nombre: form.nombre.trim(),
+          telefono: form.telefono.trim(),
+          correo: form.correo.trim() || 'N/A',
+          direccion: form.direccion.trim() || 'N/A',
+        }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -59,20 +64,20 @@ export default function Clientes() {
           className="theme-input w-full px-3 py-2 rounded-lg border"
         />
         <input
-          type="email"
-          placeholder="Correo *"
-          value={form.correo}
-          onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))}
-          className="theme-input w-full px-3 py-2 rounded-lg border"
-        />
-        <input
-          placeholder="Teléfono"
+          placeholder="Teléfono *"
           value={form.telefono}
           onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))}
           className="theme-input w-full px-3 py-2 rounded-lg border"
         />
         <input
-          placeholder="Dirección"
+          type="email"
+          placeholder="Correo (opcional)"
+          value={form.correo}
+          onChange={(e) => setForm((f) => ({ ...f, correo: e.target.value }))}
+          className="theme-input w-full px-3 py-2 rounded-lg border"
+        />
+        <input
+          placeholder="Dirección (opcional)"
           value={form.direccion}
           onChange={(e) => setForm((f) => ({ ...f, direccion: e.target.value }))}
           className="theme-input w-full px-3 py-2 rounded-lg border"

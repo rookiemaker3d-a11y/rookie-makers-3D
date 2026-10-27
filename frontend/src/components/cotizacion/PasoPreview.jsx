@@ -109,8 +109,7 @@ export default function PasoPreview({
           </div>
           <div>
             <p className="theme-text-dim uppercase tracking-wide mb-1">Proyecto</p>
-            <p className="theme-text font-medium">{proyecto?.nombre ?? '—'}</p>
-            <p className="theme-text-muted">{proyecto?.categoria ?? '—'}</p>
+            <p className="theme-text font-medium">{(proyecto?.nombre || wizardData?.productoNombreDraft || productLineas[0]?.nombre_producto || '').trim() || '—'}</p>
           </div>
         </div>
 
@@ -181,6 +180,7 @@ export default function PasoPreview({
                     <th className="text-left py-2 px-2 font-medium">Material</th>
                     <th className="text-left py-2 px-2 font-medium">Color</th>
                     <th className="text-right py-2 px-2 font-medium">Horas imp.</th>
+                    <th className="text-right py-2 px-2 font-medium">Gramos</th>
                     <th className="text-left py-2 px-2 font-medium">Notas</th>
                     <th className="text-right py-2 px-2 font-medium">Costo u.</th>
                     <th className="text-right py-2 px-2 font-medium">Cant.</th>
@@ -220,6 +220,7 @@ export default function PasoPreview({
                             className="w-20 px-2 py-1 rounded bg-white/[0.06] border border-white/[0.1] theme-text text-right tabular-nums text-sm"
                           />
                         </td>
+                        <td className="py-2 px-2 text-right theme-text tabular-nums">{l.gramos_estimados ?? '—'}</td>
                         <td className="py-2 px-2 theme-text-muted">
                           <input
                             value={l.descripcion || ''}

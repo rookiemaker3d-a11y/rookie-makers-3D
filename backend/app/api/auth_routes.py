@@ -1,11 +1,13 @@
 from datetime import date, datetime, timezone, timedelta
+import hashlib
+import secrets
 import time
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.database import get_db
-from app.auth import get_password_hash, create_access_token, create_mfa_pending_token, decode_mfa_pending_token, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
+from app.auth import get_password_hash, create_access_token, create_mfa_pending_token, decode_mfa_pending_token, decode_mfa_pending_payload, verify_password, require_user, require_admin, get_current_user, get_vendedor_from_user, validate_password
 from app.models import User, Vendedor
 from app.schemas import (
     LoginRequest,
@@ -94,6 +96,29 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
     clear_failed_logins(email)
     await log_audit(db, "login_success", user_id=user.id, ip=ip, details={"email": email})
+    # Primera entrada: código por correo para confirmar que es la persona.
+    if getattr(user, "email_verified_at", None) is None:
+        settings = get_settings()
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        user.email_code_hash = hashlib.sha256(f"{settings.secret_key}:{code}".encode()).hexdigest()
+        user.email_code_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await db.commit()
+        from app.email_service import send_email
+        sent = send_email(
+            user.email,
+            "Código para entrar a Rookie Makers 3D",
+            f"Hola,\n\nTu código para confirmar que eres tú es {code}.\nCaduca en 10 minutos.\nSolo se pide la primera vez que entras.\n",
+        )
+        payload = {
+            "mfa_required": True,
+            "temp_token": create_mfa_pending_token(user.id, channel="email"),
+            "email": user.email,
+            "channel": "email",
+            "email_sent": bool(sent),
+        }
+        if not sent:
+            payload["dev_code"] = code
+        return payload
     # Si tiene MFA activado, devolver temp token para segundo factor
     if getattr(user, "mfa_enabled", False) and getattr(user, "mfa_secret", None):
         temp_token = create_mfa_pending_token(user.id)
@@ -743,13 +768,68 @@ async def mfa_verify_login(
     code = (body.get("code") or "").strip().replace(" ", "")
     if not temp_token or not code:
         raise HTTPException(status_code=400, detail="Faltan temp_token y código")
+    pending = decode_mfa_pending_payload(temp_token)
     user_id = decode_mfa_pending_token(temp_token)
-    if user_id is None:
+    if pending is None or user_id is None:
         raise HTTPException(status_code=401, detail="Sesión MFA expirada. Vuelva a iniciar sesión.")
     result = await db.execute(select(User).where(User.id == user_id, User.is_active == True))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=401, detail="Usuario no encontrado")
+    if pending.get("channel") == "email":
+        settings = get_settings()
+        expires = getattr(user, "email_code_expires", None)
+        if isinstance(expires, datetime) and expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        expected = getattr(user, "email_code_hash", None)
+        got = hashlib.sha256(f"{settings.secret_key}:{code}".encode()).hexdigest()
+        if not expected or not expires or expires < datetime.now(timezone.utc) or got != expected:
+            await log_audit(db, "login_failed", user_id=user.id, ip=_client_ip(request), details={"reason": "email_code_invalid"})
+            await db.commit()
+            raise HTTPException(status_code=401, detail="Código incorrecto o expirado")
+        user.email_verified_at = datetime.now(timezone.utc)
+        user.email_code_hash = None
+        user.email_code_expires = None
+        await log_audit(db, "login_success", user_id=user.id, ip=_client_ip(request), details={"email": user.email, "email_code": True})
+        await db.commit()
+        token = create_access_token(data={"sub": str(user.id)})
+        vendedor_nombre = None
+        vendedor_correo = None
+        vendedor_telefono = None
+        vendedor_banco = None
+        vendedor_cuenta = None
+        vendedor_clabe = None
+        vendedor_tarjeta_ultimos4 = None
+        if user.vendedor_id:
+            res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
+            v = res.scalar_one_or_none()
+            if v:
+                vendedor_nombre = v.nombre
+                vendedor_correo = v.correo
+                vendedor_telefono = getattr(v, "telefono", None) or None
+                vendedor_banco = getattr(v, "banco", None) or None
+                vendedor_cuenta = getattr(v, "cuenta", None) or None
+                vendedor_clabe = getattr(v, "clabe", None) or None
+                vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
+        display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
+        return {
+            "access_token": token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "role": user.role,
+                "vendedor_id": user.vendedor_id,
+                "nombre": display_nombre,
+                "vendedor_nombre": vendedor_nombre,
+                "vendedor_correo": vendedor_correo,
+                "vendedor_telefono": vendedor_telefono,
+                "vendedor_banco": vendedor_banco,
+                "vendedor_cuenta": vendedor_cuenta,
+                "vendedor_clabe": vendedor_clabe,
+                "vendedor_tarjeta_ultimos4": vendedor_tarjeta_ultimos4,
+            },
+        }
     secret = _get_mfa_secret_for_user(user)
     if not secret:
         raise HTTPException(status_code=400, detail="MFA no configurado para esta cuenta")

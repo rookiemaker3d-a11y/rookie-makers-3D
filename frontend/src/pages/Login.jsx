@@ -14,6 +14,8 @@ export default function Login() {
   const [mfaTempToken, setMfaTempToken] = useState('')
   const [mfaEmail, setMfaEmail] = useState('')
   const [mfaCode, setMfaCode] = useState('')
+  const [mfaChannel, setMfaChannel] = useState('totp')
+  const [devCode, setDevCode] = useState('')
   const { login, completeMfaLogin } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -27,6 +29,8 @@ export default function Login() {
       if (result?.mfaRequired && result.tempToken) {
         setMfaTempToken(result.tempToken)
         setMfaEmail(result.email || email)
+        setMfaChannel(result.channel || 'totp')
+        setDevCode(result.devCode || '')
         setMfaStep(true)
         setMfaCode('')
       } else {
@@ -88,7 +92,16 @@ export default function Login() {
             {error && (
               <div className="rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-sm p-3">{error}</div>
             )}
-            <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>Introduce el código de 6 dígitos de tu app (Google Authenticator, Authy) para {mfaEmail}.</p>
+            <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>
+              {mfaChannel === 'email'
+                ? `Te enviamos un código a ${mfaEmail}. Escríbelo para confirmar que eres tú. Solo se pide la primera vez.`
+                : `Introduce el código de 6 dígitos de tu app (Google Authenticator, Authy) para ${mfaEmail}.`}
+            </p>
+            {devCode && (
+              <p className="text-sm rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 p-3">
+                El correo saliente aún no está configurado en este servidor. Tu código de esta vez es {devCode}.
+              </p>
+            )}
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text-muted)' }}>Código</label>
               <input

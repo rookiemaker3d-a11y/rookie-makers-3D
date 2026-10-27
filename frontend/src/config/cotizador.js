@@ -14,8 +14,9 @@ export const COTIZADOR_DEFAULTS = {
   tarifaIngenieriaReversaHora: 150, // MXN/hr
 
   // Margen
-  margenMin: 30, // %
-  margenMax: 200, // %
+  margenMin: 0, // %
+  margenMax: 100, // %
+  margenAlerta: 30, // por debajo de esto el margen se marca en rojo
   margenDefault: 50, // %
 
   // Anticipo
