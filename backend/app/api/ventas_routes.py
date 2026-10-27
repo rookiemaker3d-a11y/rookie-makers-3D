@@ -95,6 +95,11 @@ async def update_venta(
         v.fecha = body.fecha
     if body.notas is not None:
         v.notas = body.notas
+    if body.pago is not None:
+        pago = (body.pago or "").strip().lower()
+        if pago not in ("pagado", "adeudado"):
+            raise HTTPException(status_code=400, detail="El pago debe ser pagado o adeudado")
+        v.pago = pago
     await db.flush()
     await db.commit()
     await db.refresh(v)

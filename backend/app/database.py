@@ -370,6 +370,15 @@ def _migrate_add_email_login_code(sync_conn):
             pass
 
 
+def _migrate_add_venta_pago(sync_conn):
+    dialect = sync_conn.engine.dialect.name
+    stmt = "ALTER TABLE ventas ADD COLUMN IF NOT EXISTS pago VARCHAR(20)" if dialect == "postgresql" else "ALTER TABLE ventas ADD COLUMN pago VARCHAR(20)"
+    try:
+        sync_conn.execute(text(stmt))
+    except Exception:
+        pass
+
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -385,3 +394,4 @@ async def init_db():
         await conn.run_sync(_migrate_app_settings)
         await conn.run_sync(_seed_default_planes_suscripcion)
         await conn.run_sync(_migrate_cotizaciones_servicios_reparacion)
+        await conn.run_sync(_migrate_add_venta_pago)

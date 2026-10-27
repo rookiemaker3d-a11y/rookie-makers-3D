@@ -90,6 +90,7 @@ class Venta(Base):
     vendedor = Column(String(255), nullable=False)
     fecha = Column(String(20), nullable=False)  # ISO 8601 YYYY-MM-DD
     notas = Column(Text, nullable=True)
+    pago = Column(String(20), nullable=True)  # pagado | adeudado
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

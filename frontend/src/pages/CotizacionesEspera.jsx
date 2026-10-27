@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { pdf } from '@react-pdf/renderer'
 import { motion } from 'framer-motion'
 import {
   Clock,
@@ -13,11 +14,12 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { Card, SectionHeader } from '../components/ui'
 import EstadoResultadosOrden from '../components/cotizacion/EstadoResultadosOrden'
+import CotizacionPDF from '../components/cotizacion/CotizacionPDF'
 import { sumarEstados } from '../utils/estadoResultados'
 
 const ESTADOS = [
   { id: 'espera', label: 'Cotización en espera', color: 'slate', icon: Clock },
-  { id: 'aprobado', label: 'Aprobado y pagado', color: 'emerald', icon: CheckCircle },
+  { id: 'aprobado', label: 'Aprobado', color: 'emerald', icon: CheckCircle },
   { id: 'en_produccion', label: 'En producción', color: 'amber', icon: Settings },
   { id: 'entregado', label: 'Entregado', color: 'emerald', icon: Truck },
 ]
@@ -187,6 +189,54 @@ export default function CotizacionesEspera() {
     return acc
   }, {})
 
+  const descargarPdf = async (c) => {
+    const d = c?.detalles || {}
+    const lineas = (Array.isArray(d.lineas) ? d.lineas : []).filter((l) => !String(l?.id_producto || '').startsWith('R'))
+    const folio = d.folio || `COT-${c.id}`
+    const blob = await pdf(
+      <CotizacionPDF
+        folio={folio}
+        cliente={{ nombre: d.cliente_nombre || c.descripcion, correo: d.cliente_correo, telefono: d.cliente_telefono }}
+        proyecto={{ nombre: d.proyecto || c.descripcion }}
+        lineas={lineas.length ? lineas : [{ nombre_producto: c.descripcion, horas_impresion: d.horas, color_producto: d.color, cantidad: c.cantidad || 1, costo_unitario: c.costo_final, costo_final: c.costo_final }]}
+        subTotal={Number(d.sub_total) || Number(c.costo_final) || 0}
+        descuento={Number(d.descuento) || 0}
+        envio={Number(d.envio) || 0}
+        empaque={Number(d.empaque) || 0}
+        totalFinal={Number(d.total) || Number(c.costo_final) || 0}
+        notas={d.notas || ''}
+        vendedor={{ nombre: d.vendedor_nombre || c.vendedor, email: d.vendedor_email || '' }}
+        transferencia={d.transferencia || { beneficiario: d.vendedor_nombre || c.vendedor }}
+      />
+    ).toBlob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `Cotizacion-${folio}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const marcarPago = async (c, pago) => {
+    setUpdating(c.id)
+    try {
+      await api(`/cotizaciones-en-espera/${c.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ detalles: { pago } }),
+      })
+      if (c.detalles?.venta_id) {
+        await api(`/ventas/${c.detalles.venta_id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ pago }),
+        })
+      }
+      load()
+      setOrdenAbiertaData((prev) => prev && prev.id === c.id ? { ...prev, detalles: { ...(prev.detalles || {}), pago } } : prev)
+    } finally {
+      setUpdating(null)
+    }
+  }
+
   const setEstado = async (id, estado) => {
     setUpdating(id)
     try {
@@ -194,6 +244,7 @@ export default function CotizacionesEspera() {
         method: 'PATCH',
         body: JSON.stringify({ detalles: { estado } }),
       })
+      setOrdenAbiertaData((prev) => prev && prev.id === id ? { ...prev, detalles: { ...(prev.detalles || {}), estado } } : prev)
       load()
     } catch {
       // error silencioso, el usuario ve que no avanza
@@ -299,6 +350,11 @@ export default function CotizacionesEspera() {
                       <p className="theme-text-muted text-xs truncate">{c.vendedor || '—'}</p>
                       <p className="text-xs theme-text">Costo ${costo.toFixed(2)}</p>
                       <p className={`text-xs font-medium ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>Ganancia ${ganancia.toFixed(2)}</p>
+                      {c.detalles?.pago && (
+                        <p className={`text-xs font-medium ${c.detalles.pago === 'pagado' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                          {c.detalles.pago === 'pagado' ? 'Pagado' : 'Adeudado'}
+                        </p>
+                      )}
                     </button>
                   </Card>
                   )
@@ -368,6 +424,21 @@ export default function CotizacionesEspera() {
                       )}
                     </div>
                   )}
+                  <div className="flex flex-wrap gap-1">
+                    {ESTADOS.map((e) => (
+                      <span key={e.id} className={`text-[10px] px-2 py-0.5 rounded ${getEstado(ordenAbiertaData) === e.id ? 'bg-cyan-600 text-white' : 'bg-white/10 theme-text-muted'}`}>
+                        {e.label}
+                      </span>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => descargarPdf(ordenAbiertaData)} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 theme-text text-sm">
+                    <FileDown className="w-4 h-4" />
+                    Descargar PDF
+                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={() => marcarPago(ordenAbiertaData, 'pagado')} className="text-xs px-2 py-1 rounded bg-emerald-600/20 text-emerald-400">Marcar como pagado</button>
+                    <button type="button" onClick={() => marcarPago(ordenAbiertaData, 'adeudado')} className="text-xs px-2 py-1 rounded bg-amber-600/20 text-amber-300">Marcar como adeudado</button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {ESTADOS.findIndex((e) => e.id === getEstado(ordenAbiertaData)) < ESTADOS.length - 1 && (
                       <button

@@ -107,7 +107,9 @@ export default function Contabilidad() {
         </div>
         <p className="text-sm theme-text-muted">
           En el periodo: margen {totals.pct.toFixed(1)}% sobre ingresos ${totals.ingreso.toFixed(2)}.
-          El costo suma material, tiempo de máquina y mano de obra.
+          El costo suma material, tiempo de máquina y mano de obra. Entra desde que se autoriza y sigue contando hasta la entrega.
+          Por cobrar ${movimientos.filter((m) => m.v.pago === 'adeudado').reduce((s, m) => s + m.ingreso, 0).toFixed(2)}.
+          Cobrado ${movimientos.filter((m) => m.v.pago === 'pagado').reduce((s, m) => s + m.ingreso, 0).toFixed(2)}.
           {totals.ingreso <= 0 ? ' Aún no hay ventas cerradas en este rango.' : ''}
         </p>
       </div>

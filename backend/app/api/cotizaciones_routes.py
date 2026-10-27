@@ -343,7 +343,9 @@ async def autorizar_venta(
         result = await db.execute(select(CotizacionEnEspera).where(CotizacionEnEspera.id == cid))
         c = result.scalar_one_or_none()
         if c:
-            d = c.detalles or {}
+            d = dict(c.detalles or {})
+            if d.get("venta_id"):
+                continue
             lineas = d.get("lineas") if isinstance(d, dict) else None
             modo = (d.get("modoProductos") or "unico") if isinstance(d, dict) else "unico"
             kit_nombre = (d.get("kitNombre") or "").strip() if isinstance(d, dict) else ""
@@ -444,7 +446,7 @@ async def autorizar_venta(
                     "subtotal": float(c.costo_final or 0),
                 })
 
-            # Contabilidad: registrar venta con costos al autorizar
+            # Contabilidad: la venta se cuenta desde la autorización y la cotización sigue en el tablero hasta entregarse.
             cliente_nombre = None
             if isinstance(d, dict):
                 cliente_nombre = (d.get("cliente_nombre") or d.get("cliente") or "").strip() or None
@@ -452,7 +454,10 @@ async def autorizar_venta(
             costo_total = sum(
                 float(x.get("costo_unitario") or 0) * float(x.get("cantidad") or 1) for x in venta_lineas
             ) or float(c.costo_base or 0)
-            db.add(Venta(
+            pago = (d.get("pago") or "adeudado").strip().lower()
+            if pago not in ("pagado", "adeudado"):
+                pago = "adeudado"
+            venta = Venta(
                 cliente_nombre=cliente_nombre,
                 productos=venta_lineas,
                 total=total_venta,
@@ -460,10 +465,81 @@ async def autorizar_venta(
                 vendedor=c.vendedor or "sistema",
                 fecha=(c.fecha or date.today().isoformat())[:10],
                 notas=f"Autorizado desde cotización #{c.id}: {c.descripcion or ''}".strip(),
-            ))
-            await db.delete(c)
+                pago=pago,
+            )
+            db.add(venta)
+            await db.flush()
+            nuevo = dict(d)
+            nuevo["venta_id"] = venta.id
+            nuevo["autorizada"] = True
+            nuevo["pago"] = pago
+            nuevo["borrador"] = False
+            if (nuevo.get("estado") or "espera") in ("espera", "borrador", ""):
+                nuevo["estado"] = "aprobado"
+            c.detalles = nuevo
     await db.commit()
     return {"ok": True, "count": len(ids), "warnings": all_warnings or None}
+
+
+async def _contar_en_ventas(db: AsyncSession, c: CotizacionEnEspera):
+    """Crea la venta una sola vez para que ventas y contabilidad la cuenten desde la autorización."""
+    d = dict(c.detalles or {})
+    if d.get("venta_id") or d.get("borrador"):
+        return
+    lineas = d.get("lineas") if isinstance(d.get("lineas"), list) else []
+    venta_lineas = []
+    for l in lineas:
+        if not isinstance(l, dict):
+            continue
+        if str(l.get("id_producto") or "").startswith("R"):
+            continue
+        cant = float(l.get("cantidad") or 1) or 1
+        costo_final = float(l.get("costo_final") or 0)
+        estado_linea = _estado_escalado(l)
+        if estado_linea:
+            costo_base_total = float(estado_linea["costo_real"])
+        elif "costo_base_total" in l:
+            costo_base_total = float(l.get("costo_base_total") or 0)
+        else:
+            costo_base_total = float(l.get("costo_final") or 0)
+        item = {
+            "descripcion": (l.get("nombre_producto") or c.descripcion or "Producto"),
+            "cantidad": cant,
+            "costo_unitario": costo_base_total / cant,
+            "precio_unitario": costo_final / cant,
+            "subtotal": costo_final,
+        }
+        if estado_linea:
+            item["estado_resultados"] = estado_linea
+        venta_lineas.append(item)
+    if not venta_lineas:
+        cant = float(c.cantidad or 1) or 1
+        venta_lineas.append({
+            "descripcion": c.descripcion or "Producto",
+            "cantidad": cant,
+            "costo_unitario": float(c.costo_base or 0) / cant,
+            "precio_unitario": float(c.costo_final or 0) / cant,
+            "subtotal": float(c.costo_final or 0),
+        })
+    total_venta = sum(float(x.get("subtotal") or 0) for x in venta_lineas) or float(c.costo_final or 0)
+    costo_total = sum(float(x.get("costo_unitario") or 0) * float(x.get("cantidad") or 1) for x in venta_lineas) or float(c.costo_base or 0)
+    pago = d.get("pago") if d.get("pago") in ("pagado", "adeudado") else "adeudado"
+    venta = Venta(
+        cliente_nombre=(d.get("cliente_nombre") or "").strip() or None,
+        productos=venta_lineas,
+        total=total_venta,
+        ganancia_neta=round(total_venta - costo_total, 2),
+        vendedor=c.vendedor or "sistema",
+        fecha=(c.fecha or date.today().isoformat())[:10],
+        notas=f"Autorizado desde cotización #{c.id}: {c.descripcion or ''}".strip(),
+        pago=pago,
+    )
+    db.add(venta)
+    await db.flush()
+    d["venta_id"] = venta.id
+    d["autorizada"] = True
+    d["pago"] = pago
+    c.detalles = d
 
 
 @router.patch("/{cotizacion_id}", response_model=CotizacionEnEsperaResponse)
@@ -481,6 +557,15 @@ async def update_cotizacion(
         raise HTTPException(status_code=404, detail="Cotización no encontrada")
     if body.detalles is not None:
         c.detalles = {**(c.detalles or {}), **body.detalles}
+        pago = (c.detalles or {}).get("pago")
+        venta_id = (c.detalles or {}).get("venta_id")
+        if pago in ("pagado", "adeudado") and venta_id:
+            venta = await db.get(Venta, venta_id)
+            if venta:
+                venta.pago = pago
+        estado = (c.detalles or {}).get("estado")
+        if estado in ("aprobado", "en_produccion", "entregado") and not (c.detalles or {}).get("venta_id") and not (c.detalles or {}).get("borrador"):
+            await _contar_en_ventas(db, c)
     if body.descripcion is not None and body.descripcion.strip():
         c.descripcion = body.descripcion.strip()[:500]
     if body.fecha is not None:

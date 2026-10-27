@@ -305,6 +305,7 @@ export default function Ventas() {
                   <th className="text-left py-2 px-3 font-medium theme-text-muted">Quién vendió</th>
                   <th className="text-right py-2 px-3 font-medium theme-text-muted">Costo</th>
                   <th className="text-right py-2 px-3 font-medium theme-text-muted">Ganancia</th>
+                  <th className="text-left py-2 px-3 font-medium theme-text-muted">Pago</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,10 +330,13 @@ export default function Ventas() {
                         <td className={`py-2 px-3 text-right tabular-nums font-medium ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                           ${ganancia.toFixed(2)}
                         </td>
+                        <td className={`py-2 px-3 text-xs font-medium ${v.pago === 'pagado' ? 'text-emerald-400' : v.pago === 'adeudado' ? 'text-amber-400' : 'theme-text-muted'}`}>
+                          {v.pago === 'pagado' ? 'Pagado' : v.pago === 'adeudado' ? 'Adeudado' : '—'}
+                        </td>
                       </tr>
                       {abiertaFila && (
                         <tr key={`${v.id}-detalle`} className="border-b border-white/[0.04] bg-black/20">
-                          <td colSpan={5} className="px-3 py-3">
+                          <td colSpan={6} className="px-3 py-3">
                             <div className="grid md:grid-cols-2 gap-3 items-start">
                               {estado ? (
                                 <div className="space-y-2">
@@ -344,7 +348,9 @@ export default function Ventas() {
                               )}
                               <div className="space-y-2">
                                 {v.notas && <p className="text-xs theme-text-dim">{v.notas}</p>}
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
+                                  <button type="button" onClick={async (e) => { e.stopPropagation(); await api(`/ventas/${v.id}`, { method: 'PATCH', body: JSON.stringify({ pago: 'pagado' }) }); load() }} className="px-2 py-1 rounded bg-emerald-600/20 text-xs text-emerald-400">Marcar como pagado</button>
+                                  <button type="button" onClick={async (e) => { e.stopPropagation(); await api(`/ventas/${v.id}`, { method: 'PATCH', body: JSON.stringify({ pago: 'adeudado' }) }); load() }} className="px-2 py-1 rounded bg-amber-600/20 text-xs text-amber-300">Marcar como adeudado</button>
                                   <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/10 text-xs theme-text"><Pencil size={12} /> Editar</button>
                                   <button type="button" onClick={(e) => { e.stopPropagation(); deleteOne(v.id) }} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 text-xs text-red-400"><Trash2 size={12} /> Eliminar</button>
                                 </div>

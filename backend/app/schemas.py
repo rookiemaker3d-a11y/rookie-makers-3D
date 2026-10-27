@@ -430,6 +430,7 @@ class VentaUpdate(BaseModel):
     vendedor: Optional[str] = None
     fecha: Optional[str] = None
     notas: Optional[str] = None
+    pago: Optional[str] = None
 
 
 class VentaResponse(BaseModel):
@@ -442,6 +443,7 @@ class VentaResponse(BaseModel):
     vendedor: str
     fecha: Optional[str] = None
     notas: Optional[str] = None
+    pago: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:
