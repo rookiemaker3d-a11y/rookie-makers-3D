@@ -388,27 +388,39 @@ export default function Ventas() {
               </div>
 
               <div>
-                <label className="block text-xs theme-text-muted mb-1">Productos</label>
+                <label className="block text-xs font-semibold theme-text mb-1">Piezas de esta venta</label>
+                <p className="text-xs theme-text mb-2">El gasto es el costo completo de la pieza. El material y el tiempo no van aquí: están en el desglose de la cotización. La ganancia es el precio de venta menos ese gasto.</p>
+                <div className="hidden sm:grid grid-cols-12 gap-2 mb-1">
+                  <p className="col-span-4 text-[11px] font-semibold theme-text">Pieza</p>
+                  <p className="col-span-2 text-[11px] font-semibold theme-text">Cantidad</p>
+                  <p className="col-span-2 text-[11px] font-semibold theme-text">Tu gasto</p>
+                  <p className="col-span-2 text-[11px] font-semibold theme-text">Precio de venta</p>
+                  <p className="col-span-2 text-[11px] font-semibold theme-text">Total</p>
+                </div>
                 <div className="space-y-2">
                   {form.productos.map((p, idx) => (
                     <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                       <div className="col-span-4">
-                        <input value={p.descripcion} onChange={(e) => updateProducto(idx, { descripcion: e.target.value })} placeholder="Descripción" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
+                        <p className="sm:hidden text-[11px] font-semibold theme-text mb-0.5">Pieza</p>
+                        <input value={p.descripcion} onChange={(e) => updateProducto(idx, { descripcion: e.target.value })} placeholder="Nombre de la pieza" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
                       </div>
                       <div className="col-span-2">
-                        <input type="number" min={0} step={1} value={p.cantidad || ''} onChange={(e) => updateProducto(idx, { cantidad: Number(e.target.value) })} placeholder="Cant" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
+                        <p className="sm:hidden text-[11px] font-semibold theme-text mb-0.5">Cantidad</p>
+                        <input type="number" min={0} step={1} value={p.cantidad || ''} onChange={(e) => updateProducto(idx, { cantidad: Number(e.target.value) })} placeholder="1" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
                       </div>
                       <div className="col-span-2">
-                        <input type="number" min={0} step={0.01} value={p.costo_unitario || ''} onChange={(e) => updateProducto(idx, { costo_unitario: Number(e.target.value) })} placeholder="Costo" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
+                        <p className="sm:hidden text-[11px] font-semibold theme-text mb-0.5">Tu gasto</p>
+                        <input type="number" min={0} step={0.01} value={p.costo_unitario || ''} onChange={(e) => updateProducto(idx, { costo_unitario: Number(e.target.value) })} placeholder="0.00" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
                       </div>
                       <div className="col-span-2">
-                        <input type="number" min={0} step={0.01} value={p.precio_unitario || ''} onChange={(e) => updateProducto(idx, { precio_unitario: Number(e.target.value) })} placeholder="Precio" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
+                        <p className="sm:hidden text-[11px] font-semibold theme-text mb-0.5">Precio de venta</p>
+                        <input type="number" min={0} step={0.01} value={p.precio_unitario || ''} onChange={(e) => updateProducto(idx, { precio_unitario: Number(e.target.value) })} placeholder="0.00" className="theme-input w-full px-2 py-1.5 rounded-lg text-sm" />
                       </div>
                       <div className="col-span-1">
-                        <p className="text-sm theme-text text-right tabular-nums">${Number(p.subtotal || 0).toFixed(0)}</p>
+                        <p className="text-sm font-semibold theme-text text-right tabular-nums">${Number(p.subtotal || 0).toFixed(2)}</p>
                       </div>
                       <div className="col-span-1">
-                        <button type="button" onClick={() => removeProducto(idx)} className="p-1.5 rounded hover:bg-red-500/10 text-red-400"><Trash2 size={14} /></button>
+                        <button type="button" onClick={() => removeProducto(idx)} className="p-1.5 rounded hover:bg-red-500/10 text-red-400" aria-label="Quitar pieza"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   ))}
@@ -420,8 +432,8 @@ export default function Ventas() {
 
               <div className="flex justify-between items-center pt-2 border-t border-white/[0.06]">
                 <div className="space-y-0.5">
-                  <p className="text-xs theme-text-muted">Total venta: <span className="theme-text font-medium">${totalForm.toLocaleString('es-MX', { maximumFractionDigits: 2 })}</span></p>
-                  <p className="text-xs theme-text-muted">Ganancia estimada: <span className="font-medium" style={{ color: 'var(--accent-2)' }}>${(totalForm - costoTotalForm).toLocaleString('es-MX', { maximumFractionDigits: 2 })}</span></p>
+                  <p className="text-xs theme-text">Total de la venta (lo que paga el cliente): <span className="font-semibold">${totalForm.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
+                  <p className="text-xs theme-text">Ganancia (venta menos gasto): <span className="font-semibold text-money-ok">${(totalForm - costoTotalForm).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></p>
                 </div>
               </div>
 
