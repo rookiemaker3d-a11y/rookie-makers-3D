@@ -52,7 +52,7 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
         tempToken: data.temp_token,
         email: data.email || '',
         channel: data.channel || 'totp',
-        devCode: data.dev_code || '',
+        provisioningUri: data.provisioning_uri || '',
       }
     }
     if (!data.access_token || !data.user) {
@@ -75,6 +75,15 @@ const API_BASE = import.meta.env.VITE_API_URL || ''
     if (!res.ok) {
       const msg = typeof data.detail === 'string' ? data.detail : 'Código incorrecto o expirado'
       throw new Error(msg)
+    }
+    if (data.mfa_required && data.temp_token) {
+      return {
+        mfaRequired: true,
+        tempToken: data.temp_token,
+        email: data.email || '',
+        channel: data.channel || 'email',
+        provisioningUri: data.provisioning_uri || '',
+      }
     }
     if (!data.access_token || !data.user) throw new Error('Respuesta del servidor incorrecta')
     const u = { ...data.user, token: data.access_token }

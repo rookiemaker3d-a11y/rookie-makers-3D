@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import QRCode from 'qrcode'
 import { LogIn, Sun, Moon } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
@@ -15,10 +16,19 @@ export default function Login() {
   const [mfaEmail, setMfaEmail] = useState('')
   const [mfaCode, setMfaCode] = useState('')
   const [mfaChannel, setMfaChannel] = useState('totp')
-  const [devCode, setDevCode] = useState('')
+  const [provisioningUri, setProvisioningUri] = useState('')
+  const [qrUrl, setQrUrl] = useState('')
   const { login, completeMfaLogin } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (mfaChannel !== 'enroll' || !provisioningUri) {
+      setQrUrl('')
+      return
+    }
+    QRCode.toDataURL(provisioningUri, { width: 180, margin: 1 }).then(setQrUrl).catch(() => setQrUrl(''))
+  }, [mfaChannel, provisioningUri])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -30,7 +40,7 @@ export default function Login() {
         setMfaTempToken(result.tempToken)
         setMfaEmail(result.email || email)
         setMfaChannel(result.channel || 'totp')
-        setDevCode(result.devCode || '')
+        setProvisioningUri(result.provisioningUri || '')
         setMfaStep(true)
         setMfaCode('')
       } else {
@@ -48,8 +58,16 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      await completeMfaLogin(mfaTempToken, mfaCode)
-      navigate('/')
+      const result = await completeMfaLogin(mfaTempToken, mfaCode)
+      if (result?.mfaRequired && result.tempToken) {
+        setMfaTempToken(result.tempToken)
+        setMfaEmail(result.email || mfaEmail)
+        setMfaChannel(result.channel || 'email')
+        setProvisioningUri(result.provisioningUri || '')
+        setMfaCode('')
+      } else {
+        navigate('/')
+      }
     } catch (err) {
       setError(err.message || 'Código incorrecto o expirado')
     } finally {
@@ -94,13 +112,13 @@ export default function Login() {
             )}
             <p className="text-sm" style={{ color: 'var(--theme-text-muted)' }}>
               {mfaChannel === 'email'
-                ? `Te enviamos un código a ${mfaEmail}. Escríbelo para confirmar que eres tú. Solo se pide la primera vez.`
-                : `Introduce el código de 6 dígitos de tu app (Google Authenticator, Authy) para ${mfaEmail}.`}
+                ? `Te enviamos un código a ${mfaEmail}. Ábrelo en tu correo: no aparece en esta pantalla.`
+                : mfaChannel === 'enroll'
+                  ? 'Escanea este código con Google Authenticator o Authy en tu teléfono y escribe el número de 6 dígitos que muestra la app.'
+                  : 'Escribe el código de 6 dígitos de la app en tu teléfono.'}
             </p>
-            {devCode && (
-              <p className="text-sm rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-200 p-3">
-                El correo saliente aún no está configurado en este servidor. Tu código de esta vez es {devCode}.
-              </p>
+            {mfaChannel === 'enroll' && qrUrl && (
+              <img src={qrUrl} alt="Código para el teléfono" className="mx-auto rounded-lg bg-white p-2" />
             )}
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: 'var(--theme-text-muted)' }}>Código</label>

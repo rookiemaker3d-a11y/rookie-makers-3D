@@ -96,37 +96,11 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
         raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
     clear_failed_logins(email)
     await log_audit(db, "login_success", user_id=user.id, ip=ip, details={"email": email})
-    # Primera entrada: código por correo para confirmar que es la persona.
-    if getattr(user, "email_verified_at", None) is None:
-        settings = get_settings()
-        code = f"{secrets.randbelow(1_000_000):06d}"
-        user.email_code_hash = hashlib.sha256(f"{settings.secret_key}:{code}".encode()).hexdigest()
-        user.email_code_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
-        await db.commit()
-        from app.email_service import send_email
-        sent = send_email(
-            user.email,
-            "Código para entrar a Rookie Makers 3D",
-            f"Hola,\n\nTu código para confirmar que eres tú es {code}.\nCaduca en 10 minutos.\nSolo se pide la primera vez que entras.\n",
-        )
-        payload = {
-            "mfa_required": True,
-            "temp_token": create_mfa_pending_token(user.id, channel="email"),
-            "email": user.email,
-            "channel": "email",
-            "email_sent": bool(sent),
-        }
-        if not sent:
-            payload["dev_code"] = code
-        return payload
-    # Si tiene MFA activado, devolver temp token para segundo factor
-    if getattr(user, "mfa_enabled", False) and getattr(user, "mfa_secret", None):
-        temp_token = create_mfa_pending_token(user.id)
-        return {
-            "mfa_required": True,
-            "temp_token": temp_token,
-            "email": user.email,
-        }
+    # La contraseña no abre la sesión. Primero el código del teléfono.
+    return await _phone_step(user, db)
+
+
+async def _session_for(user: User, db: AsyncSession):
     token = create_access_token(data={"sub": str(user.id)})
     vendedor_nombre = None
     vendedor_correo = None
@@ -165,6 +139,60 @@ async def login(data: LoginRequest, request: Request, db: AsyncSession = Depends
             "vendedor_tarjeta_ultimos4": vendedor_tarjeta_ultimos4,
         },
     }
+
+
+async def _phone_step(user: User, db: AsyncSession):
+    """Obliga el código de la app del teléfono. Si aún no está ligada, devuelve el QR."""
+    import pyotp
+    if getattr(user, "mfa_enabled", False) and _get_mfa_secret_for_user(user):
+        return {
+            "mfa_required": True,
+            "temp_token": create_mfa_pending_token(user.id, channel="totp"),
+            "email": user.email,
+            "channel": "totp",
+        }
+    secret = pyotp.random_base32()
+    user.mfa_secret = secret
+    user.mfa_enabled = False
+    await db.commit()
+    settings = get_settings()
+    uri = pyotp.TOTP(secret).provisioning_uri(
+        name=user.email,
+        issuer_name=getattr(settings, "app_name", "Rookie Makers 3D"),
+    )
+    return {
+        "mfa_required": True,
+        "temp_token": create_mfa_pending_token(user.id, channel="enroll"),
+        "email": user.email,
+        "channel": "enroll",
+        "provisioning_uri": uri,
+    }
+
+
+async def _after_phone(user: User, db: AsyncSession):
+    """Después del teléfono, manda el código al correo. Nunca lo devuelve en la respuesta."""
+    settings = get_settings()
+    if getattr(settings, "smtp_user", None) and getattr(settings, "smtp_password", None):
+        from app.email_service import send_email
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        user.email_code_hash = hashlib.sha256(f"{settings.secret_key}:{code}".encode()).hexdigest()
+        user.email_code_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+        await db.commit()
+        sent = send_email(
+            user.email,
+            "Código para entrar a Rookie Makers 3D",
+            f"Hola,\n\nTu código para entrar es {code}.\nCaduca en 10 minutos.\nSi no fuiste tú, ignora este correo.\n",
+        )
+        if not sent:
+            raise HTTPException(status_code=503, detail="No se pudo enviar el código a tu correo.")
+        return {
+            "mfa_required": True,
+            "temp_token": create_mfa_pending_token(user.id, channel="email"),
+            "email": user.email,
+            "channel": "email",
+            "email_sent": True,
+        }
+    return await _session_for(user, db)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -792,44 +820,7 @@ async def mfa_verify_login(
         user.email_code_expires = None
         await log_audit(db, "login_success", user_id=user.id, ip=_client_ip(request), details={"email": user.email, "email_code": True})
         await db.commit()
-        token = create_access_token(data={"sub": str(user.id)})
-        vendedor_nombre = None
-        vendedor_correo = None
-        vendedor_telefono = None
-        vendedor_banco = None
-        vendedor_cuenta = None
-        vendedor_clabe = None
-        vendedor_tarjeta_ultimos4 = None
-        if user.vendedor_id:
-            res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
-            v = res.scalar_one_or_none()
-            if v:
-                vendedor_nombre = v.nombre
-                vendedor_correo = v.correo
-                vendedor_telefono = getattr(v, "telefono", None) or None
-                vendedor_banco = getattr(v, "banco", None) or None
-                vendedor_cuenta = getattr(v, "cuenta", None) or None
-                vendedor_clabe = getattr(v, "clabe", None) or None
-                vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
-        display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
-        return {
-            "access_token": token,
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "email": user.email,
-                "role": user.role,
-                "vendedor_id": user.vendedor_id,
-                "nombre": display_nombre,
-                "vendedor_nombre": vendedor_nombre,
-                "vendedor_correo": vendedor_correo,
-                "vendedor_telefono": vendedor_telefono,
-                "vendedor_banco": vendedor_banco,
-                "vendedor_cuenta": vendedor_cuenta,
-                "vendedor_clabe": vendedor_clabe,
-                "vendedor_tarjeta_ultimos4": vendedor_tarjeta_ultimos4,
-            },
-        }
+        return await _session_for(user, db)
     secret = _get_mfa_secret_for_user(user)
     if not secret:
         raise HTTPException(status_code=400, detail="MFA no configurado para esta cuenta")
@@ -839,44 +830,10 @@ async def mfa_verify_login(
         await db.commit()
         raise HTTPException(status_code=401, detail="Código incorrecto o expirado")
     await log_audit(db, "login_success", user_id=user.id, ip=_client_ip(request), details={"email": user.email, "mfa": True})
-    token = create_access_token(data={"sub": str(user.id)})
-    vendedor_nombre = None
-    vendedor_correo = None
-    vendedor_telefono = None
-    vendedor_banco = None
-    vendedor_cuenta = None
-    vendedor_clabe = None
-    vendedor_tarjeta_ultimos4 = None
-    if user.vendedor_id:
-        res = await db.execute(select(Vendedor).where(Vendedor.id == user.vendedor_id))
-        v = res.scalar_one_or_none()
-        if v:
-            vendedor_nombre = v.nombre
-            vendedor_correo = v.correo
-            vendedor_telefono = getattr(v, "telefono", None) or None
-            vendedor_banco = getattr(v, "banco", None) or None
-            vendedor_cuenta = getattr(v, "cuenta", None) or None
-            vendedor_clabe = getattr(v, "clabe", None) or None
-            vendedor_tarjeta_ultimos4 = getattr(v, "tarjeta_ultimos4", None) or None
-    display_nombre = vendedor_nombre or getattr(user, "nombre", None) or user.email
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "role": user.role,
-            "vendedor_id": user.vendedor_id,
-            "nombre": display_nombre,
-            "vendedor_nombre": vendedor_nombre,
-            "vendedor_correo": vendedor_correo,
-            "vendedor_telefono": vendedor_telefono,
-            "vendedor_banco": vendedor_banco,
-            "vendedor_cuenta": vendedor_cuenta,
-            "vendedor_clabe": vendedor_clabe,
-            "vendedor_tarjeta_ultimos4": vendedor_tarjeta_ultimos4,
-        },
-    }
+    if pending.get("channel") == "enroll":
+        user.mfa_enabled = True
+        await db.commit()
+    return await _after_phone(user, db)
 
 
 @router.get("/mfa/status")
