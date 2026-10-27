@@ -18,11 +18,11 @@ def send_email(to_email: str, subject: str, body_text: str, body_html: str | Non
     if not to_email or "@" not in str(to_email):
         return False
     s = get_settings()
-    user = getattr(s, "smtp_user", None)
-    password = getattr(s, "smtp_password", None)
+    user = (getattr(s, "smtp_user", None) or "").strip()
+    password = (getattr(s, "smtp_password", None) or "").strip().strip('"').strip("'").replace(" ", "")
     host = getattr(s, "smtp_host", "smtp.gmail.com")
     port = int(getattr(s, "smtp_port", "587"))
-    from_addr = getattr(s, "email_from", None) or user
+    from_addr = (getattr(s, "email_from", None) or user or "").strip()
     if not user or not password:
         return False
     try:

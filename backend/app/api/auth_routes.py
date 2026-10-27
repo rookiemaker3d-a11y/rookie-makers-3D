@@ -151,7 +151,7 @@ async def _phone_step(user: User, db: AsyncSession):
             "email": user.email,
             "channel": "totp",
         }
-    secret = pyotp.random_base32()
+    secret = _get_mfa_secret_for_user(user) or pyotp.random_base32()
     user.mfa_secret = secret
     user.mfa_enabled = False
     await db.commit()
@@ -184,7 +184,7 @@ async def _after_phone(user: User, db: AsyncSession):
             f"Hola,\n\nTu código para entrar es {code}.\nCaduca en 10 minutos.\nSi no fuiste tú, ignora este correo.\n",
         )
         if not sent:
-            raise HTTPException(status_code=503, detail="No se pudo enviar el código a tu correo.")
+            raise HTTPException(status_code=503, detail="El código del teléfono es correcto. Gmail no dejó salir el correo desde rookiemaker3d@gmail.com.")
         return {
             "mfa_required": True,
             "temp_token": create_mfa_pending_token(user.id, channel="email"),

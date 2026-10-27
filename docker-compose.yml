@@ -32,9 +32,9 @@ services:
       # Notificaciones por correo (Gmail SMTP)
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_USER: ${SMTP_USER:-}
+      SMTP_USER: ${SMTP_USER:-rookiemaker3d@gmail.com}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_FROM: ${EMAIL_FROM:-rookiemaker3d@gmail.com}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost}
       ADMIN_NOTIFY_EMAIL: ${ADMIN_NOTIFY_EMAIL:-}
       # Mercado Pago (suscripciones)
