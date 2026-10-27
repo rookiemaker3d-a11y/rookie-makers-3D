@@ -337,6 +337,11 @@ export default function CotizacionesEspera() {
               </div>
               <span className="theme-text-muted text-xs mb-2">{list.length} pedido(s)</span>
               <div className="flex-1 overflow-y-auto space-y-2">
+                {list.length === 0 && (
+                  <p className="text-xs font-medium theme-text">
+                    {est.id === 'espera' ? 'Ningún pedido en espera.' : `Ningún pedido aquí. En la tarjeta anterior pulsa «Pasar a ${est.label}».`}
+                  </p>
+                )}
                 {list.map((c) => {
                   const estadoOrden = estadoDeOrden(c)
                   const costo = estadoOrden ? Number(estadoOrden.costo_real) || 0 : Number(c.costo_base) || 0
@@ -349,13 +354,25 @@ export default function CotizacionesEspera() {
                       <p className="theme-text-dim text-xs">{formatDate(c.created_at)}</p>
                       <p className="theme-text-muted text-xs truncate">{c.vendedor || '—'}</p>
                       <p className="text-xs theme-text">Costo ${costo.toFixed(2)}</p>
-                      <p className={`text-xs font-medium ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>Ganancia ${ganancia.toFixed(2)}</p>
-                      {c.detalles?.pago && (
-                        <p className={`text-xs font-medium ${c.detalles.pago === 'pagado' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                          {c.detalles.pago === 'pagado' ? 'Pagado' : 'Adeudado'}
-                        </p>
-                      )}
+                      <p className={`text-xs font-semibold ${ganancia >= 0 ? 'text-money-ok' : 'text-money-bad'}`}>Ganancia ${ganancia.toFixed(2)}</p>
+                      <p className="text-xs font-semibold theme-text">
+                        {c.detalles?.pago === 'pagado' ? 'Pagado' : c.detalles?.pago === 'adeudado' ? 'Adeudado' : 'Pago sin marcar'}
+                      </p>
                     </button>
+                    <div className="flex flex-wrap gap-1 pt-2">
+                      <button type="button" disabled={updating === c.id} onClick={() => marcarPago(c, 'pagado')} className={`btn-pago ${c.detalles?.pago === 'pagado' ? 'btn-pago-on' : ''}`}>Pagado</button>
+                      <button type="button" disabled={updating === c.id} onClick={() => marcarPago(c, 'adeudado')} className={`btn-pago ${c.detalles?.pago === 'adeudado' ? 'btn-deuda-on' : ''}`}>Adeudado</button>
+                      {ESTADOS.findIndex((e) => e.id === getEstado(c)) < ESTADOS.length - 1 && (
+                        <button
+                          type="button"
+                          disabled={updating === c.id}
+                          onClick={() => setEstado(c.id, ESTADOS[ESTADOS.findIndex((e) => e.id === getEstado(c)) + 1].id)}
+                          className="btn-paso"
+                        >
+                          Pasar a {ESTADOS[ESTADOS.findIndex((e) => e.id === getEstado(c)) + 1].label}
+                        </button>
+                      )}
+                    </div>
                   </Card>
                   )
                 })}
@@ -426,18 +443,21 @@ export default function CotizacionesEspera() {
                   )}
                   <div className="flex flex-wrap gap-1">
                     {ESTADOS.map((e) => (
-                      <span key={e.id} className={`text-[10px] px-2 py-0.5 rounded ${getEstado(ordenAbiertaData) === e.id ? 'bg-cyan-600 text-white' : 'bg-white/10 theme-text-muted'}`}>
+                      <span key={e.id} className={`text-[11px] px-2 py-1 rounded font-semibold ${getEstado(ordenAbiertaData) === e.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-900 border border-slate-900'}`}>
                         {e.label}
                       </span>
                     ))}
                   </div>
-                  <button type="button" onClick={() => descargarPdf(ordenAbiertaData)} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 theme-text text-sm">
+                  <p className="text-sm font-semibold theme-text">
+                    {ordenAbiertaData.detalles?.pago === 'pagado' ? 'Pagado' : ordenAbiertaData.detalles?.pago === 'adeudado' ? 'Adeudado' : 'Pago sin marcar'}
+                  </p>
+                  <button type="button" onClick={() => descargarPdf(ordenAbiertaData)} className="btn-paso inline-flex items-center gap-2">
                     <FileDown className="w-4 h-4" />
                     Descargar PDF
                   </button>
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => marcarPago(ordenAbiertaData, 'pagado')} className="text-xs px-2 py-1 rounded bg-emerald-600/20 text-emerald-400">Marcar como pagado</button>
-                    <button type="button" onClick={() => marcarPago(ordenAbiertaData, 'adeudado')} className="text-xs px-2 py-1 rounded bg-amber-600/20 text-amber-300">Marcar como adeudado</button>
+                    <button type="button" onClick={() => marcarPago(ordenAbiertaData, 'pagado')} className={`btn-pago ${ordenAbiertaData.detalles?.pago === 'pagado' ? 'btn-pago-on' : ''}`}>Pagado</button>
+                    <button type="button" onClick={() => marcarPago(ordenAbiertaData, 'adeudado')} className={`btn-pago ${ordenAbiertaData.detalles?.pago === 'adeudado' ? 'btn-deuda-on' : ''}`}>Adeudado</button>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {ESTADOS.findIndex((e) => e.id === getEstado(ordenAbiertaData)) < ESTADOS.length - 1 && (
@@ -445,24 +465,24 @@ export default function CotizacionesEspera() {
                         type="button"
                         onClick={() => setEstado(ordenAbiertaData.id, ESTADOS[ESTADOS.findIndex((e) => e.id === getEstado(ordenAbiertaData)) + 1].id)}
                         disabled={updating === ordenAbiertaData.id}
-                        className="text-xs px-2 py-1 rounded bg-white/10 theme-text inline-flex items-center gap-1"
+                        className="btn-paso inline-flex items-center gap-1"
                       >
-                        Siguiente <ChevronRight className="w-3 h-3" />
+                        Pasar a {ESTADOS[ESTADOS.findIndex((e) => e.id === getEstado(ordenAbiertaData)) + 1].label} <ChevronRight className="w-3 h-3" />
                       </button>
                     )}
                     {isOrdenVendedor(ordenAbiertaData) && getEstadoVendedor(ordenAbiertaData) === 'pendiente' && isDesigner && (
                       <button
                         type="button"
                         onClick={() => setCotizarModal({ id: ordenAbiertaData.id, descripcion: ordenAbiertaData.descripcion, costo_base: ordenAbiertaData.costo_base || 0, costo_final: ordenAbiertaData.costo_final || 0 })}
-                        className="text-xs px-2 py-1 rounded bg-cyan-600 text-white"
+                        className="btn-paso"
                       >
                         Cotizar
                       </button>
                     )}
                     {(user?.role === 'administrador' || user?.role === 'vendedor') && (
                       <>
-                        <button type="button" onClick={() => autorizarVenta(ordenAbiertaData.id, 'general')} className="text-xs px-2 py-1 rounded bg-emerald-600/20 text-emerald-400">Producto general</button>
-                        <button type="button" onClick={() => autorizarVenta(ordenAbiertaData.id, 'propio')} className="text-xs px-2 py-1 rounded bg-cyan-600/20 text-cyan-400">Producto propio</button>
+                        <button type="button" onClick={() => autorizarVenta(ordenAbiertaData.id, 'general')} className="btn-pago">Contar en ventas, catálogo general</button>
+                        <button type="button" onClick={() => autorizarVenta(ordenAbiertaData.id, 'propio')} className="btn-pago">Contar en ventas, solo mío</button>
                       </>
                     )}
                     <button type="button" onClick={() => deleteOne(ordenAbiertaData.id)} className="text-red-400 p-1" aria-label="Eliminar">

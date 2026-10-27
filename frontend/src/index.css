@@ -69,6 +69,42 @@
   --theme-btn-secondary-text: #0f172a;
 }
 
+.text-money-ok { color: #6ee7b7; }
+.text-money-bad { color: #fca5a5; }
+[data-theme="light"] .text-money-ok { color: #047857; }
+[data-theme="light"] .text-money-bad { color: #b91c1c; }
+
+.btn-pago {
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid #0f172a;
+  background: #ffffff;
+  color: #0f172a;
+}
+.btn-pago-on {
+  background: #047857;
+  border-color: #047857;
+  color: #ffffff;
+}
+.btn-deuda-on {
+  background: #d97706;
+  border-color: #92400e;
+  color: #0f172a;
+}
+.btn-paso {
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid #0f172a;
+  background: #0f172a;
+  color: #ffffff;
+}
+
 /* Compatibilidad con clases existentes */
 :root {
   --glass-bg: var(--theme-bg-card);

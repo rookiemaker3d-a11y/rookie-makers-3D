@@ -327,11 +327,11 @@ export default function Ventas() {
                         <td className="py-2 px-3 theme-text">{v.fecha}</td>
                         <td className="py-2 px-3 theme-text text-xs">{v.vendedor || '—'}</td>
                         <td className="py-2 px-3 theme-text text-right tabular-nums">${costo.toFixed(2)}</td>
-                        <td className={`py-2 px-3 text-right tabular-nums font-medium ${ganancia >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <td className={`py-2 px-3 text-right tabular-nums font-semibold ${ganancia >= 0 ? 'text-money-ok' : 'text-money-bad'}`}>
                           ${ganancia.toFixed(2)}
                         </td>
-                        <td className={`py-2 px-3 text-xs font-medium ${v.pago === 'pagado' ? 'text-emerald-400' : v.pago === 'adeudado' ? 'text-amber-400' : 'theme-text-muted'}`}>
-                          {v.pago === 'pagado' ? 'Pagado' : v.pago === 'adeudado' ? 'Adeudado' : '—'}
+                        <td className="py-2 px-3 text-xs font-semibold theme-text">
+                          {v.pago === 'pagado' ? 'Pagado' : v.pago === 'adeudado' ? 'Adeudado' : 'Pago sin marcar'}
                         </td>
                       </tr>
                       {abiertaFila && (
@@ -349,10 +349,10 @@ export default function Ventas() {
                               <div className="space-y-2">
                                 {v.notas && <p className="text-xs theme-text-dim">{v.notas}</p>}
                                 <div className="flex flex-wrap gap-2">
-                                  <button type="button" onClick={async (e) => { e.stopPropagation(); await api(`/ventas/${v.id}`, { method: 'PATCH', body: JSON.stringify({ pago: 'pagado' }) }); load() }} className="px-2 py-1 rounded bg-emerald-600/20 text-xs text-emerald-400">Marcar como pagado</button>
-                                  <button type="button" onClick={async (e) => { e.stopPropagation(); await api(`/ventas/${v.id}`, { method: 'PATCH', body: JSON.stringify({ pago: 'adeudado' }) }); load() }} className="px-2 py-1 rounded bg-amber-600/20 text-xs text-amber-300">Marcar como adeudado</button>
-                                  <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white/10 text-xs theme-text"><Pencil size={12} /> Editar</button>
-                                  <button type="button" onClick={(e) => { e.stopPropagation(); deleteOne(v.id) }} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-500/10 text-xs text-red-400"><Trash2 size={12} /> Eliminar</button>
+                                  <button type="button" onClick={async (e) => { e.stopPropagation(); await api(`/ventas/${v.id}`, { method: 'PATCH', body: JSON.stringify({ pago: 'pagado' }) }); load() }} className={`btn-pago ${v.pago === 'pagado' ? 'btn-pago-on' : ''}`}>Pagado</button>
+                                  <button type="button" onClick={async (e) => { e.stopPropagation(); await api(`/ventas/${v.id}`, { method: 'PATCH', body: JSON.stringify({ pago: 'adeudado' }) }); load() }} className={`btn-pago ${v.pago === 'adeudado' ? 'btn-deuda-on' : ''}`}>Adeudado</button>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(v) }} className="btn-pago inline-flex items-center gap-1"><Pencil size={12} /> Editar</button>
+                                  <button type="button" onClick={(e) => { e.stopPropagation(); deleteOne(v.id) }} className="btn-pago inline-flex items-center gap-1"><Trash2 size={12} /> Eliminar</button>
                                 </div>
                               </div>
                             </div>
