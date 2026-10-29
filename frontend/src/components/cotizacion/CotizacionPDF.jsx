@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
   tableCell: { fontSize: 8, flex: 1 },
   tableHeaderBlack: { fontWeight: 'bold', backgroundColor: '#111', color: '#fff', padding: 4 },
   tableRight: { textAlign: 'right' },
-  totalsBlock: { width: 180, alignSelf: 'flex-end', marginTop: 8 },
+  totalsBlock: { width: 240, alignSelf: 'flex-end', marginTop: 8 },
   // Términos
   termsArea: { borderWidth: 1.5, borderColor: '#111', marginTop: 14 },
   termsText: { fontSize: 9, lineHeight: 1.9, color: '#333', padding: 6 },
@@ -223,21 +223,33 @@ export default function CotizacionPDF({
               <Text style={[styles.tableCell, styles.tableHeaderBlack, { flex: 2 }]}>PIEZA</Text>
               <Text style={[styles.tableCell, styles.tableHeaderBlack]}>TIEMPO</Text>
               <Text style={[styles.tableCell, styles.tableHeaderBlack]}>COLOR A USAR</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>CANT.</Text>
+              <Text style={[styles.tableCell, styles.tableHeaderBlack, styles.tableRight]}>COSTO FINAL</Text>
             </View>
-            {partidas.map((l, i) => (
-              <View key={i} style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || NA}</Text>
-                <Text style={styles.tableCell}>{l.horas_impresion != null && l.horas_impresion !== '' ? `${l.horas_impresion} h` : NA}</Text>
-                <Text style={styles.tableCell}>{l.color_producto || NA}</Text>
-              </View>
-            ))}
+            {partidas.map((l, i) => {
+              const cant = Math.max(1, Number(l.cantidad) || 1)
+              const finalLinea = Number(l.costo_final)
+              const unit = Number(l.costo_unitario)
+              const costoFinal = Number.isFinite(finalLinea) && finalLinea > 0
+                ? finalLinea
+                : (Number.isFinite(unit) ? unit * cant : 0)
+              return (
+                <View key={i} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { flex: 2 }]}>{l.nombre_producto || NA}</Text>
+                  <Text style={styles.tableCell}>{l.horas_impresion != null && l.horas_impresion !== '' ? `${l.horas_impresion} h` : NA}</Text>
+                  <Text style={styles.tableCell}>{l.color_producto || NA}</Text>
+                  <Text style={[styles.tableCell, styles.tableRight]}>{cant}</Text>
+                  <Text style={[styles.tableCell, styles.tableRight]}>${costoFinal.toFixed(2)}</Text>
+                </View>
+              )
+            })}
           </View>
           <View style={styles.totalsBlock}>
             <View style={styles.totalRow}><Text style={styles.totalLbl}>SUB TOTAL</Text><Text style={styles.totalVal}>${subTotal.toFixed(2)}</Text></View>
             {(descuento > 0) && <View style={styles.totalRow}><Text style={styles.totalLbl}>DESCUENTO</Text><Text style={styles.totalVal}>${descuento.toFixed(2)}</Text></View>}
             {empaque > 0 && <View style={styles.totalRow}><Text style={styles.totalLbl}>EMPAQUE</Text><Text style={styles.totalVal}>${empaque.toFixed(2)}</Text></View>}
             {(envio > 0) && <View style={styles.totalRow}><Text style={styles.totalLbl}>ENVIO</Text><Text style={styles.totalVal}>${envio.toFixed(2)}</Text></View>}
-            <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
+            <View style={[styles.totalRow, styles.totalFinal]}><Text style={styles.totalFinalLbl}>TOTAL DE LA COTIZACIÓN</Text><Text style={styles.totalFinalVal}>${total.toFixed(2)}</Text></View>
           </View>
         </View>
 
